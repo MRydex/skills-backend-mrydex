@@ -1,0 +1,50 @@
+{
+  "name": "skills-backend-mrydex",
+  "version": "1.2.0",
+  "description": ".NET 8 Backend Best Practices Skill for AI Coding Assistants (Antigravity, Claude Code, Cursor, Windsurf, Copilot, Codex)",
+  "main": "bin/cli.js",
+  "bin": {
+    "skills-backend": "./bin/cli.js",
+    "skills-backend-mrydex": "./bin/cli.js"
+  },
+  "scripts": {
+    "version": "node bin/sync-version.js && git add skills/desarrollo-backend-buenas-practicas/SKILL.md",
+    "sync-version": "node bin/sync-version.js",
+    "test": "node bin/cli.js --help",
+    "install:global": "node bin/cli.js --global",
+    "install:workspace": "node bin/cli.js --workspace",
+    "install:all": "node bin/cli.js --agent all"
+  },
+  "keywords": [
+    "antigravity",
+    "claude-code",
+    "cursor",
+    "copilot",
+    "codex",
+    "agent-skills",
+    "skills",
+    "dotnet",
+    "aspnetcore",
+    "csharp",
+    "clean-architecture",
+    "dapper",
+    "backend"
+  ],
+  "author": "MRydex",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MRydex/skills-backend-mrydex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MRydex/skills-backend-mrydex/issues"
+  },
+  "homepage": "https://github.com/MRydex/skills-backend-mrydex#readme",
+  "files": [
+    "bin",
+    "skills",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ]
+}
