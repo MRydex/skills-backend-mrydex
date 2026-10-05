@@ -1,6 +1,6 @@
 ---
 name: desarrollo-backend-buenas-practicas
-version: 1.2.0
+version: 1.3.0
 description: >
   Convenciones oficiales del equipo para APIs backend .NET 10 (ASP.NET Core) con Clean Architecture (Api / Application / Domain / Infrastructure), con seguridad por defecto (Red Team / Blue Team, OWASP Top 10 y OWASP API Top 10): controllers delgados versionados por URL, mediator propio (IRequest / IRequestHandler), requests como records, primary constructors, FluentValidation con Guard, excepciones tipadas + IExceptionHandler + ProblemDetails, Dapper con SQL parametrizado, DbSession / UnitOfWork para transacciones, repositorios Command / Query separados, cache por decorator (Scrutor, IMemoryCache / Redis), typed HttpClient con Polly, Options pattern con ValidateOnStart, secretos en Azure Key Vault, observabilidad corporativa, CancellationToken de punta a punta, tests xUnit + Moq, pipelines Azure DevOps con SonarCloud. Usar siempre, antes de la primera herramienta, ante cualquier pedido en un proyecto backend .NET (repos con *.sln / *.csproj / Program.cs): preguntas, explicaciones, revisión, depuración o cambios en C#, SQL, appsettings, pipelines o tests, aunque el usuario no mencione .NET explícitamente. Define además cómo trabaja el agente: modo caveman, modelo fuerte que orquesta y revisa con subagentes baratos, graphify, autocompactación y preguntas previas.
 ---
