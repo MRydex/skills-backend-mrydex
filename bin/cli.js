@@ -2,7 +2,7 @@
 
 /**
  * skills-backend-mrydex CLI
- * Universal installer for .NET 8 Backend Best Practices Skill
+ * Universal installer for .NET 10 Backend Best Practices Skill
  * Compatible with Antigravity, Claude Code, Cursor, Windsurf, GitHub Copilot, Codex, and Agent Skills standard.
  */
 
@@ -39,7 +39,7 @@ const args = process.argv.slice(2);
 function printHelp() {
   console.log(`
 ${colors.bold}${colors.cyan}skills-backend-mrydex v${pkgVersion}${colors.reset}
-${colors.dim}Universal .NET 8 Backend Best Practices Skill for AI Coding Assistants${colors.reset}
+${colors.dim}Universal .NET 10 Backend Best Practices Skill for AI Coding Assistants${colors.reset}
 
 ${colors.bold}USO:${colors.reset}
   npx skills-backend-mrydex [opciones]
@@ -60,6 +60,7 @@ ${colors.bold}OPCIONES:${colors.reset}
   ${colors.green}--no-caveman${colors.reset}            No instala el plugin caveman (por defecto: global + reglas en el repo)
   ${colors.green}--no-graphify${colors.reset}           No instala ni configura graphify (por defecto: instala/actualiza
                           el CLI y, en el proyecto, integra todos los agentes y arma el grafo)
+  ${colors.green}--no-security-audit${colors.reset}     No instala la skill security-audit de Cloudflare (por defecto: global)
   ${colors.green}--dry-run${colors.reset}               Muestra los archivos y destinos sin escribir cambios
   ${colors.green}-v, --version${colors.reset}           Muestra la versión del paquete
   ${colors.green}-h, --help${colors.reset}              Muestra esta ayuda
@@ -95,6 +96,7 @@ const isWorkspace = args.includes('-w') || args.includes('--workspace');
 const includeBridge = args.includes('-b') || args.includes('--bridge');
 const skipGraphify = args.includes('--no-graphify');
 const skipCaveman = args.includes('--no-caveman');
+const skipSecurityAudit = args.includes('--no-security-audit');
 
 function getArgValue(flags) {
   for (const flag of flags) {
@@ -137,6 +139,28 @@ function copyFolderRecursive(source, target) {
   }
 }
 
+// Un repo ajeno puede traer `CLAUDE.md`, `.gitignore` o `skills/` como symlink a un archivo del
+// usuario: escribir ahí lo pisaría fuera del repo. Dentro del repo no se sigue ningún link.
+function isLinkedRepoPath(repoRoot, target) {
+  const rel = path.relative(repoRoot, target);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return false;
+  let current = repoRoot;
+  for (const part of rel.split(path.sep)) {
+    current = path.join(current, part);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch {
+      return false; // no existe: se crea como archivo/carpeta real
+    }
+    if (stat.isSymbolicLink()) {
+      console.log(`  ${colors.yellow}⚠${colors.reset} ${current} es un symlink: se omite para no escribir fuera del repo.`);
+      return true;
+    }
+  }
+  return false;
+}
+
 function copyBridgeFiles(projectRoot) {
   const bridges = [
     { src: 'AGENTS.md', dest: 'AGENTS.md', desc: 'Codex / Copilot / Universal' },
@@ -149,7 +173,7 @@ function copyBridgeFiles(projectRoot) {
   for (const b of bridges) {
     const srcFile = path.join(templatesDir, b.src);
     const destFile = path.join(projectRoot, b.dest);
-    if (fs.existsSync(srcFile)) {
+    if (fs.existsSync(srcFile) && !isLinkedRepoPath(projectRoot, destFile)) {
       if (isDryRun) {
         console.log(`${colors.dim}[dry-run] Crear ${b.dest} (${b.desc})${colors.reset}`);
       } else {
@@ -198,6 +222,7 @@ function getRepoRoot(dir) {
 
 function ensureAiGitignore(projectRoot, extraEntries = []) {
   const gitignorePath = path.join(projectRoot, '.gitignore');
+  if (isLinkedRepoPath(projectRoot, gitignorePath)) return;
   const hasGitignore = fs.existsSync(gitignorePath);
   if (!hasGitignore && !fs.existsSync(path.join(projectRoot, '.git'))) return;
 
@@ -339,14 +364,19 @@ function installGlobals(homeDir) {
 
 // Skill + puentes en la raíz del repo. Solo se llama con un repo git (el proyecto recibe graphify).
 function installWorkspace(repoRoot) {
-  installTarget(path.join(repoRoot, '.agents', 'skills', SKILL_NAME), 'Workspace (.agents/skills)');
-  installTarget(path.join(repoRoot, 'skills', SKILL_NAME), 'Workspace (skills/)');
+  const workspaceTargets = [
+    [path.join(repoRoot, '.agents', 'skills', SKILL_NAME), 'Workspace (.agents/skills)'],
+    [path.join(repoRoot, 'skills', SKILL_NAME), 'Workspace (skills/)'],
+  ];
+  for (const [destDir, label] of workspaceTargets) {
+    if (!isLinkedRepoPath(repoRoot, destDir)) installTarget(destDir, label);
+  }
   copyBridgeFiles(repoRoot);
 }
 
 async function run() {
   console.log(`
-${colors.bold}${colors.magenta}=== Instalador de Skills Backend (.NET 8) ===${colors.reset}`);
+${colors.bold}${colors.magenta}=== Instalador de Skills Backend (.NET 10) ===${colors.reset}`);
   console.log(`${colors.dim}Compatible con Antigravity, Claude Code, Cursor, Windsurf, Copilot & Codex${colors.reset}
 `);
 
@@ -486,6 +516,21 @@ ${colors.bold}${colors.cyan}Caveman:${colors.reset} instalando el plugin para lo
   }
 }
 
+// Skill de auditoría de seguridad de Cloudflare (§11.5): se instala global con el Skills CLI.
+const SECURITY_AUDIT_REPO = 'https://github.com/cloudflare/security-audit-skill';
+
+function installSecurityAudit(homeDir) {
+  console.log(`
+${colors.bold}${colors.cyan}Security audit:${colors.reset} instalando la skill de Cloudflare...`);
+  const cmdArgs = ['-y', 'skills', 'add', SECURITY_AUDIT_REPO, '--skill', 'security-audit', '--global', '--yes'];
+  if (isDryRun) {
+    console.log(`${colors.dim}[dry-run] npx ${cmdArgs.join(' ')}${colors.reset}`);
+    return;
+  }
+  if (runNpx(cmdArgs, homeDir).ok) logOk('security-audit instalada (global)');
+  else console.log(`  ${colors.yellow}⚠${colors.reset} security-audit falló. Correr a mano: npx skills add ${SECURITY_AUDIT_REPO} --skill security-audit --global`);
+}
+
 function finish() {
   for (const root of projectRoots) ensureAiGitignore(root);
   if (!skipGraphify) {
@@ -493,6 +538,7 @@ function finish() {
     for (const root of projectRoots) setupGraphifyProject(root);
   }
   if (!skipCaveman) installCaveman(os.homedir(), [...projectRoots]);
+  if (!skipSecurityAudit) installSecurityAudit(os.homedir());
   if (pendingSubagents) installSubagents({ ...pendingSubagents, isDryRun, log: logOk });
 
   console.log(`

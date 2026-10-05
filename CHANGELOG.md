@@ -3,6 +3,31 @@
 Cambios de la skill `desarrollo-backend-buenas-practicas` y del instalador `skills-backend-mrydex`.
 Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
+## [Unreleased]
+
+### Agregado
+- El instalador instala global la skill `security-audit` de Cloudflare
+  (`npx skills add https://github.com/cloudflare/security-audit-skill --skill security-audit --global`).
+  Flag `--no-security-audit` para omitirla.
+- `references/11-security.md` §11.5: cuándo usar la skill (modo guía en cada revisión, auditoría
+  completa solo a pedido) y qué hacer con los hallazgos. Ítem nuevo en `checklists.md`.
+- `references/14-agent-efficiency.md` §14.3.4.1: `/batch` de Claude Code para cambios grandes y
+  paralelizables (un agente por unidad en su worktree, revisión del modelo fuerte antes de mergear).
+- `references/02-csharp-design.md`: features de C# 13/14 (`field`, asignación null-condicional,
+  `Lock`, `params` de colecciones, bloques `extension`), solo sobre `net10.0`.
+
+### Seguridad
+- El instalador ya no escribe a través de symlinks ni junctions dentro del repo (`CLAUDE.md`,
+  `AGENTS.md`, `.cursorrules`, `.gitignore`, `skills/`, `.agents/`). Un repo ajeno podía usarlos para
+  pisar o borrar archivos del usuario fuera del repo. Ahora se omiten con un aviso.
+
+### Cambiado
+- Stack base: **.NET 10 LTS** (`net10.0`), C# 14, paquetes `Microsoft.*` 10.x y EF Core 10. Repos
+  que siguen en `net8.0` mantienen su TFM y sus paquetes 8.x; migrar solo con pedido explícito.
+- OpenAPI con `Microsoft.AspNetCore.OpenApi` (OpenAPI 3.1) + Swagger UI; Swashbuckle solo donde ya existe.
+- `references/15-data-access-ef-core.md`: EF Core 10 (`LeftJoin`, `ExecuteUpdateAsync` con lambda,
+  filtros de consulta con nombre).
+
 ## [1.2.0] - 2026-10-02
 
 ### Agregado

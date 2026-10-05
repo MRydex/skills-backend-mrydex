@@ -24,8 +24,12 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
 
 ### 15.1 Versión y registro
 
-- **EF Core 8** (`Microsoft.EntityFrameworkCore.SqlServer` 8.x) sobre `net8.0`. Igual que
-  `Microsoft.Extensions.*`: no subir a 9.x/10.x sin decisión explícita (`SKILL.md` §0).
+- **EF Core 10** (`Microsoft.EntityFrameworkCore.SqlServer` 10.x) sobre `net10.0`. En repos que
+  siguen en `net8.0`: EF Core 8.x, sin subir de versión mayor sin decisión explícita (`SKILL.md` §0).
+- EF Core 10 (solo sobre `net10.0`): `LeftJoin` / `RightJoin` en LINQ en vez de
+  `GroupJoin` + `SelectMany` + `DefaultIfEmpty`; `ExecuteUpdateAsync` acepta un lambda común (setters
+  condicionales sin armar expresiones); filtros de consulta con nombre (`HasQueryFilter("Nombre", ...)`)
+  para desactivar uno solo con `IgnoreQueryFilters(["Nombre"])`.
 - `DbContext` en `Infrastructure/Persistence/<Nombre>DbContext.cs`, `internal`, con primary
   constructor (`(DbContextOptions<XDbContext> options) : DbContext(options)`).
 - Registro en `InfrastructureDependency.cs` con `AddDbContext<XDbContext>` (lifetime `Scoped`).

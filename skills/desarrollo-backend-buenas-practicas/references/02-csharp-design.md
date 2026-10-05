@@ -1,6 +1,6 @@
 ## 2. C# y diseño
 
-Reglas de lenguaje C# 12 y diseño de clases. Leer al escribir cualquier código C#.
+Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código C#.
 
 - **Primary constructors** para inyección en controllers, handlers, repositorios y servicios: `internal class CreateBankHandler(IValidator<CreateBankRequest> validator, IUnitOfWork unitOfWork) : IRequestHandler<...>`.
 - **Records** para requests y DTOs inmutables; `class` para entidades y DTOs con setters requeridos por Dapper.
@@ -12,4 +12,10 @@ Reglas de lenguaje C# 12 y diseño de clases. Leer al escribir cualquier código
 - `DateTime`: guardar y comparar en UTC o con `DateTimeOffset`; serializar ISO 8601. Sin `DateTime.Now` en lógica (inyectar `TimeProvider` si hace falta testear tiempo).
 - Dinero e importes: `decimal`, nunca `double`.
 - `GlobalUsings.cs` por proyecto para usings transversales (FluentValidation, Dapper, Domain.*). No duplicar usings en cada archivo.
+- **C# 13/14** (solo sobre `net10.0`; en repos `net8.0` no se usan):
+  - `field` en propiedades con lógica en el setter, en vez de un campo de respaldo explícito: `public string Code { get; set => field = value.Trim(); }`.
+  - Asignación null-condicional `customer?.Order = order;` en vez de `if (customer is not null)`.
+  - `System.Threading.Lock` en vez de `lock (new object())` para exclusión mutua.
+  - `params ReadOnlySpan<T>` / `params IEnumerable<T>` en vez de `params T[]` en métodos nuevos.
+  - Bloques `extension(...)` solo donde el repo ya usa métodos de extensión para ese tipo. No convertir los existentes.
 - Sin código comentado, sin `TODO` sin ticket, sin `#region` dentro de métodos. `#region` solo para agrupar registros en DI.

@@ -2,14 +2,14 @@
 name: desarrollo-backend-buenas-practicas
 version: 1.2.0
 description: >
-  Convenciones oficiales del equipo para APIs backend .NET 8 (ASP.NET Core) con Clean Architecture (Api / Application / Domain / Infrastructure), con seguridad por defecto (Red Team / Blue Team, OWASP Top 10 y OWASP API Top 10): controllers delgados versionados por URL, mediator propio (IRequest / IRequestHandler), requests como records, primary constructors, FluentValidation con Guard, excepciones tipadas + IExceptionHandler + ProblemDetails, Dapper con SQL parametrizado, DbSession / UnitOfWork para transacciones, repositorios Command / Query separados, cache por decorator (Scrutor, IMemoryCache / Redis), typed HttpClient con Polly, Options pattern con ValidateOnStart, secretos en Azure Key Vault, observabilidad corporativa, CancellationToken de punta a punta, tests xUnit + Moq, pipelines Azure DevOps con SonarCloud. Usar siempre, antes de la primera herramienta, ante cualquier pedido en un proyecto backend .NET (repos con *.sln / *.csproj / Program.cs): preguntas, explicaciones, revisión, depuración o cambios en C#, SQL, appsettings, pipelines o tests, aunque el usuario no mencione .NET explícitamente. Define además cómo trabaja el agente: modo caveman, modelo fuerte que orquesta y revisa con subagentes baratos, graphify, autocompactación y preguntas previas.
+  Convenciones oficiales del equipo para APIs backend .NET 10 (ASP.NET Core) con Clean Architecture (Api / Application / Domain / Infrastructure), con seguridad por defecto (Red Team / Blue Team, OWASP Top 10 y OWASP API Top 10): controllers delgados versionados por URL, mediator propio (IRequest / IRequestHandler), requests como records, primary constructors, FluentValidation con Guard, excepciones tipadas + IExceptionHandler + ProblemDetails, Dapper con SQL parametrizado, DbSession / UnitOfWork para transacciones, repositorios Command / Query separados, cache por decorator (Scrutor, IMemoryCache / Redis), typed HttpClient con Polly, Options pattern con ValidateOnStart, secretos en Azure Key Vault, observabilidad corporativa, CancellationToken de punta a punta, tests xUnit + Moq, pipelines Azure DevOps con SonarCloud. Usar siempre, antes de la primera herramienta, ante cualquier pedido en un proyecto backend .NET (repos con *.sln / *.csproj / Program.cs): preguntas, explicaciones, revisión, depuración o cambios en C#, SQL, appsettings, pipelines o tests, aunque el usuario no mencione .NET explícitamente. Define además cómo trabaja el agente: modo caveman, modelo fuerte que orquesta y revisa con subagentes baratos, graphify, autocompactación y preguntas previas.
 ---
 
-# Desarrollo Backend — Buenas Prácticas del Equipo (.NET 8)
+# Desarrollo Backend — Buenas Prácticas del Equipo (.NET 10)
 
 Convenciones **obligatorias** del equipo para APIs ASP.NET Core, más las reglas de cómo trabaja el agente. Ejecutar primero el Paso 0 (graphify); después leer las 8 reglas y el modo de operación; el stack (§0) vive en este archivo y todo el detalle en `references/`, un archivo por tema (ver Índice de referencias). Leer solo la referencia que pide la tarea.
 
-> **Regla maestra**: si hay una forma moderna y segura soportada por .NET 8 (primary constructors, records, `IExceptionHandler`, `ProblemDetails`, Options pattern con `ValidateOnStart`, typed `HttpClient`, `CancellationToken`, `CommandDefinition` de Dapper), **siempre usarla**. Cualquier uso de la forma legacy debe estar justificado por interoperabilidad con código existente y documentado en el PR.
+> **Regla maestra**: si hay una forma moderna y segura soportada por .NET 10 (primary constructors, records, `IExceptionHandler`, `ProblemDetails`, Options pattern con `ValidateOnStart`, typed `HttpClient`, `CancellationToken`, `CommandDefinition` de Dapper), **siempre usarla**. Cualquier uso de la forma legacy debe estar justificado por interoperabilidad con código existente y documentado en el PR.
 
 > **Regla de alcance de la skill**:
 > - Los ejemplos de esta skill son **convenciones**, no el código del proyecto. Nunca describir la app
@@ -92,7 +92,7 @@ Rige durante toda la sesión desde que la skill se carga.
 0. **Adaptarse al agente y a los modelos en uso.** Todo nombre concreto (Opus, Sonnet, Haiku, `/compact`, `AskUserQuestion`, `SendMessage`, `Agent`) es un **ejemplo**: traducirlo al equivalente del agente en uso. Las reglas no cambian; cambia la sintaxis. Ver [14-agent-efficiency.md](./references/14-agent-efficiency.md) §14.7.
 1. **Responder en modo caveman, siempre, conciso y corto.** Frases cortas, sin relleno ni cortesías, sin narrar tool calls. Reporte final: máximo ~8 viñetas; linkear archivos en vez de repetirlos. Términos técnicos, código y errores exactos. Nunca omitir negaciones. Prosa normal solo en advertencias de seguridad, acciones irreversibles, código, commits, PRs y docs.
 2. **Librerías: preguntar antes de investigar.** Paquetes `Corp.*` del feed privado: primero otra sesión/agente abierto que los conozca (`ListAgents` + `SendMessage`), después el código que ya los usa en el repo, después los XML docs del paquete en `~/.nuget/packages`, último la web. NuGet públicos: MCP de docs → Microsoft Learn → web. Ver §14.2.
-3. **El modelo seleccionado orquesta; delega solo si ahorra tokens.** Delegar búsquedas y lecturas grandes (3+ archivos, logs de build, salida de `dotnet test`, docs) y ediciones mecánicas en 8+ archivos a subagentes baratos. Tareas chicas, decisiones y revisión final: las hace el orquestador. Regla práctica: si lo que habría que leer es 3 veces o más lo que hace falta saber, delegar. Subagentes del instalador: `investigador`, `ejecutor-backend`, `revisor-checklist-backend`. Contexto compartido en `tasks/brief-<tarea>.md`. El ejecutor no adivina: si se traba devuelve `NECESITA_ADVISOR: <duda>`. Ver §14.3.
+3. **El modelo seleccionado orquesta; delega solo si ahorra tokens.** Delegar búsquedas y lecturas grandes (3+ archivos, logs de build, salida de `dotnet test`, docs) y ediciones mecánicas en 8+ archivos a subagentes baratos. Tareas chicas, decisiones y revisión final: las hace el orquestador. Regla práctica: si lo que habría que leer es 3 veces o más lo que hace falta saber, delegar. Subagentes del instalador: `investigador`, `ejecutor-backend`, `revisor-checklist-backend`. Contexto compartido en `tasks/brief-<tarea>.md`. El ejecutor no adivina: si se traba devuelve `NECESITA_ADVISOR: <duda>`. Cambios grandes y paralelizables en todo el repo: `/batch` en Claude Code (§14.3.4.1). Ver §14.3.
 4. **Preguntar todo antes de empezar.** En tareas no triviales, juntar todas las dudas que cambian el resultado (contrato del endpoint, rol requerido, tabla/SP destino, cache sí/no) y preguntarlas de una vez, con opciones y una recomendada. No preguntar lo que se resuelve leyendo el repo. Ver [13-workflow-orchestration.md](./references/13-workflow-orchestration.md) §13.6.
 5. **Autocompactar el contexto.** Al cerrar cada fase: estado en `tasks/todo.md` y `/compact Conservar: decisiones, archivos tocados, pendientes`. Nunca con un cambio a medio aplicar ni con una pregunta pendiente. Ver §14.4.
 6. **Graphify primero.** Paso 0 al empezar. `graphify query` antes de `grep` o leer archivos. `graphify update .` después de editar y antes de compactar. Ver §14.5.
@@ -105,19 +105,21 @@ Cada `§N.x` vive en `references/NN-*.md` (ver Índice de referencias): leer sol
 
 ## 0. Stack y supuestos del proyecto
 
-- **.NET 8** (`net8.0`), C# 12, `Nullable` y `ImplicitUsings` habilitados en todos los proyectos.
-  - Paquetes `Microsoft.Extensions.*` alineados con el TFM: **no** subir a 9.x/10.x sobre `net8.0` sin decisión explícita.
+- **.NET 10 LTS** (`net10.0`), C# 14, `Nullable` y `ImplicitUsings` habilitados en todos los proyectos.
+  - Paquetes `Microsoft.*` (`Extensions`, `AspNetCore`, `EntityFrameworkCore`) en 10.x, alineados con el TFM.
+  - Repo todavía en `net8.0`: seguir su TFM y sus paquetes 8.x. Migrar de TFM solo con pedido explícito
+    (es un cambio de proyecto, no de feature). Las features de C# 13/14 no se usan sobre `net8.0`.
 - **ASP.NET Core Web API** con controllers (`ControllerBase` + `[ApiController]`). Sin Minimal APIs en proyectos existentes.
 - **Versionado por URL**: `Asp.Versioning.Mvc` → `api/v{version:apiVersion}/[controller]/[action]`, default `1.0`.
 - **Mediator propio** (`Application/Mediator`: `IMediator`, `IRequest<T>`, `IRequestHandler<TRequest,T>`). **No** MediatR.
 - **FluentValidation 12** (validadores registrados con `AddValidatorsFromAssembly`, invocados vía `Guard`). Cultura `es`.
-- **Dapper** + `Microsoft.Data.SqlClient` + `Dapper.SqlBuilder` sobre SQL Server por defecto ([§5](./references/05-data-access-dapper.md)). **EF Core 8** solo en repos que ya tienen un `DbContext` ([§15](./references/15-data-access-ef-core.md)). No migrar de uno a otro ni mezclarlos en un feature sin pedido.
+- **Dapper** + `Microsoft.Data.SqlClient` + `Dapper.SqlBuilder` sobre SQL Server por defecto ([§5](./references/05-data-access-dapper.md)). **EF Core 10** solo en repos que ya tienen un `DbContext` ([§15](./references/15-data-access-ef-core.md)). No migrar de uno a otro ni mezclarlos en un feature sin pedido.
 - **Cache**: `IMemoryCache` vía `ICacheService`; Redis (`StackExchangeRedis`) opcional por flag de config. Decorators con **Scrutor**.
 - **HTTP saliente**: typed clients (`AddHttpClient<IX, X>`) + **Polly** (`RetryPolicy`) + `Corp.Extensions.HttpClient`.
 - **Config y secretos**: `appsettings.{Env}.json` + **Azure Key Vault** (`Azure.Extensions.AspNetCore.Configuration.Secrets`).
 - **Observabilidad**: `Corp.Artifact.Observability` (`ICorpLoggerHandler`) + OpenTelemetry. **No** Serilog.
 - **Auth**: token corporativo validado por `ValidateTokenFilter` (`ICorpAuthHttpService.IsValidAsync`) + `[RoleAuthorization(Roles.X)]` por action.
-- **Swagger** (Swashbuckle) habilitado fuera de Producción.
+- **OpenAPI**: `Microsoft.AspNetCore.OpenApi` (`AddOpenApi` / `MapOpenApi`, OpenAPI 3.1) + Swagger UI, solo fuera de Producción. Swashbuckle solo en repos que ya lo usan.
 - **Tests**: xUnit + Moq + `Assert` nativo; E2E con `WebApplicationFactory<Program>`. CI corre solo `UnitTest`.
 - **CI/CD**: Azure DevOps (`*-<Proyecto>.yml` por ambiente): restore feed privado, dependency-check, SonarCloud, build, test con coverage, artifact zip. Sin Docker.
 
@@ -138,7 +140,7 @@ Cada `§N.x` vive en `references/NN-*.md` (ver Índice de referencias): leer sol
 | [08-configuration-di-secrets.md](./references/08-configuration-di-secrets.md) | Options con `ValidateOnStart`, `appsettings` con nombres de secretos, DI por capa, lifetimes, feature flags. | Al tocar `Program.cs`, `appsettings` o registros de DI. |
 | [09-http-integrations.md](./references/09-http-integrations.md) | Typed `HttpClient`, timeout, Polly solo para transitorios, `ExternalApiException`, tokens de servicio, certificados. | Al integrar un sistema externo. |
 | [10-logging-tests.md](./references/10-logging-tests.md) | `ICorpLoggerHandler`, qué nunca se loguea, `traceId`; tests xUnit + Moq, naming, AAA, E2E, verificación final. | Al loguear, escribir tests o verificar una tarea. |
-| [11-security.md](./references/11-security.md) | Revisión Red Team (OWASP API Top 10), reglas fijas (CORS, cabeceras, Swagger, rate limiting), Blue Team, auditoría de dependencias. | En todo cambio, antes de entregar. |
+| [11-security.md](./references/11-security.md) | Revisión Red Team (OWASP API Top 10), reglas fijas (CORS, cabeceras, Swagger, rate limiting), Blue Team, auditoría de dependencias, skill `security-audit` de Cloudflare. | En todo cambio, antes de entregar. |
 | [12-tech-debt.md](./references/12-tech-debt.md) | Patrones de los repos existentes que el código nuevo no copia ni arregla sin pedido. | Al tocar código existente. |
 | [13-workflow-orchestration.md](./references/13-workflow-orchestration.md) | Explorar antes de editar, plan en `tasks/todo.md`, verificación, commits chicos, alcance, preguntas, sin sobreingeniería, lecciones, `.gitignore` de IA. | En toda tarea no trivial. |
 | [14-agent-efficiency.md](./references/14-agent-efficiency.md) | Caveman, consulta de librerías, orquestador + subagentes (advisor), autocompactación, graphify, adaptación al agente. | Al delegar, compactar, integrar graphify o trabajar con otro agente. |

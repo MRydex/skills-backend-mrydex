@@ -3,7 +3,7 @@
  * Formatos verificados en la documentación oficial de cada agente (ver §14.3.2 de la skill).
  *
  * El orquestador delega en ellos solo cuando baja el total de tokens (§14.3.4):
- * búsquedas/lecturas grandes y ediciones mecánicas en 3+ archivos. Lo chico lo hace él.
+ * búsquedas/lecturas en 3+ archivos y ediciones mecánicas en 8+ archivos. Lo chico lo hace él.
  */
 
 const fs = require('fs');
@@ -35,7 +35,7 @@ const ROLES = [
       'Use in .NET backend repos (*.sln / *.csproj) to implement a concrete brief from the main model when it saves tokens (mechanical edits with a clear pattern across 8+ files, boilerplate). Returns a short caveman report of files changed. Skip for small or single-file edits.',
     instructions: `Implementá exactamente el brief que te pasa el modelo principal. Nada más.
 
-1. Seguí la skill \`desarrollo-backend-buenas-practicas\` (.NET 8, Clean Architecture, controllers delgados, Dapper parametrizado, \`CancellationToken\` de punta a punta, sin sobreingeniería).
+1. Seguí la skill \`desarrollo-backend-buenas-practicas\` (.NET 10, Clean Architecture, controllers delgados, Dapper parametrizado, \`CancellationToken\` de punta a punta, sin sobreingeniería).
 2. Antes de buscar código: \`graphify query "<pregunta>"\` si existe \`graphify-out/graph.json\`.
 3. No amplíes el alcance. No agregues abstracciones, paquetes ni capas que el brief no pide. Tests solo si el brief los pide (xUnit + Moq, \`references/10-logging-tests.md\`).
 4. Si el brief es ambiguo o te trabás, no adivines: devolvé \`NECESITA_ADVISOR: <duda>\`.

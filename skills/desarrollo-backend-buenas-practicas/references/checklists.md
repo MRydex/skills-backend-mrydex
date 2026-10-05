@@ -63,6 +63,7 @@ Cada bloque remite a su referencia. Revisar solo los bloques que toca el cambio;
 ### Seguridad ([11](./11-security.md), [12](./12-tech-debt.md))
 
 - [ ] Revisión Red Team §11.1 hecha sobre cada endpoint o cambio.
+- [ ] Cambio revisado con la skill `security-audit` en modo guía (§11.5), o avisado que no está instalada.
 - [ ] Auditoría de dependencias §11.4 corrida después del último cambio de paquetes; hallazgos reportados.
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).
 - [ ] Deuda de §12 no copiada en código nuevo.

@@ -12,7 +12,7 @@ Patrones frecuentes en los repos existentes del equipo. Código nuevo **no** los
 - `ServerCertificateCustomValidationCallback => true` en clientes HTTP de Infrastructure.
 - CORS con cualquier origen + credenciales; `CustomSecurityHeaderMiddleware` existe pero no está registrado.
 - `configuration.GetValue<>` directo en DI y filtros en vez de Options.
-- Paquetes `Microsoft.Extensions.*` 9.x/10.x sobre `net8.0`.
+- Paquetes `Microsoft.Extensions.*` de una versión mayor distinta al TFM (ej. 9.x/10.x sobre `net8.0`).
 - Constantes en `struct` en vez de `static class`; typos en nombres de métodos, clases y carpetas.
 - `ConfigureAwait(false)` aislado en algunos clientes; `async/await` innecesario en passthrough de decorators.
 - Claves de `appsettings` con espacios o typos.

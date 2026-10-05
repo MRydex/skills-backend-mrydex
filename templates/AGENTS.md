@@ -1,6 +1,6 @@
 # Agent Guidelines (AGENTS.md)
 
-This project strictly follows the **.NET 8 Backend Best Practices** defined in the project skills:
+This project strictly follows the **.NET 10 Backend Best Practices** defined in the project skills:
 
 👉 **Skill Entrypoint**: [`skills/desarrollo-backend-buenas-practicas/SKILL.md`](./skills/desarrollo-backend-buenas-practicas/SKILL.md) (or [`.agents/skills/desarrollo-backend-buenas-practicas/SKILL.md`](./.agents/skills/desarrollo-backend-buenas-practicas/SKILL.md))
 

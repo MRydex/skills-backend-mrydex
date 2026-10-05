@@ -1,6 +1,6 @@
 # Skills-backend-mrydex 🚀
 
-> **Skill universal de backend .NET 8 (ASP.NET Core + Clean Architecture) para Agentes de IA.**  
+> **Skill universal de backend .NET 10 (ASP.NET Core + Clean Architecture) para Agentes de IA.**  
 > Compatible con **Google Antigravity**, **Claude Code**, **Cursor**, **Windsurf**, **GitHub Copilot**, **Codex** y cualquier agente que soporte el estándar de Agent Skills o archivos de contexto.  
 > **Distribuido directamente vía GitHub sin intermediarios.**
 
@@ -98,7 +98,11 @@ el agente siga las instrucciones:
    repo, sus reglas siempre activas (`--with-init`). En Claude Code lo activa en
    `~/.claude/settings.json`. Medido: sin el plugin las respuestas salen 33% más largas.
    `--no-caveman` lo saltea.
-8. Arma el grafo con `graphify update .` (solo código, sin LLM, sin costo de tokens).
+8. Instala global la skill **security-audit** de Cloudflare
+   ([cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)) con
+   `npx skills add`. La skill backend la usa en la revisión de seguridad (§11.5).
+   `--no-security-audit` la saltea.
+9. Arma el grafo con `graphify update .` (solo código, sin LLM, sin costo de tokens).
 
 Fuera de un repo git se instala **solo global** (skill + CLI de graphify), sin tocar la carpeta actual.
 Dentro de un repo (o una subcarpeta) instala además en la raíz del repo. Para saltear graphify:
@@ -122,6 +126,7 @@ Opciones:
   -b, --bridge            Copia archivos puente (AGENTS.md, CLAUDE.md, .cursorrules)
   --no-caveman            No instala el plugin caveman
   --no-graphify           No instala ni configura graphify
+  --no-security-audit     No instala la skill security-audit de Cloudflare
   --dry-run               Muestra qué se instalaría sin escribir cambios en disco
   -v, --version           Muestra la versión instalada
   -h, --help              Muestra la ayuda
@@ -149,7 +154,7 @@ skills/desarrollo-backend-buenas-practicas/
     ├── 12-tech-debt.md               # Deuda conocida: no copiar, no arreglar sin pedido
     ├── 13-workflow-orchestration.md  # Explorar, planificar, verificar, commits, alcance, lecciones, .gitignore
     ├── 14-agent-efficiency.md        # Caveman, advisor multi-agente, autocompact, graphify, adaptación
-    ├── 15-data-access-ef-core.md     # EF Core 8 y LINQ: consultas, escrituras, migraciones (repos con DbContext)
+    ├── 15-data-access-ef-core.md     # EF Core 10 y LINQ: consultas, escrituras, migraciones (repos con DbContext)
     └── checklists.md                 # Checklists por área + proceso del agente
 ```
 

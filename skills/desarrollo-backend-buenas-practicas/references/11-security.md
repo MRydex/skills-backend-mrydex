@@ -56,3 +56,22 @@ dotnet list package --outdated                          # informativo: no actual
 - **Transitivo vulnerable**: proponer fijar la versión segura como referencia directa (o en `Directory.Packages.props`), sin aplicarlo sin aprobación.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
+
+### 11.5 Skill `security-audit` (Cloudflare)
+
+Revisión de seguridad con la skill [`security-audit`](https://github.com/cloudflare/security-audit-skill). El instalador la deja global (`--no-security-audit` para omitirla).
+
+**Instalación a mano** (si falta o falló):
+
+```bash
+npx skills add https://github.com/cloudflare/security-audit-skill --skill security-audit --global
+```
+
+**Cuándo usarla:**
+- **Modo guía (siempre):** en la revisión Red Team de §11.1, cargar la skill y revisar el cambio con ella. Endpoints nuevos, auth, SQL, uploads, HTTP saliente o manejo de secretos.
+- **Auditoría completa (solo si el usuario la pide):** "security audit this codebase", pen test o reporte. Es cara (varios subagentes): no lanzarla sin pedido.
+- **Salida de la auditoría completa:** por defecto en `~/security-audit-skill/<repo>/run-<N>`, fuera del repo. Nunca commitear los reportes.
+
+**Qué hacer con el resultado:** igual que §11.3. Cada hallazgo con `archivo:línea`, severidad, impacto y fix propuesto. Crítico/alto bloquea la entrega.
+
+Si la skill no está instalada, decirlo y seguir con la checklist de §11.1. Nunca dar la revisión por hecha con la skill si no se cargó.

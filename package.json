@@ -1,7 +1,7 @@
 {
   "name": "skills-backend-mrydex",
   "version": "1.2.0",
-  "description": ".NET 8 Backend Best Practices Skill for AI Coding Assistants (Antigravity, Claude Code, Cursor, Windsurf, Copilot, Codex)",
+  "description": ".NET 10 Backend Best Practices Skill for AI Coding Assistants (Antigravity, Claude Code, Cursor, Windsurf, Copilot, Codex)",
   "main": "bin/cli.js",
   "bin": {
     "skills-backend": "./bin/cli.js",

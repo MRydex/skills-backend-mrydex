@@ -78,7 +78,7 @@ Antes de investigar la API o el código de una librería (paquetes `Corp.*` del 
 2. **Código del repo que ya usa la librería** (`graphify query "<Paquete>"`): cómo la usa el equipo
    pesa más que la doc genérica. Para `Corp.*` es la fuente principal.
 3. **MCP de documentación disponible** (ej. Microsoft Learn MCP, Context7, servidores de docs del equipo).
-4. **Paquete local** en `~/.nuget/packages/<paquete>/<versión>/` (XML docs junto a la DLL en `lib/net8.0/`),
+4. **Paquete local** en `~/.nuget/packages/<paquete>/<versión>/` (XML docs junto a la DLL en `lib/net10.0/`),
    vía subagente de exploración. Versión: la del `*.csproj` / `Directory.Packages.props`.
 5. **Web** (Microsoft Learn, repo oficial del paquete), solo si lo anterior no alcanza. Los `Corp.*`
    no tienen doc pública: si los pasos 1–4 no alcanzan, preguntar al usuario.
@@ -144,7 +144,7 @@ instalada (consultar primero a otro agente abierto o al MCP de docs, §14.2).
 ejecutores del equipo en la carpeta del agente (`.claude/agents/`, `.codex/agents/`,
 `.agents/agents/`, `.cursor/agents/`, `.github/agents/`, `.gemini/agents/`):
 
-- `investigador` (nivel rápido): localiza código, devuelve `archivo:línea`. Solo lectura.
+- `investigador` (nivel ejecutor: en búsquedas amplias el modelo rápido se pierde): localiza código, devuelve `archivo:línea`. Solo lectura.
 - `ejecutor-backend` (nivel ejecutor): implementa un brief y devuelve el diff.
 - `revisor-checklist-backend` (nivel rápido): revisa un diff contra [checklists.md](./checklists.md).
 
@@ -205,7 +205,7 @@ verificables, con el plan y la revisión como fases separadas.
 | Delegar | Lo hace el orquestador |
 | :--- | :--- |
 | Buscar o leer en 3+ archivos, archivos grandes, logs, salida de build, docs web | 1–2 archivos ya ubicados |
-| Ediciones mecánicas con patrón claro en 8+ archivos | Ediciones en menos de 8 archivos |
+| Ediciones mecánicas con patrón claro en 8+ archivos (muy grandes y paralelizables: `/batch`, §14.3.4.1) | Ediciones en menos de 8 archivos |
 | Piezas independientes que corren en paralelo | Pasos que dependen uno del otro y son cortos |
 | Sesión larga: todo lo que entra al contexto se paga de nuevo en cada turno | Explicar el brief cuesta tanto como hacer el trabajo |
 | | Hace falta contexto de la conversación que el subagente no tiene |
@@ -256,6 +256,29 @@ Modelo fuerte (orquestador + revisor)
 ├── subagente rápido    → revisar diff contra checklists.md                  → hallazgos
 └── revisión final del modelo fuerte + respuesta al usuario
 ```
+
+#### 14.3.4.1 Tareas grandes: `/batch` (Claude Code)
+
+Para cambios grandes y paralelizables en todo el repo, usar el comando incluido `/batch <instrucción>`
+en vez de lanzar ejecutores a mano.
+
+- **Qué hace:** investiga el repo, parte el cambio en unidades independientes (entre 5 y 30) y muestra
+  el plan para aprobar. Después lanza un agente en segundo plano por unidad, cada uno en su propio
+  git worktree. Cada agente implementa, corre los tests y abre un PR.
+- **Cuándo:** el mismo cambio en muchos módulos o features sin dependencias entre sí. Por ejemplo:
+  propagar `CancellationToken` en todos los controllers, migrar `GetValue<>` a Options en cada feature,
+  pasar repositorios a `CommandDefinition`, subir el TFM proyecto por proyecto.
+- **Cuándo no:** cambios con orden entre pasos, decisiones de diseño abiertas, menos de 8 archivos o
+  repos sin git. Ahí rige la tabla de §14.3.4.
+- **Antes de lanzarlo:** decidir el patrón, escribirlo en `tasks/brief-<tarea>.md` con un ejemplo
+  completo y citar el brief en la instrucción de `/batch`. Revisar el plan de unidades antes de
+  aprobarlo: cada unidad debe compilar sola (`dotnet build`) y no tocar archivos de otra unidad.
+- **Después:** el modelo fuerte revisa cada PR contra [checklists.md](./checklists.md) (§14.3.5)
+  antes de aprobarlo. Los PRs no se mergean sin esa revisión.
+- **Costo:** un agente completo por unidad. Usarlo solo cuando el trabajo justifica ese costo, con la
+  misma regla de decisión de §14.3.4.
+- Otros agentes sin `/batch`: mismo flujo a mano (plan de unidades, un ejecutor por unidad en paralelo,
+  revisión del modelo fuerte).
 
 #### 14.3.5 Estrategia advisor emulada: el modelo fuerte revisa siempre
 
