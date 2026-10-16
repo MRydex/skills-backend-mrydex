@@ -15,7 +15,7 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 │   └── Program.cs               # termina con `public partial class Program { }` (E2E)
 ├── <Application>/
 │   ├── Configuration/           # Guard, ApplicationConfiguration + IValidateOptions
-│   ├── Dtos/<Feature>Dtos/      # requests (record), Dto, Response
+│   ├── Dtos/<Feature>Dtos/      # <Accion><Entidad>Request (record) y <Entidad>Response
 │   │   └── Validators/          # AbstractValidator<TRequest>
 │   ├── Exceptions/              # excepciones + Handlers/ + Helpers/ + Resources/ExceptionMessages.resx
 │   ├── Interfaces/              # IUnitOfWork, ICacheService, clientes externos
@@ -44,7 +44,7 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 | Qué | Dónde | Visibilidad |
 | :--- | :--- | :--- |
 | Request de entrada (`<Accion>Request : IRequest<T>`) | `Application/Dtos/<Feature>Dtos/` | `public record` |
-| DTO / Response de salida | `Application/Dtos/<Feature>Dtos/` | `public class` o `record` |
+| Response de salida (`<Entidad>Response`) | `Application/Dtos/<Feature>Dtos/` | `public class` o `record` |
 | Validador | `Application/Dtos/<Feature>Dtos/Validators/<Accion>Validator.cs` | `public` |
 | Handler | `Application/Services/<Feature>Handlers/<Accion>Handler.cs` | `internal` |
 | Interfaz de repositorio | `Application/Services/<Feature>Handlers/Interfaces/` | `public` |
@@ -57,7 +57,18 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 ### 1.2 Naming
 
 - Archivo = nombre de la clase. Una clase/record/interfaz por archivo.
-- Handlers: `<Verbo><Entidad>Handler` (`CreateBankHandler`, `GetScoresHandler`). Request homónimo: `CreateBankRequest`.
+- Handlers: `<Verbo><Entidad>Handler` (`CreateItemHandler`, `GetItemsHandler`). Request homónimo: `CreateItemRequest`.
+- **Contrato con el front: `Request` lo que entra, `Response` lo que sale**, con el mismo nombre en C#
+  y en TypeScript (skill de frontend §2.11), así un mismo `grep` encuentra el tipo en los dos lados.
+  - Entrada: `<Accion><Entidad>Request` → `CreateItemRequest`, `GetItemsRequest`.
+  - Salida: `<Entidad>Response` → `ItemResponse`. Si una operación devuelve otra forma, le pone su
+    acción: `CreateItemResponse`. Paginado: `PagedResponse<ItemResponse>`.
+  - Nunca sufijo `Dto`, `Model` ni `ViewModel` en el contrato: el sufijo dice la dirección.
+- **Mapeo explícito, sin AutoMapper.** La entidad de `Domain` no sale de `Application`.
+  - Proyectar directo al `Response` en la consulta: Dapper con columnas = propiedades
+    (`QueryAsync<ItemResponse>`), EF con `.Select(x => new ItemResponse(...))` (§15).
+  - Si la misma proyección aparece por segunda vez, un método estático en el `Response`:
+    `ItemResponse.From(item)`. No clases `Mapper` ni `Helpers` genéricos.
 - Repositorios: `<Entidad>CommandRepository` (escrituras) / `<Entidad>QueryRepository` (lecturas) / `<Entidad>Cached<Command|Query>Repository` (decorator).
 - Métodos asincrónicos **siempre** con sufijo `Async`. Interfaces con prefijo `I`.
 - Carpetas en plural y consistentes con el namespace (`ThresholdRepositories` → namespace `...ThresholdRepositories`).

@@ -3,23 +3,23 @@
 Requests, handlers y uso del mediator del equipo. Leer al crear o modificar un caso de uso.
 
 ```csharp
-// Application/Dtos/BankDtos/CreateBankRequest.cs
-public record CreateBankRequest(string Code, string Name, IEnumerable<int> Services) : IRequest<EmptyResult>;
+// Application/Dtos/ItemDtos/CreateItemRequest.cs
+public record CreateItemRequest(string Code, string Name, IEnumerable<int> Services) : IRequest<EmptyResult>;
 
-// Application/Services/BankHandlers/CreateBankHandler.cs
-internal class CreateBankHandler(
-    IValidator<CreateBankRequest> validator,
-    IUnitOfWork unitOfWork) : IRequestHandler<CreateBankRequest, EmptyResult>
+// Application/Services/ItemHandlers/CreateItemHandler.cs
+internal class CreateItemHandler(
+    IValidator<CreateItemRequest> validator,
+    IUnitOfWork unitOfWork) : IRequestHandler<CreateItemRequest, EmptyResult>
 {
-    public async Task<EmptyResult> Handle(CreateBankRequest request, CancellationToken cancellationToken)
+    public async Task<EmptyResult> Handle(CreateItemRequest request, CancellationToken cancellationToken)
     {
         await Guard.AgainstInvalidSpecification(validator, request);
 
         unitOfWork.BeginTransaction();
         try
         {
-            await unitOfWork.BankCommandRepository.CreateAsync(request.Code, request.Name, cancellationToken);
-            await unitOfWork.BankServiceCommandRepository.CreateManyAsync(request.Code, request.Services, cancellationToken);
+            await unitOfWork.ItemCommandRepository.CreateAsync(request.Code, request.Name, cancellationToken);
+            await unitOfWork.ItemServiceCommandRepository.CreateManyAsync(request.Code, request.Services, cancellationToken);
             unitOfWork.Commit();
         }
         catch

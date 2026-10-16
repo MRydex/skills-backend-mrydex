@@ -44,7 +44,7 @@ Todas las respuestas al usuario se escriben en **modo caveman**: frases cortas, 
 
 ```text
 ❌ "¡Claro! Con gusto te ayudo. El problema que estás viendo probablemente se deba a que el handler..."
-✅ "Bug en `CreateBankHandler`. `ExecuteAsync` sin `CancellationToken`. Pasar `CommandDefinition`:"
+✅ "Bug en `CreateItemHandler`. `ExecuteAsync` sin `CancellationToken`. Pasar `CommandDefinition`:"
 ```
 
 **Excepciones — escribir en prosa normal y clara:**
@@ -424,9 +424,9 @@ archivo y la línea exactos. En Claude Code, el hook `PreToolUse` que deja `grap
 (`hook-guard`) lo recuerda en cada búsqueda:
 
 ```bash
-graphify query "¿qué handlers usan IBankQueryRepository?" --budget 1500   # contexto amplio (BFS)
-graphify query "flujo de CreateBank desde el controller hasta el SQL" --dfs # seguir un camino puntual
-graphify path "BankController" "BankCommandRepository"                    # camino más corto entre dos nodos
+graphify query "¿qué handlers usan IItemQueryRepository?" --budget 1500   # contexto amplio (BFS)
+graphify query "flujo de CreateItem desde el controller hasta el SQL" --dfs # seguir un camino puntual
+graphify path "ItemController" "ItemCommandRepository"                    # camino más corto entre dos nodos
 graphify explain "ValidateTokenFilter"                                    # un nodo y sus vecinos
 ```
 

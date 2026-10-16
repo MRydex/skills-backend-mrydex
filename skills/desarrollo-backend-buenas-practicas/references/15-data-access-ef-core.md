@@ -45,8 +45,8 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
 ### 15.2 Entidades y configuración
 
 ```csharp
-// Domain/Entities/Bank.cs
-public class Bank
+// Domain/Entities/Item.cs
+public class Item
 {
     public int Id { get; private set; }
     public string Code { get; private set; } = string.Empty;
@@ -55,12 +55,12 @@ public class Bank
     public byte[] RowVersion { get; private set; } = [];
 }
 
-// Infrastructure/Persistence/Configurations/BankConfiguration.cs
-internal class BankConfiguration : IEntityTypeConfiguration<Bank>
+// Infrastructure/Persistence/Configurations/ItemConfiguration.cs
+internal class ItemConfiguration : IEntityTypeConfiguration<Item>
 {
-    public void Configure(EntityTypeBuilder<Bank> builder)
+    public void Configure(EntityTypeBuilder<Item> builder)
     {
-        builder.ToTable("Bank", "dbo");
+        builder.ToTable("Item", "dbo");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Code).HasMaxLength(3).IsUnicode(false).IsRequired();
         builder.HasIndex(x => x.Code).IsUnique();
@@ -82,18 +82,18 @@ internal class BankConfiguration : IEntityTypeConfiguration<Bank>
 ### 15.3 Consultas LINQ
 
 ```csharp
-internal class BankQueryRepository(AppDbContext dbContext) : IBankQueryRepository
+internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepository
 {
-    public Task<BankDto?> GetByCodeAsync(string code, CancellationToken cancellationToken) =>
-        dbContext.Banks
+    public Task<ItemResponse?> GetByCodeAsync(string code, CancellationToken cancellationToken) =>
+        dbContext.Items
             .AsNoTracking()
             .Where(x => x.Code == code)
-            .Select(x => new BankDto(x.Code, x.Name, x.IsActive))
+            .Select(x => new ItemResponse(x.Code, x.Name, x.IsActive))
             .FirstOrDefaultAsync(cancellationToken);
 
-    public async Task<PagedResponse<BankDto>> GetPageAsync(GetBanksRequest request, CancellationToken cancellationToken)
+    public async Task<PagedResponse<ItemResponse>> GetPageAsync(GetItemsRequest request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Banks.AsNoTracking();
+        var query = dbContext.Items.AsNoTracking();
         if (request.IsActive is not null)
             query = query.Where(x => x.IsActive == request.IsActive);
 
@@ -102,15 +102,15 @@ internal class BankQueryRepository(AppDbContext dbContext) : IBankQueryRepositor
             .OrderBy(x => x.Code)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(x => new BankDto(x.Code, x.Name, x.IsActive))
+            .Select(x => new ItemResponse(x.Code, x.Name, x.IsActive))
             .ToListAsync(cancellationToken);
 
-        return new PagedResponse<BankDto>(items, total, request.Page, request.PageSize);
+        return new PagedResponse<ItemResponse>(items, total, request.Page, request.PageSize);
     }
 }
 ```
 
-- Lecturas **siempre** con `AsNoTracking()` y proyección con `Select` al DTO. Nunca traer la entidad
+- Lecturas **siempre** con `AsNoTracking()` y proyección con `Select` al `Response`. Nunca traer la entidad
   entera para usar dos columnas.
 - Siempre la variante async con `CancellationToken` (`ToListAsync`, `FirstOrDefaultAsync`,
   `AnyAsync`, `CountAsync`). Nunca `ToList()` / `First()` sincrónicos sobre un `IQueryable`.
@@ -137,18 +137,18 @@ internal class BankQueryRepository(AppDbContext dbContext) : IBankQueryRepositor
 
 ```csharp
 // ✅ Interpolación parametrizada: EF convierte {code} en @p0
-var bank = await dbContext.Banks
-    .FromSql($"SELECT Id, Code, Name, IsActive, RowVersion FROM dbo.Bank WHERE Code = {code}")
+var item = await dbContext.Items
+    .FromSql($"SELECT Id, Code, Name, IsActive, RowVersion FROM dbo.Item WHERE Code = {code}")
     .AsNoTracking()
     .FirstOrDefaultAsync(cancellationToken);
 
 // ✅ SP o escalares
 var total = await dbContext.Database
-    .SqlQuery<int>($"EXEC dbo.GetBankCount @IsActive = {isActive}")
+    .SqlQuery<int>($"EXEC dbo.GetItemCount @IsActive = {isActive}")
     .SingleAsync(cancellationToken);
 
 // ❌ Inyección SQL: concatenación o FromSqlRaw con texto armado
-dbContext.Banks.FromSqlRaw("SELECT * FROM dbo.Bank WHERE Code = '" + code + "'");
+dbContext.Items.FromSqlRaw("SELECT * FROM dbo.Item WHERE Code = '" + code + "'");
 ```
 
 - `FromSql` / `SqlQuery` / `ExecuteSql` con **string interpolado** (parametriza solo).
@@ -160,14 +160,14 @@ dbContext.Banks.FromSqlRaw("SELECT * FROM dbo.Bank WHERE Code = '" + code + "'")
 ### 15.5 Escrituras y transacciones
 
 ```csharp
-internal class CreateBankHandler(IValidator<CreateBankRequest> validator, IUnitOfWork unitOfWork)
-    : IRequestHandler<CreateBankRequest, EmptyResult>
+internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitOfWork unitOfWork)
+    : IRequestHandler<CreateItemRequest, EmptyResult>
 {
-    public async Task<EmptyResult> Handle(CreateBankRequest request, CancellationToken cancellationToken)
+    public async Task<EmptyResult> Handle(CreateItemRequest request, CancellationToken cancellationToken)
     {
         await Guard.AgainstInvalidSpecification(validator, request);
 
-        unitOfWork.BankCommandRepository.Add(Bank.Create(request.Code, request.Name));
+        unitOfWork.ItemCommandRepository.Add(Item.Create(request.Code, request.Name));
         await unitOfWork.SaveChangesAsync(cancellationToken);   // una transacción implícita
         return new EmptyResult();
     }
@@ -204,7 +204,7 @@ internal class CreateBankHandler(IValidator<CreateBankRequest> validator, IUnitO
 ### 15.7 Migraciones
 
 - Migraciones en el proyecto Infrastructure (`Persistence/Migrations/`), nombre descriptivo
-  (`AddBankRowVersion`). Una migración por cambio lógico.
+  (`AddItemRowVersion`). Una migración por cambio lógico.
 - **Nunca** `Database.Migrate()` / `EnsureCreated()` al arrancar la app. Se despliegan como script:
   `dotnet ef migrations script --idempotent` adjunto al PR, igual que los `.sql` de Dapper.
 - Revisar el SQL generado antes de commitear: renombres que EF interpreta como drop + add pierden

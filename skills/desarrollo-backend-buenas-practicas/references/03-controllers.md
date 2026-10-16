@@ -9,22 +9,22 @@ Forma de los controllers, rutas, roles y códigos de respuesta. Leer al crear o 
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public class BankController(IMediator mediator) : ControllerBase
+public class ItemController(IMediator mediator) : ControllerBase
 {
     [HttpPost]
-    [RoleAuthorization(Roles.BankAdmin)]
+    [RoleAuthorization(Roles.ItemAdmin)]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<ActionResult> CreateBank(CreateBankRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> CreateItem(CreateItemRequest request, CancellationToken cancellationToken)
     {
         await mediator.Send(request, cancellationToken);
         return CreatedAtAction(null, new { code = request.Code }, null);
     }
 
     [HttpGet]
-    [RoleAuthorization(Roles.BankRead)]
-    [ProducesResponseType(typeof(PagedResponse<BankDto>), StatusCodes.Status200OK)]
+    [RoleAuthorization(Roles.ItemRead)]
+    [ProducesResponseType(typeof(PagedResponse<ItemResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<ActionResult<PagedResponse<BankDto>>> GetBanks([FromQuery] GetBanksRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<ItemResponse>>> GetItems([FromQuery] GetItemsRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(request, cancellationToken);
         return result is null ? NoContent() : Ok(result);
@@ -33,7 +33,7 @@ public class BankController(IMediator mediator) : ControllerBase
 ```
 
 - Base `ControllerBase`. Atributos de clase: `[ApiController]`, `[Route(...)]`, `[ApiVersion]`, `[ProducesResponseType]` de 401/400/500.
-- Ruta por `[action]`: el nombre del action = nombre del request sin `Request` (`CreateBank` ↔ `CreateBankRequest`).
+- Ruta por `[action]`: el nombre del action = nombre del request sin `Request` (`CreateItem` ↔ `CreateItemRequest`).
 - **Todo action lleva `[RoleAuthorization(...)]`** con roles de `Domain/Structs/Roles.cs`. Endpoint anónimo = decisión explícita, documentada en el PR (único caso hoy: health check).
 - Retorno `Task<ActionResult<T>>` / `Task<ActionResult>`. Códigos: `200 Ok`, `201 CreatedAtAction`, `204 NoContent`. Errores **solo** por excepción → `ProblemDetails`.
 - `[ProducesResponseType]` por action con el tipo real: Swagger es el contrato con el frontend.

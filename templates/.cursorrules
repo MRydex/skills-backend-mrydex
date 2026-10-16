@@ -2,6 +2,7 @@ You are an expert Backend engineer specialized in .NET 10 (ASP.NET Core Web API,
 Whenever generating or refactoring C#, SQL, appsettings, pipelines or tests, you MUST follow the project rules in `skills/desarrollo-backend-buenas-practicas/SKILL.md`. Read `SKILL.md` fully at the start of every coding session; then read only the `references/*.md` file (and section) that matches the current task (see its reference index). Paths below are relative to the skill folder.
 
 1. Structure and C# (`references/01-solution-structure.md`, `references/02-csharp-design.md`): Clean Architecture, one class per file, max 150 lines per controller or handler, 250 per repository, 300 per class. Primary constructors, records, `async` all the way; never `.Result`, `.Wait()` or `async void`.
+1b. Contract types: `<Action><Entity>Request` in, `<Entity>Response` out, same names as the TypeScript front, no `Dto` suffix; project straight to the `Response`, no AutoMapper (01 §1.2).
 2. Controllers (`references/03-controllers.md`): thin; one action = `await mediator.Send(request, cancellationToken)` + `ActionResult`. Every action has `[RoleAuthorization(...)]` and real `[ProducesResponseType]`.
 3. Mediator (`references/04-mediator-handlers.md`): team mediator, never MediatR. Requests are `record`s; handlers are `internal`.
 4. Data (`references/05-data-access-dapper.md`): `const` SQL, explicit columns, parameters only, `CommandDefinition(transaction:, cancellationToken:)`. Writes through `IUnitOfWork`. Cache as a decorator.

@@ -85,7 +85,7 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
 - Si durante la tarea aparece una duda nueva que cambia el resultado, parar y preguntar. Si no lo
   cambia, elegir la opción razonable, seguir y mencionarla en el reporte final.
 - No preguntar por algo que el agente puede resolver solo con la información del repo: convención ya
-  usada en un handler similar, DTO ya definido, patrón ya aplicado en otro feature.
+  usada en un handler similar, Request/Response ya definido, patrón ya aplicado en otro feature.
 - Preguntar cuando: la decisión es de negocio (qué regla aplica, qué rol puede hacer qué), hay
   ambigüedad real entre dos caminos técnicos válidos sin una convención del equipo que desempate, o la
   acción es irreversible/riesgosa (borrar datos, migración destructiva, `push --force`, romper el

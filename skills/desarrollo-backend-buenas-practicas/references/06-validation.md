@@ -3,15 +3,15 @@
 Validadores FluentValidation y qué se valida dónde. Leer al crear o modificar un request de entrada.
 
 ```csharp
-public class CreateBankValidator : AbstractValidator<CreateBankRequest>
+public class CreateItemValidator : AbstractValidator<CreateItemRequest>
 {
-    public CreateBankValidator()
+    public CreateItemValidator()
     {
-        RuleFor(x => x.Code).NotEmpty().WithMessage(ErrorMessage.BankCodeRequired)
-            .Length(3).WithMessage(ErrorMessage.BankCodeLength);
-        RuleFor(x => x.Name).NotEmpty().WithMessage(ErrorMessage.BankNameRequired)
+        RuleFor(x => x.Code).NotEmpty().WithMessage(ErrorMessage.ItemCodeRequired)
+            .Length(3).WithMessage(ErrorMessage.ItemCodeLength);
+        RuleFor(x => x.Name).NotEmpty().WithMessage(ErrorMessage.ItemNameRequired)
             .MaximumLength(100);
-        RuleFor(x => x.Services).NotEmpty().WithMessage(ErrorMessage.BankServicesRequired);
+        RuleFor(x => x.Services).NotEmpty().WithMessage(ErrorMessage.ItemServicesRequired);
     }
 }
 ```

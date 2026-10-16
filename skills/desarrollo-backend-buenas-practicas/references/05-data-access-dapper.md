@@ -12,12 +12,12 @@ Conexiones, transacciones, SQL con Dapper y cache por decorator. Leer al tocar r
 ### 5.2 SQL
 
 ```csharp
-internal class BankCommandRepository(DbSession dbSession) : IBankCommandRepository
+internal class ItemCommandRepository(DbSession dbSession) : IItemCommandRepository
 {
     public async Task CreateAsync(string code, string name, CancellationToken cancellationToken)
     {
         const string sql = """
-            INSERT INTO dbo.Bank (Code, Name, CreatedAt)
+            INSERT INTO dbo.Item (Code, Name, CreatedAt)
             VALUES (@Code, @Name, SYSUTCDATETIME());
             """;
         var parameters = new { Code = code, Name = name };
@@ -29,7 +29,7 @@ internal class BankCommandRepository(DbSession dbSession) : IBankCommandReposito
         }
         catch (SqlException ex) when (ex.Number == 2627)
         {
-            throw new SystemValidationException(ErrorMessage.BankAlreadyExists);
+            throw new SystemValidationException(ErrorMessage.ItemAlreadyExists);
         }
         catch (OperationCanceledException)
         {

@@ -2,8 +2,8 @@
 
 Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código C#.
 
-- **Primary constructors** para inyección en controllers, handlers, repositorios y servicios: `internal class CreateBankHandler(IValidator<CreateBankRequest> validator, IUnitOfWork unitOfWork) : IRequestHandler<...>`.
-- **Records** para requests y DTOs inmutables; `class` para entidades y DTOs con setters requeridos por Dapper.
+- **Primary constructors** para inyección en controllers, handlers, repositorios y servicios: `internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitOfWork unitOfWork) : IRequestHandler<...>`.
+- **Records** para requests y responses inmutables; `class` para entidades y responses con setters requeridos por Dapper.
 - **Nullable de verdad**: sin `!` para callar warnings; validar o modelar como `T?`. Sin warnings nuevos en build.
 - `async`/`await` en toda la cadena. **Nunca** `.Result`, `.Wait()`, `GetAwaiter().GetResult()` ni `async void`.
 - Sin `async`/`await` de paso: si el método solo devuelve la `Task` de otro (decorator passthrough), retornarla directo.

@@ -14,6 +14,7 @@ This project strictly follows the **.NET 10 Backend Best Practices** defined in 
 | Any C# code | `references/02-csharp-design.md` |
 | Endpoint | `references/03-controllers.md` |
 | Use case (request + handler) | `references/04-mediator-handlers.md` |
+| Request / Response naming and mapping | `references/01-solution-structure.md` §1.2 |
 | Repository, SQL, transactions, cache | `references/05-data-access-dapper.md` |
 | Repository, LINQ, migrations (EF Core repos) | `references/15-data-access-ef-core.md` |
 | Input validation | `references/06-validation.md` |

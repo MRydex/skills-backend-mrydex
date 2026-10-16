@@ -8,7 +8,8 @@ Cada bloque remite a su referencia. Revisar solo los bloques que toca el cambio;
 - [ ] Una clase por archivo, archivo = nombre de la clase, carpeta = namespace.
 - [ ] Límites de tamaño: controller y handler 150 líneas, repositorio 250, clase 300, método 40.
 - [ ] Capas respetadas: Api → Application → Domain; Infrastructure implementa interfaces de Application.
-- [ ] Primary constructors; requests y DTOs inmutables como `record`.
+- [ ] Primary constructors; requests y responses inmutables como `record`.
+- [ ] Contrato con el front: `<Accion><Entidad>Request` lo que entra, `<Entidad>Response` lo que sale, mismo nombre en TypeScript; sin sufijo `Dto`; proyección directa al `Response`, sin AutoMapper. (§1.2)
 - [ ] Sin `.Result` / `.Wait()` / `GetAwaiter().GetResult()` / `async void`; métodos async con sufijo `Async`.
 - [ ] Sin `!` para callar nullable; sin warnings nuevos en build.
 - [ ] Importes en `decimal`; fechas en UTC o `DateTimeOffset`.
@@ -39,7 +40,7 @@ Cada bloque remite a su referencia. Revisar solo los bloques que toca el cambio;
 
 ### EF Core / LINQ ([15](./15-data-access-ef-core.md))
 
-- [ ] Lecturas con `AsNoTracking()` + `Select` al DTO; métodos async con `CancellationToken`.
+- [ ] Lecturas con `AsNoTracking()` + `Select` al `Response`; métodos async con `CancellationToken`.
 - [ ] `IQueryable` no sale del repositorio; sin N+1 ni `AsEnumerable()` antes del filtro.
 - [ ] SQL a mano con `FromSql` / `SqlQuery` interpolado; nunca `FromSqlRaw` concatenado.
 - [ ] Un `SaveChangesAsync` por handler vía `IUnitOfWork`; masivos con `ExecuteUpdateAsync` / `ExecuteDeleteAsync`.

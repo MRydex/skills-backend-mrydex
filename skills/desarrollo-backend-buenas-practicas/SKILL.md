@@ -155,35 +155,35 @@ Grupos: **código** 01–05 y 15 (EF Core) · **contrato de la API** 06–07 · 
 ```csharp
 // ❌ Lógica en controller, sin token, SQL concatenado, error como texto, conexión a mano
 [HttpGet]
-public async Task<IActionResult> GetBank(string code)
+public async Task<IActionResult> GetItem(string code)
 {
     using var cn = new SqlConnection("Server=...;Password=...");
-    var bank = await cn.QueryFirstOrDefaultAsync<Bank>($"SELECT * FROM Bank WHERE Code = '{code}'");
-    if (bank == null) return BadRequest("No existe el banco");
-    return Ok(bank);
+    var item = await cn.QueryFirstOrDefaultAsync<Item>($"SELECT * FROM Item WHERE Code = '{code}'");
+    if (item == null) return BadRequest("No existe el ítem");
+    return Ok(item);
 }
 
 // ✅ Controller delgado + handler + repo parametrizado + excepción tipada
 [HttpGet]
-[RoleAuthorization(Roles.BankRead)]
-[ProducesResponseType(typeof(BankDto), StatusCodes.Status200OK)]
-public async Task<ActionResult<BankDto>> GetBank([FromQuery] GetBankRequest request, CancellationToken cancellationToken)
+[RoleAuthorization(Roles.ItemRead)]
+[ProducesResponseType(typeof(ItemResponse), StatusCodes.Status200OK)]
+public async Task<ActionResult<ItemResponse>> GetItem([FromQuery] GetItemRequest request, CancellationToken cancellationToken)
     => Ok(await mediator.Send(request, cancellationToken));
 
-internal class GetBankHandler(IValidator<GetBankRequest> validator, IBankQueryRepository bankQueryRepository)
-    : IRequestHandler<GetBankRequest, BankDto>
+internal class GetItemHandler(IValidator<GetItemRequest> validator, IItemQueryRepository itemQueryRepository)
+    : IRequestHandler<GetItemRequest, ItemResponse>
 {
-    public async Task<BankDto> Handle(GetBankRequest request, CancellationToken cancellationToken)
+    public async Task<ItemResponse> Handle(GetItemRequest request, CancellationToken cancellationToken)
     {
         await Guard.AgainstInvalidSpecification(validator, request);
-        return await bankQueryRepository.GetByCodeAsync(request.Code, cancellationToken)
-            ?? throw new NotFoundException(ErrorMessage.BankNotFound);
+        return await itemQueryRepository.GetByCodeAsync(request.Code, cancellationToken)
+            ?? throw new NotFoundException(ErrorMessage.ItemNotFound);
     }
 }
 
 // Repo: const sql con columnas explícitas + CommandDefinition
-const string sql = "SELECT Code, Name, IsActive FROM dbo.Bank WHERE Code = @Code;";
-return await dbSession.Connection.QueryFirstOrDefaultAsync<BankDto>(
+const string sql = "SELECT Code, Name, IsActive FROM dbo.Item WHERE Code = @Code;";
+return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
     new CommandDefinition(sql, new { Code = code }, cancellationToken: cancellationToken));
 ```
 
