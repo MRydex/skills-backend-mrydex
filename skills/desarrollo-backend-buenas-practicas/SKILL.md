@@ -66,8 +66,8 @@ Nunca seguir en silencio. Causas conocidas:
 - Sin repo git → no hay hooks: el grafo se actualiza solo con `graphify update .` manual.
 
 **Durante la tarea**: la primera búsqueda sobre el código es siempre `graphify query "<pregunta>"`.
-`grep`, `Glob` o leer archivos para explorar sin consulta previa al grafo es una violación de la skill.
-Única excepción: el usuario nombró el archivo y la línea exactos. **Después de editar cualquier
+`grep`, `Glob` o leer archivos van después de la consulta: el grafo dice dónde mirar con muchos menos
+tokens. Excepción: el usuario nombró el archivo y la línea exactos. **Después de editar cualquier
 archivo**: `graphify update .` antes de la respuesta final.
 
 ---
@@ -96,7 +96,7 @@ Rige durante toda la sesión desde que la skill se carga.
 4. **Preguntar todo antes de empezar.** En tareas no triviales, juntar todas las dudas que cambian el resultado (contrato del endpoint, rol requerido, tabla/SP destino, cache sí/no) y preguntarlas de una vez, con opciones y una recomendada. No preguntar lo que se resuelve leyendo el repo. Ver [13-workflow-orchestration.md](./references/13-workflow-orchestration.md) §13.6.
 5. **Autocompactar el contexto.** Al cerrar cada fase: estado en `tasks/todo.md` y `/compact Conservar: decisiones, archivos tocados, pendientes`. Nunca con un cambio a medio aplicar ni con una pregunta pendiente. Ver §14.4.
 6. **Graphify primero.** Paso 0 al empezar. `graphify query` antes de `grep` o leer archivos. `graphify update .` después de editar y antes de compactar. Ver §14.5.
-7. **Seguridad siempre (Red Team + Blue Team).** Todo cambio pasa la revisión de [§11.1](./references/11-security.md) antes de entregarse. Nunca desactivar protecciones (validación de token, roles, validación TLS, parametrización). Toda vulnerabilidad encontrada se reporta, aunque esté fuera del alcance. **Auditoría de dependencias siempre** (§11.4): al empezar en un proyecto, después de cada cambio de paquetes y antes de entregar.
+7. **Seguridad siempre (Red Team + Blue Team).** Todo cambio pasa la revisión de [§11.1](./references/11-security.md) antes de entregarse. Nunca desactivar protecciones (validación de token, roles, validación TLS, parametrización). Toda vulnerabilidad encontrada se reporta, aunque esté fuera del alcance. Cuando el usuario pide seguridad a secas ("auditá", "¿es seguro?"), correr la auditoría completa de [§11.6](./references/11-security.md): revisión base de **todas** las áreas (cada una OK / hallazgo / N/A), profundizar con la skill de cada área cuando hay hallazgo, el área es sensible o el alcance es grande, `security-audit` + plugin `claude-security` en features o repo, y reporte de cobertura. **Auditoría de dependencias siempre** (§11.4): al empezar en un proyecto, después de cada cambio de paquetes y antes de entregar.
 8. **Archivos de IA en `.gitignore`.** Verificar que `.gitignore` excluya `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `graphify-out/`, `tasks/todo.md`, `tasks/lessons.md`. Agregar lo que falte. Preguntar antes de `git rm --cached`. Ver §13.9.
 
 Cada `§N.x` vive en `references/NN-*.md` (ver Índice de referencias): leer solo la sección que hace falta.
@@ -140,7 +140,7 @@ Cada `§N.x` vive en `references/NN-*.md` (ver Índice de referencias): leer sol
 | [08-configuration-di-secrets.md](./references/08-configuration-di-secrets.md) | Options con `ValidateOnStart`, `appsettings` con nombres de secretos, DI por capa, lifetimes, feature flags. | Al tocar `Program.cs`, `appsettings` o registros de DI. |
 | [09-http-integrations.md](./references/09-http-integrations.md) | Typed `HttpClient`, timeout, Polly solo para transitorios, `ExternalApiException`, tokens de servicio, certificados. | Al integrar un sistema externo. |
 | [10-logging-tests.md](./references/10-logging-tests.md) | `ICorpLoggerHandler`, qué nunca se loguea, `traceId`; tests xUnit + Moq, naming, AAA, E2E, verificación final. | Al loguear, escribir tests o verificar una tarea. |
-| [11-security.md](./references/11-security.md) | Revisión Red Team (OWASP API Top 10), reglas fijas (CORS, cabeceras, Swagger, rate limiting), Blue Team, auditoría de dependencias, skill `security-audit` de Cloudflare. | En todo cambio, antes de entregar. |
+| [11-security.md](./references/11-security.md) | Revisión Red Team (OWASP API Top 10), reglas fijas (CORS, cabeceras, Swagger, rate limiting), Blue Team, auditoría de dependencias, skill `security-audit` de Cloudflare, auditoría completa red + blue por áreas a pedido (§11.6). | En todo cambio, antes de entregar; §11.6 cuando se pide seguridad a secas. |
 | [12-tech-debt.md](./references/12-tech-debt.md) | Patrones de los repos existentes que el código nuevo no copia ni arregla sin pedido. | Al tocar código existente. |
 | [13-workflow-orchestration.md](./references/13-workflow-orchestration.md) | Explorar antes de editar, plan en `tasks/todo.md`, verificación, commits chicos, alcance, preguntas, sin sobreingeniería, lecciones, `.gitignore` de IA. | En toda tarea no trivial. |
 | [14-agent-efficiency.md](./references/14-agent-efficiency.md) | Caveman, consulta de librerías, orquestador + subagentes (advisor), autocompactación, graphify, adaptación al agente. | Al delegar, compactar, integrar graphify o trabajar con otro agente. |

@@ -60,7 +60,7 @@ ${colors.bold}OPCIONES:${colors.reset}
   ${colors.green}--no-caveman${colors.reset}            No instala el plugin caveman (por defecto: global + reglas en el repo)
   ${colors.green}--no-graphify${colors.reset}           No instala ni configura graphify (por defecto: instala/actualiza
                           el CLI y, en el proyecto, integra todos los agentes y arma el grafo)
-  ${colors.green}--no-security-audit${colors.reset}     No instala la skill security-audit de Cloudflare (por defecto: global)
+  ${colors.green}--no-security-audit${colors.reset}     No instala las skills de seguridad ni el plugin claude-security (por defecto: global)
   ${colors.green}--dry-run${colors.reset}               Muestra los archivos y destinos sin escribir cambios
   ${colors.green}-v, --version${colors.reset}           Muestra la versión del paquete
   ${colors.green}-h, --help${colors.reset}              Muestra esta ayuda
@@ -516,19 +516,59 @@ ${colors.bold}${colors.cyan}Caveman:${colors.reset} instalando el plugin para lo
   }
 }
 
-// Skill de auditoría de seguridad de Cloudflare (§11.5): se instala global con el Skills CLI.
-const SECURITY_AUDIT_REPO = 'https://github.com/cloudflare/security-audit-skill';
+// Skills de seguridad de la auditoría por áreas (§11.5, §11.6), globales con el Skills CLI.
+// `skills add` clona el repo en cada instalación, así que siempre queda la última versión.
+const SECURITY_SKILLS = [
+  { repo: 'cloudflare/security-audit-skill', skills: ['security-audit'] },
+  {
+    repo: 'mukul975/Anthropic-Cybersecurity-Skills',
+    // El repo trae 818 skills (~40k tokens de descripciones por sesión): solo las de APIs, auth y supply chain
+    skills: [
+      'testing-api-security-with-owasp-top-10', 'testing-cors-misconfiguration',
+      'testing-for-json-web-token-vulnerabilities', 'implementing-jwt-signing-and-verification',
+      'configuring-oauth2-authorization-flow', 'performing-oauth-scope-minimization-review',
+      'performing-web-application-vulnerability-triage', 'implementing-secret-scanning-with-gitleaks',
+      'generating-and-analyzing-sboms',
+    ],
+  },
+  {
+    repo: 'SnailSploit/claude-red',
+    // Solo la superficie de una API .NET, como Red Team sobre el código propio (§11.6), nunca contra terceros
+    skills: [
+      'offensive-sqli', 'offensive-ssrf', 'offensive-ssti', 'offensive-idor', 'offensive-xxe',
+      'offensive-deserialization', 'offensive-file-upload', 'offensive-business-logic', 'offensive-open-redirect',
+      'offensive-parameter-pollution', 'offensive-race-condition', 'offensive-request-smuggling', 'offensive-graphql',
+      'offensive-api-security', 'offensive-jwt', 'offensive-oauth', 'offensive-dependency-confusion',
+      'offensive-supply-chain', 'offensive-reporting',
+    ],
+  },
+];
+// Escaneo profundo del código propio (Anthropic), solo Claude Code
+const CLAUDE_SECURITY_PLUGIN = 'claude-security@claude-plugins-official';
 
 function installSecurityAudit(homeDir) {
   console.log(`
-${colors.bold}${colors.cyan}Security audit:${colors.reset} instalando la skill de Cloudflare...`);
-  const cmdArgs = ['-y', 'skills', 'add', SECURITY_AUDIT_REPO, '--skill', 'security-audit', '--global', '--yes'];
+${colors.bold}${colors.cyan}Seguridad:${colors.reset} instalando las skills de la auditoría por áreas (global)...`);
+  for (const { repo, skills } of SECURITY_SKILLS) {
+    const cmdArgs = ['-y', 'skills', 'add', repo, '--global', '--yes', '--skill', ...skills];
+    if (isDryRun) {
+      console.log(`${colors.dim}[dry-run] npx ${cmdArgs.join(' ')}${colors.reset}`);
+      continue;
+    }
+    if (runNpx(cmdArgs, homeDir).ok) logOk(`${repo}: ${skills.length} skills`);
+    else console.log(`  ${colors.yellow}⚠${colors.reset} ${repo} falló. Correr a mano: npx ${cmdArgs.join(' ')}`);
+  }
+
+  if (!fs.existsSync(path.join(homeDir, '.claude'))) return;
+  const pluginCmd = `claude plugin install ${CLAUDE_SECURITY_PLUGIN} --scope user`;
   if (isDryRun) {
-    console.log(`${colors.dim}[dry-run] npx ${cmdArgs.join(' ')}${colors.reset}`);
+    console.log(`${colors.dim}[dry-run] ${pluginCmd}${colors.reset}`);
     return;
   }
-  if (runNpx(cmdArgs, homeDir).ok) logOk('security-audit instalada (global)');
-  else console.log(`  ${colors.yellow}⚠${colors.reset} security-audit falló. Correr a mano: npx skills add ${SECURITY_AUDIT_REPO} --skill security-audit --global`);
+  // CLI de npm (.cmd en Windows): necesita shell; la línea es fija
+  const result = spawnSync(pluginCmd, { cwd: homeDir, shell: true, encoding: 'utf8' });
+  if (result.status === 0) logOk(`Claude Code: plugin ${CLAUDE_SECURITY_PLUGIN}`);
+  else console.log(`  ${colors.yellow}⚠${colors.reset} plugin claude-security falló. Correr a mano: ${pluginCmd}`);
 }
 
 function finish() {

@@ -1,6 +1,6 @@
 ## 11. Seguridad (Red Team / Blue Team)
 
-Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer en todo cambio antes de entregar.
+Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer en todo cambio antes de entregar. §11.6: auditoría completa por áreas cuando el usuario pide seguridad.
 
 ### 11.1 Revisión Red Team de cada cambio (obligatoria antes de entregar)
 
@@ -75,3 +75,67 @@ npx skills add https://github.com/cloudflare/security-audit-skill --skill securi
 **Qué hacer con el resultado:** igual que §11.3. Cada hallazgo con `archivo:línea`, severidad, impacto y fix propuesto. Crítico/alto bloquea la entrega.
 
 Si la skill no está instalada, decirlo y seguir con la checklist de §11.1. Nunca dar la revisión por hecha con la skill si no se cargó.
+
+### 11.6 Pedido explícito de seguridad (auditoría completa red + blue)
+
+§11.1–11.4 cubren **cada cambio**. Cuando el usuario pide seguridad a secas ("revisá la seguridad",
+"auditá esto", "¿es seguro?"), el alcance es **todo el código tocado o el que se indique**, no solo el
+último diff. Para el equipo la seguridad es prioridad: se revisan **todas las áreas**, ninguna se
+saltea en silencio, y la profundidad de cada una la decide el agente según lo que encuentra.
+
+1. **Delimitar el alcance.** Preguntar qué auditar si no está claro: el diff actual, una feature, un
+   proyecto de la solución o todo el repo.
+2. **Orientar con graphify** (`graphify query`) para ubicar controllers, handlers, repositorios, SQL,
+   auth, uploads, `HttpClient` salientes y límites de confianza. Una sola pasada alimenta a todas las
+   herramientas.
+3. **Revisión base de todas las áreas.** Recorrer la tabla de abajo completa. Cada área termina en
+   uno de tres estados: **OK** (con la evidencia, `archivo:línea`), **hallazgo** o **N/A** (con el
+   motivo: "no hay uploads en el alcance"). Incluye §11.1 (Red Team), §11.2–11.3 (reglas fijas y
+   Blue Team) y `dotnet list package --vulnerable --include-transitive` (§11.4).
+4. **Profundizar donde haga falta.** Por cada área, invocar su herramienta profunda (tabla) cuando se
+   da **cualquiera** de estas condiciones:
+   - la revisión base encontró un hallazgo o una señal dudosa;
+   - el área es sensible: auth, tokens, pagos, datos personales, uploads, permisos por usuario;
+   - el alcance es una feature completa o todo el repo.
+
+   Un área N/A no se profundiza. Solo sobre el código propio o entornos autorizados.
+5. **Auditoría general** (alcance feature o repo): correr además la skill `security-audit`
+   (Cloudflare, §11.5) y el plugin `claude-security` (Anthropic), que buscan lo que la tabla no
+   anticipa. Ambos verifican cada hallazgo antes de reportarlo. En un diff chico no: alcanza con los
+   pasos 3–4.
+6. **Priorizar** por riesgo (crítico → bajo), mapeado a OWASP API Top 10. Una línea por hallazgo:
+   archivo, línea, riesgo, fix propuesto. Triage de hallazgos dudosos o de scanners:
+   `performing-web-application-vulnerability-triage`. Redacción: `offensive-reporting`.
+7. **Corregir.** Lo que está dentro del alcance se corrige; crítico/alto bloquea la entrega. Lo que
+   queda fuera del alcance se reporta y se pregunta antes de tocarlo (§11.3). Nunca desactivar una
+   protección para "arreglar".
+8. **Reverificar.** Tras cada fix, `dotnet build` + `dotnet test` de UnitTest.
+9. **Reporte de cobertura.** Además de los hallazgos, una tabla con cada área, su estado
+   (OK / hallazgo / N/A) y la herramienta usada. Así se ve qué se revisó y qué no aplicaba.
+
+| Área | Revisión base | Herramienta profunda |
+| :--- | :--- | :--- |
+| Autorización / BOLA / BFLA (API1, API5) | §11.1 | `offensive-idor`, `offensive-business-logic` |
+| Autenticación, tokens y JWT (API2) | §11.1, §11.2 | `offensive-jwt`, `testing-for-json-web-token-vulnerabilities`, `implementing-jwt-signing-and-verification` |
+| OAuth2 / OIDC | §11.1 | `offensive-oauth`, `configuring-oauth2-authorization-flow`, `performing-oauth-scope-minimization-review` |
+| Inyección SQL (Dapper, `FromSql`) | §11.1, §5 | `offensive-sqli` |
+| Mass assignment y exposición de datos (API3) | §11.1 | `offensive-api-security`, `testing-api-security-with-owasp-top-10` |
+| Consumo de recursos y rate limiting (API4) | §11.1, §11.2 | `offensive-race-condition`, `offensive-parameter-pollution` |
+| SSRF y `HttpClient` saliente (API7) | §11.1, §9 | `offensive-ssrf` |
+| XML, deserialización y plantillas | §11.1 | `offensive-xxe`, `offensive-deserialization`, `offensive-ssti` |
+| Uploads | §11.1 | `offensive-file-upload` |
+| Redirects | §11.1 | `offensive-open-redirect` |
+| GraphQL | §11.1 | `offensive-graphql` |
+| Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `security-audit` |
+| CORS | §11.2 | `testing-cors-misconfiguration` |
+| Secretos y PII | §8, §11.1 | `implementing-secret-scanning-with-gitleaks` |
+| Errores y `ProblemDetails` (sin filtrar datos internos) | §7, §11.2 | `security-audit` |
+| Dependencias NuGet y supply chain | §11.4 | `offensive-dependency-confusion`, `offensive-supply-chain`, `generating-and-analyzing-sboms` |
+| Logging y respuesta (Blue Team) | §11.3, §10 | `security-audit` |
+
+**Eficiencia sin perder cobertura:** la revisión base de todas las áreas es obligatoria; lo que se
+dosifica es la profundidad. No releer lo mismo para cada skill: pasarles los `archivo:línea` que ya
+ubicó graphify. Si el alcance es grande, delegar el barrido por área a subagentes en paralelo (§14.3);
+la priorización, la corrección y la decisión final quedan en el modelo principal. Si falta una skill
+de la tabla, instalarla (`npx skills-backend-mrydex`) y avisar en una línea; si no se puede, hacer
+esa área con la revisión base y decirlo en el reporte de cobertura.

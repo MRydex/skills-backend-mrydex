@@ -418,8 +418,8 @@ asistente (build completo: código con AST, docs e imágenes con LLM). Sin asist
 `graphify update .` arma el grafo solo de código, sin LLM.
 
 **4. Consultar siempre primero.** Ante cualquier pregunta sobre el código (dónde está X, quién usa Y,
-cómo fluye Z), antes de `grep` o de leer archivos. `grep`, `Glob` o `Read` de exploración sin una
-consulta previa al grafo es una **violación de la skill**. Única excepción: el usuario nombró el
+cómo fluye Z), antes de `grep` o de leer archivos. `grep`, `Glob` o `Read` de exploración van después
+de la consulta: el grafo dice dónde mirar con muchos menos tokens. Excepción: el usuario nombró el
 archivo y la línea exactos. En Claude Code, el hook `PreToolUse` que deja `graphify claude install`
 (`hook-guard`) lo recuerda en cada búsqueda:
 
@@ -435,8 +435,8 @@ graphify explain "ValidateTokenFilter"                                    # un n
   (`source_location`).
 - Si el grafo no tiene la respuesta o parece desactualizado, recién ahí usar búsqueda normal.
 
-**5. Actualizar después de una tarea grande.** Al cerrar una tarea que tocó 3 o más archivos, o antes
-de compactar el contexto (§14.4):
+**5. Actualizar después de editar.** Antes de la respuesta final de toda tarea que editó archivos, y
+antes de compactar el contexto (§14.4):
 
 ```bash
 graphify update .      # re-extrae solo el código cambiado, sin LLM: no gasta tokens
@@ -455,7 +455,7 @@ graphify update .      # re-extrae solo el código cambiado, sin LLM: no gasta t
 
 ### 14.6 Regla de oro
 
-Menos tokens en la conversación principal = más contexto útil para decidir bien. Si algo lo puede hacer un modelo más barato sin perder calidad, delegarlo. Si algo lo sabe otro agente, preguntarle. Si algo se puede decir en menos palabras, decirlo así. Si el contexto ya no aporta, compactarlo. Si el grafo lo sabe, no leer el archivo entero.
+Menos tokens en la conversación principal = más contexto útil para decidir bien. Si delegar baja el total de tokens (§14.3.4), delegarlo. Si algo lo sabe otro agente, preguntarle. Si algo se puede decir en menos palabras, decirlo así. Si el contexto ya no aporta, compactarlo. Si el grafo lo sabe, no leer el archivo entero.
 
 ---
 
