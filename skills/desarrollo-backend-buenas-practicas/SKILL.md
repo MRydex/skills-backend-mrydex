@@ -1,8 +1,48 @@
 ---
 name: desarrollo-backend-buenas-practicas
-version: 1.6.0
 description: >
-  Convenciones oficiales del equipo para APIs backend .NET 10 (ASP.NET Core) con Clean Architecture (Api / Application / Domain / Infrastructure), con seguridad por defecto (Red Team / Blue Team, OWASP Top 10 y OWASP API Top 10): controllers delgados versionados por URL, mediator propio (IRequest / IRequestHandler), requests como records, primary constructors, FluentValidation con Guard, excepciones tipadas + IExceptionHandler + ProblemDetails, Dapper con SQL parametrizado, DbSession / UnitOfWork para transacciones, repositorios Command / Query separados, cache por decorator (Scrutor, IMemoryCache / Redis), typed HttpClient con Polly, Options pattern con ValidateOnStart, secretos en Azure Key Vault, observabilidad corporativa, CancellationToken de punta a punta, tests xUnit + Moq, pipelines Azure DevOps con SonarCloud. Usar siempre, antes de la primera herramienta, ante cualquier pedido en un proyecto backend .NET (repos con *.sln / *.csproj / Program.cs): preguntas, explicaciones, revisión, depuración o cambios en C#, SQL, appsettings, pipelines o tests, aunque el usuario no mencione .NET explícitamente. Define además cómo trabaja el agente: modo caveman, modelo fuerte que orquesta y revisa con subagentes baratos, graphify, autocompactación y preguntas previas.
+  Convenciones del equipo para APIs backend .NET 10 (ASP.NET Core, Clean Architecture, mediator propio, FluentValidation, ProblemDetails, Dapper / EF Core, Key Vault, seguridad OWASP, xUnit + Moq, Azure DevOps con SonarCloud) y forma de trabajar del agente (caveman, graphify, subagentes). Usar siempre, antes de la primera herramienta, en cualquier repo con *.sln, *.csproj o Program.cs, para cualquier pedido: preguntas, explicaciones, revisión, depuración, refactor o cambios, aunque no mencione .NET. Incluye pedidos sobre endpoints, controllers, handlers, validación o errores; acceso a datos (SQL, stored procedures, transacciones, cache); contrato con el front (Request / Response, mapeo, paginado); configuración (appsettings, Options, secretos); integraciones (HttpClient, Polly); logging, tests o pipelines; y seguridad de la API ("auditá", "¿es seguro?").
+metadata:
+  version: 1.6.0
+  triggers:
+    files:
+      - "**/*.sln"
+      - "**/*.csproj"
+      - "**/Program.cs"
+      - "**/*.cs"
+      - "**/appsettings*.json"
+      - "**/*.sql"
+      - "azure-pipelines*.yml"
+    keywords:
+      - dotnet
+      - c#
+      - asp.net core
+      - endpoint
+      - controller
+      - handler
+      - mediator
+      - dapper
+      - ef core
+      - sql
+      - stored procedure
+      - transacción
+      - validación
+      - fluentvalidation
+      - problemdetails
+      - appsettings
+      - key vault
+      - httpclient
+      - polly
+      - cache
+      - request
+      - response
+      - mapeo
+      - logging
+      - xunit
+      - pipeline
+      - sonarcloud
+      - seguridad
+      - auditá
 ---
 
 # Desarrollo Backend — Buenas Prácticas del Equipo (.NET 10)
