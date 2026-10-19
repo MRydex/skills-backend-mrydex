@@ -565,10 +565,22 @@ ${colors.bold}${colors.cyan}Seguridad:${colors.reset} instalando las skills de l
     console.log(`${colors.dim}[dry-run] ${pluginCmd}${colors.reset}`);
     return;
   }
-  // CLI de npm (.cmd en Windows): necesita shell; la línea es fija
-  const result = spawnSync(pluginCmd, { cwd: homeDir, shell: true, encoding: 'utf8' });
-  if (result.status === 0) logOk(`Claude Code: plugin ${CLAUDE_SECURITY_PLUGIN}`);
-  else console.log(`  ${colors.yellow}⚠${colors.reset} plugin claude-security falló. Correr a mano: ${pluginCmd}`);
+  // Ya activo desde cualquier marketplace (el oficial se renombró a anthropic-plugin-directory): no se duplica
+  let enabled = {};
+  try {
+    enabled = JSON.parse(fs.readFileSync(path.join(homeDir, '.claude', 'settings.json'), 'utf8')).enabledPlugins ?? {};
+  } catch {
+    // Sin settings.json válido no hay plugins previos
+  }
+  if (Object.keys(enabled).some((key) => enabled[key] === true && key.startsWith('claude-security@'))) {
+    logOk('Claude Code: plugin claude-security ya activo');
+    return;
+  }
+  // CLI de npm (.cmd en Windows): necesita shell; las líneas son fijas
+  const run = (cmd) => spawnSync(cmd, { cwd: homeDir, shell: true, encoding: 'utf8' }).status === 0;
+  const fallbackCmd = 'claude plugin install claude-security@anthropic-plugin-directory --scope user';
+  if (run(pluginCmd) || run(fallbackCmd)) logOk('Claude Code: plugin claude-security');
+  else console.log(`  ${colors.yellow}⚠${colors.reset} plugin claude-security falló. Correr a mano: ${fallbackCmd}`);
 }
 
 function finish() {
