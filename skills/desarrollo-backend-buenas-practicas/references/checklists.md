@@ -79,8 +79,9 @@ Cada bloque remite a su referencia. Revisar solo los bloques que toca el cambio;
 - [ ] Sin ampliar alcance: deuda de §12 reportada, no arreglada sin pedido (§13.5).
 - [ ] Sin sobreingeniería: cada clase, método y parámetro nuevo tiene un uso hoy (§13.7.1).
 - [ ] Delegación solo si ahorra tokens (3+ archivos a leer, 8+ a editar) (§14.3.4).
-- [ ] Todo resultado de un ejecutor revisado por el modelo fuerte antes de entregarlo (§14.3.5).
+- [ ] Todo resultado de un ejecutor revisado por el orquestador antes de entregarlo (§14.3.5).
 - [ ] Estado en `tasks/todo.md` y contexto compactado al cerrar cada fase (§14.4).
 - [ ] Corrección del usuario registrada en `tasks/lessons.md` (§13.8).
-- [ ] Respuestas en caveman, reporte final ≤ ~8 viñetas con links `archivo:línea` (§14.1).
+- [ ] Respuestas en caveman (salvo excepciones de seguridad y artefactos persistidos); reporte final corto: qué cambió, qué falló y qué decide el usuario, con links `archivo:línea` (§14.1).
+- [ ] `ponytail-review` corrido sobre el diff antes del reporte final; herramienta del agente que faltaba instalada y avisada en una línea (§14.8).
 - [ ] `.gitignore` cubre archivos de IA y `graphify-out/` (§13.9).

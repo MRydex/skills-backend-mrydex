@@ -16,3 +16,14 @@ Patrones frecuentes en los repos existentes del equipo. Código nuevo **no** los
 - Constantes en `struct` en vez de `static class`; typos en nombres de métodos, clases y carpetas.
 - `ConfigureAwait(false)` aislado en algunos clientes; `async/await` innecesario en passthrough de decorators.
 - Claves de `appsettings` con espacios o typos.
+- MediatR y AutoMapper en repos legacy: se respetan en ese repo, no se agregan a uno nuevo.
+- Validación con `new XValidator().Validate(request)` dentro del handler en vez de `IValidator<T>` inyectado + `Guard`.
+- Constructores clásicos con campos `_x` mezclados con primary constructors; requests `class` con `init` en vez de `record`.
+- `ProblemDetails` propio que duplica el de ASP.NET; `WebExceptionPresenter` por reflexión en vez de `IExceptionHandler`.
+- Ambiente por clave propia (`AppConfiguration:Environment == "DEV"`) en vez de `IHostEnvironment`.
+- `Newtonsoft.Json` junto a `System.Text.Json`.
+- `SmtpClient` sin `using` y HTML del mail con input del usuario sin encode.
+- `connection.BeginTransaction()` manual en repos en vez de `UnitOfWork`.
+- Query inline con `QueryAsync(sql, params)` sin `CommandDefinition`, `CancellationToken` ni timeout; `catch (Exception)` genérico en repos.
+- `KeyVault:ClientSecret` o connection strings en `appsettings.json` versionado.
+- Registros duplicados en DI.

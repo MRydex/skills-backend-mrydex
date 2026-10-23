@@ -7,3 +7,5 @@ Options pattern, DI por capa, lifetimes y secretos en Key Vault. Leer al tocar `
 - DI por capa con extension methods: `AddApplicationServices` (Application), `AddInfrastructureServices` (Infrastructure), `AddKeyVault` / `AddObservability` / `AddApiDependencies` (Api). Registrar donde vive la implementación.
 - Lifetimes: contextos de conexión `Singleton`; `DbSession`, `UnitOfWork`, servicios con estado por request `Scoped`; repositorios `Transient` (o `Scoped`, consistente con el resto). Nunca inyectar `Scoped` en `Singleton`.
 - Feature flags por config (`EnableX:IsEnable`), leídos con Options.
+- Validar Options con FluentValidation: una clase que es `AbstractValidator<T>` e `IValidateOptions<T>` a la vez, registrada `Singleton` como `IValidateOptions<T>`, más `.ValidateOnStart()`. Rangos explícitos (timeouts, reintentos) para que un valor fuera de rango no arranque la app.
+- Ambiente con `IHostEnvironment` (`IsDevelopment()`, `IsProduction()`), no con una clave propia tipo `AppConfiguration:Environment == "DEV"`.

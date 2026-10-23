@@ -3,7 +3,7 @@
  * Formatos verificados en la documentación oficial de cada agente (ver §14.3.2 de la skill).
  *
  * El orquestador delega en ellos solo cuando baja el total de tokens (§14.3.4):
- * búsquedas/lecturas en 3+ archivos y ediciones mecánicas en 8+ archivos. Lo chico lo hace él.
+ * búsquedas/lecturas grandes y ediciones mecánicas en 8+ archivos. Lo chico lo hace él.
  */
 
 const fs = require('fs');
@@ -24,7 +24,7 @@ const ROLES = [
 
 1. Primero \`graphify query "<pregunta>"\` si existe \`graphify-out/graph.json\`. Recién después grep/lectura.
 2. Nunca edites archivos. Nunca propongas cambios.
-3. Máximo 15 líneas de respuesta. Si no encontrás algo, decilo en una línea.
+3. Respuesta: solo la lista \`archivo:línea\`, sin prosa. Si no encontrás algo, decilo en una línea.
 4. Si la pregunta es ambigua, devolvé \`NECESITA_ADVISOR: <duda>\`.`,
   },
   {
@@ -32,7 +32,7 @@ const ROLES = [
     readonly: false,
     cheap: false,
     description:
-      'Use in .NET backend repos (*.sln / *.csproj) to implement a concrete brief from the main model when it saves tokens (mechanical edits with a clear pattern across 8+ files, boilerplate). Returns a short caveman report of files changed. Skip for small or single-file edits.',
+      'Use in .NET backend repos (*.sln / *.csproj) to implement a concrete brief from the main model when it saves tokens (mechanical edits with a clear pattern across 8+ files, boilerplate). Returns a short caveman report of files changed. Skip for edits in fewer than 8 files.',
     instructions: `Implementá exactamente el brief que te pasa el modelo principal. Nada más.
 
 1. Seguí la skill \`desarrollo-backend-buenas-practicas\` (.NET 10, Clean Architecture, controllers delgados, Dapper parametrizado, \`CancellationToken\` de punta a punta, sin sobreingeniería).
@@ -40,7 +40,7 @@ const ROLES = [
 3. No amplíes el alcance. No agregues abstracciones, paquetes ni capas que el brief no pide. Tests solo si el brief los pide (xUnit + Moq, \`references/10-logging-tests.md\`).
 4. Si el brief es ambiguo o te trabás, no adivines: devolvé \`NECESITA_ADVISOR: <duda>\`.
 5. Al terminar, corré \`graphify update .\`, \`dotnet build\` y, si el brief lo pide, \`dotnet test\` del proyecto UnitTest.
-6. Respuesta final en modo caveman, máximo 8 líneas: archivos tocados, resultado de build/test y cualquier problema.`,
+6. Respuesta final en modo caveman: solo archivos tocados, resultado de build/test y cualquier problema.`,
   },
   {
     name: 'revisor-checklist-backend',
@@ -112,7 +112,7 @@ const TARGETS = [
     file: (r) => `${r.name}.md`,
     render: (r) =>
       markdown(
-        [`name: ${r.name}`, `description: ${r.description}`, `model: ${r.cheap ? 'gemini-3-flash-preview' : 'inherit'}`],
+        [`name: ${r.name}`, `description: ${r.description}`, `model: ${r.cheap ? 'flash' : 'inherit'}`],
         r.instructions,
       ),
   },
@@ -159,7 +159,17 @@ In any repo with \`*.sln\`, \`*.csproj\` or \`Program.cs\` (.NET backend: C#, SQ
 
 Before the first search or file read in a git repo: run \`graphify update .\` (no LLM, no cost), then \`graphify query "<question>"\`. The graph shows where to look for far fewer tokens than Grep/Glob/Read; skip it only when I name the exact file and line. If graphify is missing: \`pip install --upgrade graphifyy\`. If it creates \`.gitattributes\` or \`graphify-out/\`, add them to \`.gitignore\`. **After editing any file, run \`graphify update .\` before your final answer.** If something fails, tell me the exact error.
 
-## Delegation to subagents in .NET repos (explicit, standing user request)
+## Agent tools (always)
+
+Installed by skills-backend-mrydex. Use them in every session; if one is missing, install it and tell me in one line (exact error if it fails):
+
+- **ponytail**: write only the code the task needs. Prefer the platform and standard library over new dependencies or abstractions. Before the final answer on a code change, run \`ponytail-review\` on the diff.
+- **agent-skills**: use the skill that matches the phase (spec, plan, build, review, ship). In .NET repos tests are part of the work (xUnit + Moq, skill §10.2): any "no test files" rule from the frontend block does not apply here.
+- **claude-code-setup** (Claude Code): in a repo without Claude Code setup, run \`claude-automation-recommender\` once and propose its result.
+- **Headroom**: Headroom is wired durably (\`headroom init -g\`) in Claude Code, Copilot CLI and Codex on macOS/Linux; its hooks start the proxy on 127.0.0.1:8787. Codex on Windows, Cursor and VS Code Copilot: start them with \`headroom wrap <agent>\`.
+- **Security**: for a vulnerability scan of the code, use the \`claude-security\` plugin (Claude Code); for focused web/API/NuGet checks, the matching Anthropic-Cybersecurity-Skills or claude-red \`offensive-*\` skill. Use \`offensive-*\` only to harden the project's own code against that attack surface (§11.1), never against third-party systems.
+
+## Delegation to subagents (explicit, standing user request)
 
 You orchestrate. I explicitly authorize and ask you to delegate to subagents, without waiting for me to ask, **only when it lowers total token usage**:
 
@@ -167,6 +177,7 @@ You orchestrate. I explicitly authorize and ask you to delegate to subagents, wi
 - Mechanical edits across 8+ files once the approach is decided: \`ejecutor-backend\` (\`ejecutor_backend\` in Codex). Orient with \`graphify query\`, write a short brief (files, pattern, one example), hand it off, then review the diff. For fewer files, edit yourself: in a measured test (3 files), delegating cost 38% more.
 - Checking a large diff against the checklists: \`revisor-checklist-backend\` (\`revisor_checklist_backend\` in Codex, cheap).
 - Launch independent pieces in parallel.
+- Codebase-wide change that splits into 5+ independent units (migrations, a new rule applied to every feature): propose \`/batch <instruction>\` in Claude Code (one background subagent per unit, each in its own worktree; verify with \`dotnet build\` and \`dotnet test\`).
 - Rule of thumb: delegate if what you would read is 3x or more what you need to know.
 
 Do it yourself when: 1-2 known files, small edits, the brief would cost as much as the work, the task needs conversation context, plain answers, decisions and the final review.

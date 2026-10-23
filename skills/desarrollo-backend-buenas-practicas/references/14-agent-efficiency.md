@@ -10,7 +10,8 @@ ejemplos: traducirlos al agente y a los modelos en uso (§14.7).
 [14.3](#143-orquestador--subagentes-baratos-estrategia-advisor) Orquestador + subagentes (advisor) ·
 [14.4](#144-autocompactación-del-contexto) Autocompactación del contexto ·
 [14.5](#145-graphify-consultar-el-grafo-antes-de-leer-archivos) Graphify · [14.6](#146-regla-de-oro) Regla de oro ·
-[14.7](#147-adaptación-al-agente-y-al-modelo-en-uso) Adaptación al agente y al modelo en uso.
+[14.7](#147-adaptación-al-agente-y-al-modelo-en-uso) Adaptación al agente y al modelo en uso ·
+[14.8](#148-herramientas-del-agente-instalar-y-usar-siempre) Herramientas del agente.
 
 ---
 
@@ -21,7 +22,7 @@ Todas las respuestas al usuario se escriben en **modo caveman**: frases cortas, 
 **Eliminar:**
 - Artículos cuando no cambian el sentido, muletillas ("básicamente", "simplemente", "realmente"), cortesías ("¡Claro!", "Con gusto"), rodeos y disculpas.
 - Preámbulos ("Voy a revisar...") y resúmenes finales que repiten lo ya dicho.
-- Narración de cada tool call. Ejecutar directo.
+- Narración de cada tool call. Sí: una línea de estado al empezar una fase o antes de un paso largo.
 - Tablas o emojis decorativos. Volcados largos de logs (citar solo la línea decisiva).
 
 **Conservar siempre:**
@@ -33,9 +34,9 @@ Todas las respuestas al usuario se escriben en **modo caveman**: frases cortas, 
 **No inventar abreviaturas** (`cfg`, `impl`, `fn`): no ahorran tokens y se leen peor.
 
 **Largo máximo (todo lo que emite la skill):**
-- **Reporte final**: máximo ~8 viñetas. Solo qué cambió (con link al archivo), qué falló y qué decide
+- **Reporte final**: solo qué cambió (con link al archivo), qué falló y qué decide
   el usuario. Nunca un resumen sección por sección ni tablas que ya están en los archivos.
-- **Avisos de estado**: una línea (`graphify OK: v0.9.71, 336 nodos`).
+- **Avisos de estado**: una línea (`graphify OK: 336 nodos`).
 - **Preguntas**: una línea por pregunta, con opciones cortas.
 - **Subagentes**: sus reportes también en caveman; el orquestador no los reenvía completos.
 - Si el detalle ya está escrito en un archivo, linkearlo en vez de repetirlo.
@@ -92,10 +93,9 @@ Antes de investigar la API o el código de una librería (paquetes `Corp.*` del 
 
 ### 14.3 Orquestador + subagentes baratos (estrategia advisor)
 
-El modelo **fuerte** (el más capaz y más caro disponible) **orquesta y revisa**: entiende el pedido,
-decide, planifica, reparte el trabajo y revisa siempre el resultado. La ejecución se delega a
-**modelos de menor potencia**. Resultado: calidad cercana a la del modelo fuerte a una fracción del
-costo, porque el modelo fuerte solo gasta tokens en decidir, destrabar y revisar.
+El modelo **seleccionado** (el de la sesión principal) **orquesta y revisa**: entiende el pedido,
+decide, planifica y revisa siempre el resultado. Delega a **modelos de menor potencia** solo lo que
+baja el total de tokens (§14.3.4); lo chico lo hace él.
 
 La regla vale para **cualquier agente y cualquier proveedor**: Claude Code, Codex, Antigravity,
 Cursor, Copilot, Gemini CLI, OpenCode o el que use la persona. Lo que cambia es la sintaxis (§14.3.2).
@@ -144,11 +144,11 @@ instalada (consultar primero a otro agente abierto o al MCP de docs, §14.2).
 ejecutores del equipo en la carpeta del agente (`.claude/agents/`, `.codex/agents/`,
 `.agents/agents/`, `.cursor/agents/`, `.github/agents/`, `.gemini/agents/`):
 
-- `investigador` (nivel ejecutor: en búsquedas amplias el modelo rápido se pierde): localiza código, devuelve `archivo:línea`. Solo lectura.
-- `ejecutor-backend` (nivel ejecutor): implementa un brief y devuelve el diff.
+- `investigador` (nivel ejecutor): localiza código, devuelve `archivo:línea`. Solo lectura.
+- `ejecutor-backend` (nivel ejecutor): implementa un brief y devuelve archivos tocados + resultado de build/test; el orquestador revisa el diff con git.
 - `revisor-checklist-backend` (nivel rápido): revisa un diff contra [checklists.md](./checklists.md).
 
-La revisión final no se delega: la hace siempre el modelo fuerte (§14.3.5).
+La revisión final no se delega: la hace siempre el orquestador (§14.3.5).
 
 **El instalador los crea en todos los agentes.** La opción global genera `investigador` (modelo
 intermedio, solo lectura: en una prueba real el modelo barato se perdía en búsquedas amplias),
@@ -162,33 +162,23 @@ frontend (`ejecutor`, `revisor-checklist`), que siguen otra skill. En Codex los 
 | Claude Code | `~/.claude/agents/*.md` | `haiku` / `sonnet` | No: regla de fábrica. El instalador agrega el pedido a `~/.claude/CLAUDE.md` |
 | Codex | `~/.codex/agents/*.toml` | Hereda el modelo; `model_reasoning_effort` `low` / `medium` | No: el instalador agrega el pedido a `~/.codex/AGENTS.md` |
 | Cursor | `~/.cursor/agents/*.md` | `inherit` (`readonly: true` en los de lectura) | Sí, según `description` |
-| Gemini CLI | `~/.gemini/agents/*.md` | `gemini-3-flash-preview` / `inherit` | Sí, según `description` |
+| Gemini CLI | `~/.gemini/agents/*.md` | `flash` / `inherit` | Sí, según `description` |
 | Antigravity | `~/.gemini/config/agents/*.md` | `flash` / `inherit` | El planner decide según `description` |
 | Copilot (VS Code) | `~/.copilot/agents/*.agent.md` | El del chat | No: se eligen a mano en el selector de agentes |
 
 - El bloque también pide cargar siempre esta skill ante cualquier trabajo en un repo .NET
-  (`*.sln`, `*.csproj`, `Program.cs`), en
-  `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md`: se lee en todas las sesiones,
+  (`*.sln`, `*.csproj`, `Program.cs`), en `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md`: se lee en todas las sesiones,
   sin depender de que la `description` coincida.
 - El pedido de delegación es un bloque marcado (`skills-backend-mrydex:start|end`). Reinstalar
   reemplaza solo ese bloque; el resto del archivo no se toca.
 - Los subagentes solo se crean para agentes cuya carpeta existe en el home (agente instalado).
 - Todos siguen la regla de §14.3.4: se usan solo si bajan el total de tokens.
-- En Claude Code también agrega `Bash(graphify:*)` y `PowerShell(graphify:*)` a `permissions.allow`
-  de `~/.claude/settings.json`, para que graphify no pida aprobación en cada sesión.
 
-#### 14.3.3 Fallback: el agente no puede lanzar subagentes con otro modelo
+#### 14.3.3 Fallback: el agente no puede lanzar subagentes
 
-Cambiar de modelo **por fase** en la misma sesión:
-
-1. **Fuerte:** explorar lo mínimo, planificar y escribir el brief en `tasks/brief-<tarea>.md`.
-2. **Cambiar al modelo ejecutor o rápido** con el selector o comando del agente. Ejecutar el brief
-   paso a paso. Marcar el avance en `tasks/todo.md`.
-3. **Volver al fuerte:** revisar el diff, el build y el checklist. Corregir o devolver al paso 2.
-
-El brief y `tasks/todo.md` en disco son el contexto compartido: el cambio de modelo no pierde nada.
-Si el agente tampoco permite cambiar de modelo, un solo modelo hace todo, pero en pasos chicos y
-verificables, con el plan y la revisión como fases separadas.
+El orquestador hace todo en la misma sesión, sin cambiar de modelo, en pasos chicos y verificables:
+plan en `tasks/todo.md`, ejecución marcando el avance, y revisión del diff, el build y el checklist
+como fase separada.
 
 #### 14.3.4 Qué delegar y cómo
 
@@ -205,7 +195,7 @@ verificables, con el plan y la revisión como fases separadas.
 | Delegar | Lo hace el orquestador |
 | :--- | :--- |
 | Buscar o leer en 3+ archivos, archivos grandes, logs, salida de build, docs web | 1–2 archivos ya ubicados |
-| Ediciones mecánicas con patrón claro en 8+ archivos (muy grandes y paralelizables: `/batch`, §14.3.4.1) | Ediciones en menos de 8 archivos |
+| Ediciones mecánicas con patrón claro en 8+ archivos | Ediciones en menos de 8 archivos |
 | Piezas independientes que corren en paralelo | Pasos que dependen uno del otro y son cortos |
 | Sesión larga: todo lo que entra al contexto se paga de nuevo en cada turno | Explicar el brief cuesta tanto como hacer el trabajo |
 | | Hace falta contexto de la conversación que el subagente no tiene |
@@ -224,7 +214,15 @@ verificables, con el plan y la revisión como fases separadas.
   multiplica los turnos. El modelo seleccionado orquesta.
 
 Si el agente no puede lanzar subagentes con un modelo más barato, delegar solo lo que ahorra
-contexto (búsquedas y lecturas grandes). El resto lo hace el orquestador (§14.3.3).
+contexto (búsquedas y lecturas grandes). El resto lo hace el orquestador. Sin subagentes: §14.3.3.
+
+**Tareas muy grandes: `/batch` (Claude Code).** Un cambio que recorre todo el codebase y se parte en
+unidades independientes (propagar `CancellationToken` en todos los controllers, pasar repositorios a
+`CommandDefinition`, aplicar una regla nueva en cada feature) no se hace con un solo `ejecutor-backend`: proponer al usuario
+`/batch <instrucción>`. Investiga el código, arma un plan de 5 a 30 unidades y lo presenta para
+aprobar. Después corre un subagente en background por unidad, cada uno en su propio worktree, que
+implementa y publica su cambio. Requiere repo git. La instrucción debe pedir verificar con
+`dotnet build` y `dotnet test` (§10.2). Para un patrón mecánico en una sola sesión alcanza el `ejecutor-backend`.
 
 **Delegar a un modelo barato cuando la tarea es** (y cumple la regla de decisión):
 - Búsqueda y localización de código ("¿dónde se define X?", "¿quién usa Y?").
@@ -234,7 +232,7 @@ contexto (búsquedas y lecturas grandes). El resto lo hace el orquestador (§14.
   tests xUnit de un handler ya decidido).
 - Revisar un diff contra el checklist ([checklists.md](./checklists.md)).
 
-**No delegar (lo hace el modelo fuerte):**
+**No delegar (lo hace el orquestador):**
 - Decisiones de arquitectura, diseño de APIs, trade-offs.
 - Diagnóstico de bugs con causa desconocida.
 - Cualquier tarea donde delegar no baja el total de tokens (tabla de arriba).
@@ -245,42 +243,21 @@ contexto (búsquedas y lecturas grandes). El resto lo hace el orquestador (§14.
    convenciones aplicables (citar la referencia de esta skill) y el criterio de terminado.
 2. Una tarea por subagente. Tareas independientes en paralelo.
 3. Pedir salida comprimida: `archivo:línea`, diff o lista corta. Nunca volcados completos.
-4. Si existen agentes especializados comprimidos (ej. `cavecrew-investigator`, `cavecrew-builder`,
-   `cavecrew-reviewer` en Claude Code), preferirlos sobre agentes genéricos.
+4. Delegar en los subagentes del equipo (`investigador`, `ejecutor-backend`, `revisor-checklist-backend`): el
+   instalador los crea en todos los agentes con el modelo medido para cada rol. Solo si no están
+   instalados, usar equivalentes comprimidos que existan (ej. `cavecrew-*` en Claude Code) antes que
+   agentes genéricos.
 
 ```text
-Modelo fuerte (orquestador + revisor)
+Modelo seleccionado (orquestador + revisor)
 ├── plan + brief en tasks/brief-cancellation-token.md
 ├── subagente rápido    → localizar actions sin CancellationToken            → tabla archivo:línea
-├── subagente ejecutor  → propagar el token hasta CommandDefinition (§3, §5) → diff + dotnet build
+├── subagente ejecutor  → propagar el token hasta CommandDefinition (§3, §5) → archivos tocados + dotnet build
 ├── subagente rápido    → revisar diff contra checklists.md                  → hallazgos
-└── revisión final del modelo fuerte + respuesta al usuario
+└── revisión final del orquestador + respuesta al usuario
 ```
 
-#### 14.3.4.1 Tareas grandes: `/batch` (Claude Code)
-
-Para cambios grandes y paralelizables en todo el repo, usar el comando incluido `/batch <instrucción>`
-en vez de lanzar ejecutores a mano.
-
-- **Qué hace:** investiga el repo, parte el cambio en unidades independientes (entre 5 y 30) y muestra
-  el plan para aprobar. Después lanza un agente en segundo plano por unidad, cada uno en su propio
-  git worktree. Cada agente implementa, corre los tests y abre un PR.
-- **Cuándo:** el mismo cambio en muchos módulos o features sin dependencias entre sí. Por ejemplo:
-  propagar `CancellationToken` en todos los controllers, migrar `GetValue<>` a Options en cada feature,
-  pasar repositorios a `CommandDefinition`, subir el TFM proyecto por proyecto.
-- **Cuándo no:** cambios con orden entre pasos, decisiones de diseño abiertas, menos de 8 archivos o
-  repos sin git. Ahí rige la tabla de §14.3.4.
-- **Antes de lanzarlo:** decidir el patrón, escribirlo en `tasks/brief-<tarea>.md` con un ejemplo
-  completo y citar el brief en la instrucción de `/batch`. Revisar el plan de unidades antes de
-  aprobarlo: cada unidad debe compilar sola (`dotnet build`) y no tocar archivos de otra unidad.
-- **Después:** el modelo fuerte revisa cada PR contra [checklists.md](./checklists.md) (§14.3.5)
-  antes de aprobarlo. Los PRs no se mergean sin esa revisión.
-- **Costo:** un agente completo por unidad. Usarlo solo cuando el trabajo justifica ese costo, con la
-  misma regla de decisión de §14.3.4.
-- Otros agentes sin `/batch`: mismo flujo a mano (plan de unidades, un ejecutor por unidad en paralelo,
-  revisión del modelo fuerte).
-
-#### 14.3.5 Estrategia advisor emulada: el modelo fuerte revisa siempre
+#### 14.3.5 Estrategia advisor emulada: el orquestador revisa siempre
 
 Anthropic propone la *advisor strategy*: un ejecutor barato corre el trabajo y consulta al modelo
 fuerte bajo demanda, compartiendo el mismo contexto. Los agentes de código no la traen nativa (en
@@ -298,19 +275,18 @@ orquestador → ejecutores, con cualquier agente:
    El orquestador responde y **continúa el mismo subagente** si el agente lo permite (Claude Code:
    `SendMessage`; Codex: retomar el hilo desde `/agent`). Si no lo permite, relanza el ejecutor con el
    brief actualizado con la respuesta.
-3. **Momentos fijos de consulta al modelo fuerte** (los que recomienda Anthropic para el advisor):
+3. **Momentos fijos de consulta al orquestador** (los que recomienda Anthropic para el advisor):
    - **Después de la orientación, antes del trabajo sustantivo.** El ejecutor explora y devuelve lo
-     que encontró. El modelo fuerte fija el enfoque antes de que se escriba nada.
+     que encontró. El orquestador fija el enfoque antes de que se escriba nada.
    - **Cuando el ejecutor se traba o quiere cambiar de enfoque** (punto 2).
    - **Antes de dar por terminado.** El ejecutor deja el resultado en disco (archivos escritos, build
-     corrido). Después el modelo fuerte revisa el diff y la salida del build.
-4. **El modelo fuerte revisa siempre.** Ningún resultado de un ejecutor llega al usuario sin esa
+     corrido). Después el orquestador revisa el diff y la salida del build.
+4. **El orquestador revisa siempre.** Ningún resultado de un ejecutor llega al usuario sin esa
    revisión: diff completo, consistencia con esta skill y con [checklists.md](./checklists.md). Si
    algo falla, vuelve al mismo ejecutor con la corrección concreta.
 
-**Si la sesión principal no corre en el modelo fuerte** (costo, límites de plan): usar el modo nativo
-si existe (Claude Code: `/model opusplan`), lanzar la revisión como subagente de nivel fuerte con el
-brief y el diff, o aplicar el cambio de modelo por fase de §14.3.3.
+La revisión la hace el modelo seleccionado, aunque no sea el más fuerte disponible: no se delega a
+un subagente de nivel fuerte (§14.3.4, medición).
 
 **Apps del equipo que llaman a la API de Claude:** ahí sí existe el advisor tool nativo (beta,
 header `advisor-tool-2026-03-01`, tool `advisor_20260301`). Ver la
@@ -329,7 +305,9 @@ automáticamente al llenarse la ventana (ahí compacta tarde y sin foco).
 - Antes de arrancar una tarea nueva sin relación con la anterior. Si no comparte nada, preferir limpiar
   el contexto (`/clear` en Claude Code) en vez de compactar.
 - Después de leer salidas grandes (logs, builds, archivos largos) cuyo contenido ya se procesó.
-- Cuando la conversación supera ~60% de la ventana y queda trabajo por delante.
+- Cuando la conversación supera ~40% de la ventana y queda trabajo por delante. En Claude Code el
+  instalador fija `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=40` en `~/.claude/settings.json`: si el agente no
+  compactó antes, la herramienta compacta sola al 40%.
 
 **Nunca compactar:**
 - En medio de un cambio a medio aplicar (archivos editados sin verificar).
@@ -391,7 +369,7 @@ pip install graphifyy && graphify install          # el paquete PyPI lleva doble
 - Si el CLI avisa `skill is from graphify X, package is Y`, actualizar:
   `pip install --upgrade graphifyy && graphify install`.
 - Avisar al usuario en una línea. Si no hay Python/pip o la instalación falla, avisar con el error
-  exacto y recién ahí seguir con búsqueda normal. Nunca saltear la instalación por comodidad.
+  exacto y recién ahí seguir con búsqueda normal.
 
 **2. Integrar en el repo (una vez por proyecto).** Si el repo todavía no tiene la integración:
 
@@ -480,16 +458,16 @@ comando se aplica **traducida al agente y a los modelos que usa la persona**.
 | :--- | :--- | :--- |
 | Modelo fuerte / ejecutor / rápido | Opus / Sonnet / Haiku | Niveles de su proveedor (§14.3.1) |
 | Lanzar subagente con modelo propio | `Agent(model: ...)`, `.claude/agents/*.md` | Tabla de §14.3.2 |
+| Cambio grande en paralelo, un worktree por unidad | `/batch <instrucción>` | Varios subagentes en paralelo con el mismo brief por unidad; si no hay, unidades en secuencia |
 | Continuar un subagente con su contexto | `SendMessage` | Retomar el hilo si existe; si no, relanzar con el brief actualizado |
 | Consultar a otra sesión abierta | `ListAgents` + `SendMessage` | Medio nativo del agente; si no hay, saltar al paso siguiente de §14.2 |
 | Preguntar con opciones | `AskUserQuestion` | Tool de preguntas del agente; si no hay, una lista numerada en un solo mensaje, con la opción recomendada marcada |
-| Cambiar de modelo en la sesión | `/model <alias>` | Selector o comando del agente; si no hay, fallback §14.3.3 |
-| Plan con modelo fuerte, ejecución con barato | `/model opusplan` | Cambio de modelo por fase (§14.3.3) |
+| Cambiar de modelo en la sesión | `/model <alias>` | Selector o comando del agente; si no hay, seguir con el modelo actual |
 | Compactar / limpiar contexto | `/compact <foco>`, `/clear` | Comando de resumen del agente, o chat nuevo con el resumen de `tasks/todo.md` |
 | Integrar graphify | `graphify claude install` | `graphify <agente> install` (§14.5) |
 
 **3. Adaptar sin romper las reglas.** Lo que cambia es la sintaxis, nunca la regla:
-- El modelo fuerte disponible orquesta y revisa **siempre**, aunque no sea Opus (§14.3.5).
+- El modelo seleccionado orquesta y revisa **siempre**, sea cual sea el proveedor (§14.3.5).
 - La delegación sigue yendo al modelo **más barato** que resuelva la subtarea.
 - Caveman, preguntar todo antes de empezar, autocompactar y graphify primero siguen vigentes.
 - Si el agente no tiene ninguna forma de aplicar una regla (ej. no permite otro modelo ni
@@ -502,3 +480,58 @@ concretos ("que lo revise Opus", "usá Haiku para buscar", "corré `/compact`"):
   una línea qué se usó en su lugar ("Opus no disponible: reviso con Gemini Pro").
 - Si el usuario pide explícitamente un modelo que no está disponible y la diferencia importa, decirlo
   antes de seguir.
+
+---
+
+### 14.8 Herramientas del agente: instalar y usar siempre
+
+Cinco herramientas complementan a caveman y graphify: las cuatro de la tabla y el plugin `claude-security` (abajo). El instalador de la skill las instala en su
+última versión. El
+agente las **usa siempre**: si falta una, la instala y avisa en una línea (con el error exacto si
+falla). El bloque global (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`) repite
+estas reglas para que rijan en todas las sesiones.
+
+| Herramienta | Qué hace | Instalación (si falta) | Uso obligatorio |
+| :--- | :--- | :--- | :--- |
+| [ponytail](https://github.com/DietrichGebert/ponytail) | Reglas de código mínimo: menos líneas, plataforma antes que dependencias | `npx skills add DietrichGebert/ponytail --skill '*' -g` | Escribir solo el código necesario; `ponytail-review` sobre el diff antes del reporte final |
+| [agent-skills](https://github.com/addyosmani/agent-skills) | Skills de ingeniería por fase (spec, plan, build, review, ship) | `npx skills add addyosmani/agent-skills -g --skill <todas menos browser-testing-with-devtools y frontend-ui-engineering>` (lista en `bin/cli.js`) | Usar la skill de la fase en curso. Esas dos no aplican a backend; los tests siguen §10.2 |
+| [claude-code-setup](https://github.com/anthropics/claude-plugins-official) | Recomienda hooks, subagentes, skills y MCP para el repo (Claude Code) | `/plugin install claude-code-setup@claude-plugins-official` | En un repo sin setup de Claude Code: correr `claude-automation-recommender` una vez y proponer el resultado |
+| [Headroom](https://github.com/chopratejas/headroom) | Proxy local que comprime el contexto de entrada | `uv tool install --python 3.13 "headroom-ai[all]"` (o `pip install "headroom-ai[all]"`) | Automático por agente (tabla de abajo). Si un agente quedó sin integrar: `headroom init -g <agente>` o `headroom wrap <agente>` |
+
+- **Claude Code**: el instalador instala claude-code-setup y claude-security (escaneo de vulnerabilidades
+  del código propio, oficial de Anthropic) con `claude plugin install` (si no hay CLI,
+  lo activa en `enabledPlugins`). No se usa claude-mem: su memoria hosteada es paga y, sin
+  suscripción, resume las sesiones con el plan de Anthropic (gasta tokens). Las skills (ponytail, agent-skills) quedan en todos los agentes detectados por `npx skills`.
+- **Seguridad**: escaneo de vulnerabilidades del código con el plugin `claude-security` (Claude Code);
+  chequeos puntuales de API, NuGet o dependencias con la skill `offensive-*` o de
+  Anthropic-Cybersecurity-Skills que corresponda. Solo para endurecer el código propio (§11.1, §11.6),
+  nunca contra sistemas de terceros.
+- **Headroom en cada agente.** El instalador usa la integración durable oficial (`headroom init -g
+  --port 8787 <agente>`): apunta el agente al proxy y agrega hooks que lo levantan solo al iniciar
+  sesión y antes de cada comando.
+
+  | Agente | Integración | Proxy arranca solo |
+  | :--- | :--- | :--- |
+  | Claude Code (CLI y extensión de VS Code) | `headroom init -g claude`: `env.ANTHROPIC_BASE_URL`, hooks `SessionStart` / `PreToolUse`, plugin y MCP `headroom`. Remote Control no anda así: exige `api.anthropic.com` | Sí |
+  | Copilot CLI | `headroom init -g copilot` | Sí |
+  | Codex (macOS / Linux) | `headroom init -g codex`: `model_provider = "headroom"` en `~/.codex/config.toml` | Sí |
+  | Codex (Windows) | `headroom wrap codex` al lanzarlo. Codex no corre hooks en Windows: con `init` fallaría si el proxy está caído | Con `wrap` |
+  | Cursor / VS Code Copilot | `headroom wrap cursor` / `headroom wrap vscode` (instrucciones y settings) | No |
+  | Gemini CLI / Antigravity | Headroom no los soporta | — |
+
+  En Windows el proxy corre como tarea programada oculta (`headroom-init-user-health`), así ningún hook
+  abre consolas. Deshacer: `headroom unwrap <agente>`.
+- **Arranque automático en Claude Code (hook `SessionStart`).** El instalador copia
+  `bin/hooks/session-start.js` a `~/.claude/hooks/skills-backend-mrydex/` y lo registra en
+  `~/.claude/settings.json`. En cada sesión:
+  - Respaldo de Headroom: si `ANTHROPIC_BASE_URL` apunta al puerto 8787 y el proxy no
+    corre, lo levanta (en Windows con la tarea programada oculta) (6 s en frío, 0,1 s si ya está arriba). Si no levanta en 20 s, avisa al usuario con el
+    comando para arreglarlo: sin proxy cada llamada al modelo reintenta ~3 min y falla (`ECONNREFUSED`).
+  - No inyecta texto al modelo: si el proxy anda (o no se usa), no escribe nada.
+- Medido (Claude Code + Headroom, suscripción): la autenticación pasa sin API key; en una tarea
+  chica que leyó 2 archivos, Headroom ahorró 63.204 tokens (casi todo en schemas de tools) y 24,4%
+  del costo.
+- **Desactivar Headroom**: `headroom unwrap claude` (o quitar `ANTHROPIC_BASE_URL` del `env` de `~/.claude/settings.json`).
+  **Desactivar el hook**: quitar la entrada `skills-backend-mrydex` de `hooks.SessionStart`.
+- Las reglas del equipo ganan ante un conflicto: tests xUnit + Moq (§10.2), caveman, graphify primero
+  y la delegación de §14.3 siguen vigentes.

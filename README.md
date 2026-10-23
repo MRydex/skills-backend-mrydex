@@ -97,19 +97,17 @@ el agente siga las instrucciones:
 7. Instala el plugin **caveman** con su instalador oficial en los agentes detectados y, dentro de un
    repo, sus reglas siempre activas (`--with-init`). En Claude Code lo activa en
    `~/.claude/settings.json`. Medido: sin el plugin las respuestas salen 33% más largas.
-   `--no-caveman` lo saltea.
 8. Instala global las skills de la auditoría de seguridad por áreas (§11.6) con `npx skills add`:
    **security-audit** ([cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)),
    9 de APIs, auth y supply chain de
    [mukul975/Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
    (no las 818: sumarían ~40k tokens por sesión) y 19 `offensive-*` de
    [SnailSploit/claude-red](https://github.com/SnailSploit/claude-red) para la superficie de una API .NET.
-   En Claude Code suma el plugin oficial `claude-security`. `--no-security-audit` saltea todo.
+   En Claude Code suma el plugin oficial `claude-security`.
 9. Arma el grafo con `graphify update .` (solo código, sin LLM, sin costo de tokens).
 
 Fuera de un repo git se instala **solo global** (skill + CLI de graphify), sin tocar la carpeta actual.
-Dentro de un repo (o una subcarpeta) instala además en la raíz del repo. Para saltear graphify:
-`--no-graphify`.
+Dentro de un repo (o una subcarpeta) instala además en la raíz del repo.
 
 Si ya tenés instalada la skill de frontend, se pueden usar las dos: cada una escribe su propio bloque
 marcado (`skills-frontend-mrydex:*` / `skills-backend-mrydex:*`) y no pisa el de la otra.
@@ -127,9 +125,6 @@ Opciones:
   -w, --workspace         Instalación en la raíz del proyecto actual
   -t, --target <ruta>     Ruta personalizada donde copiar los archivos del skill
   -b, --bridge            Copia archivos puente (AGENTS.md, CLAUDE.md, .cursorrules)
-  --no-caveman            No instala el plugin caveman
-  --no-graphify           No instala ni configura graphify
-  --no-security-audit     No instala las skills de seguridad ni el plugin claude-security
   --dry-run               Muestra qué se instalaría sin escribir cambios en disco
   -v, --version           Muestra la versión instalada
   -h, --help              Muestra la ayuda
@@ -141,7 +136,7 @@ Opciones:
 
 ```text
 skills/desarrollo-backend-buenas-practicas/
-├── SKILL.md                          # Paso 0, 8 reglas, modo de operación, stack (§0), índice, Do & Don't
+├── SKILL.md                          # Paso 0, reglas que más se violan, modo de operación, stack (§0), índice, Do & Don't
 └── references/
     ├── 01-solution-structure.md      # Capas, dónde va cada cosa, naming, límites de tamaño
     ├── 02-csharp-design.md           # Primary constructors, records, nullable, async, fechas, decimal

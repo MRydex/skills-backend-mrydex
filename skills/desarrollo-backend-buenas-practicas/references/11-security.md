@@ -21,6 +21,10 @@ Preguntarse como atacante, para cada endpoint o cambio:
 - CORS: orígenes explícitos desde config por ambiente. **Nunca** `SetIsOriginAllowed(_ => true)` / `AllowAnyOrigin` junto con `AllowCredentials` en código nuevo.
 - Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP mínima para Swagger) registradas en el pipeline.
 - Swagger deshabilitado en Producción.
+- HSTS (`UseHsts`, 365 días) fuera de Development.
+- Aprobaciones (maker-checker): quien crea un registro no lo aprueba. Comparar el usuario del token con el creador en el handler y lanzar la excepción 403 del repo (`ClaimException` o `ForbiddenException`).
+- Input del usuario dentro de HTML (mails, plantillas): `HtmlEncoder.Default.Encode(...)` antes de interpolar.
+- Token del header: `AuthenticationHeaderValue.TryParse`, no `Replace("Bearer ", "")`.
 - Rate limiting (`AddRateLimiter`) en endpoints públicos o costosos (bulk, reportes).
 - 401 y 403 con `ProblemDetails`, mensajes genéricos (no revelar si el usuario existe).
 - Dependencias: dependency-check y SonarCloud del pipeline en verde. Hallazgo crítico/alto ⇒ se resuelve o se documenta excepción en el PR.
@@ -59,7 +63,7 @@ dotnet list package --outdated                          # informativo: no actual
 
 ### 11.5 Skill `security-audit` (Cloudflare)
 
-Revisión de seguridad con la skill [`security-audit`](https://github.com/cloudflare/security-audit-skill). El instalador la deja global (`--no-security-audit` para omitirla).
+Revisión de seguridad con la skill [`security-audit`](https://github.com/cloudflare/security-audit-skill). El instalador la deja global.
 
 **Instalación a mano** (si falta o falló):
 
@@ -137,5 +141,5 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 dosifica es la profundidad. No releer lo mismo para cada skill: pasarles los `archivo:línea` que ya
 ubicó graphify. Si el alcance es grande, delegar el barrido por área a subagentes en paralelo (§14.3);
 la priorización, la corrección y la decisión final quedan en el modelo principal. Si falta una skill
-de la tabla, instalarla (`npx skills-backend-mrydex`) y avisar en una línea; si no se puede, hacer
+de la tabla, instalarla (`npx github:MRydex/skills-backend-mrydex`) y avisar en una línea; si no se puede, hacer
 esa área con la revisión base y decirlo en el reporte de cobertura.

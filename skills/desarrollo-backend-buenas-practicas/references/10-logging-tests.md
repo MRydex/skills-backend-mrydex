@@ -8,6 +8,7 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - Errores: los loguea el `IExceptionHandler` vía `IExceptionHelper`. No loguear y relanzar la misma excepción en cada capa.
 - **Nunca** loguear: tokens, `Authorization`, contraseñas, connection strings, CBU/CVU/CUIT completos (enmascarar: `0000***1234`), body completo de requests con PII.
 - Correlación: propagar `traceId` (OpenTelemetry). No inventar ids propios.
+- Health checks: `AddHealthChecks().AddSqlServer(...)` por base, con tag `"db"`. El endpoint de salud (`Echo`) queda fuera de auth y del `LoggerFilter`.
 
 ### 10.2 Tests
 
@@ -16,5 +17,7 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - Estructura Arrange / Act / Assert. Mocks como campos `readonly` creados en el constructor. `It.IsAny<CancellationToken>()` en los `Setup`.
 - Handler nuevo o modificado con lógica ⇒ tests de su camino feliz y sus errores. Bug corregido ⇒ test que lo reproduce.
 - No testear el mediator, Dapper ni getters. No mockear lo que no se posee si se puede envolver en una interfaz propia ya existente.
-- E2E (`WebApplicationFactory<Program>`) dependen de entorno: no se corren en CI; asserts con un único status esperado.
+- Handlers `internal` ⇒ `<InternalsVisibleTo Include="<X>.UnitTest" />` en el `.csproj` de Application; el test crea el handler con `new` y sus mocks.
+- Casos múltiples: `[Theory]` + `[ClassData]`, con las clases de datos en `Data/` dentro de la carpeta del feature.
+- E2E (`WebApplicationFactory<Program>`) dependen de entorno: no se corren en CI; asserts con un único status esperado. Una `CustomWebApplicationFactory<Program>` reemplaza los clientes externos por mocks.
 - Verificación antes de "terminado": `dotnet build` sin warnings nuevos + `dotnet test Tests/<X>.UnitTest` verde. Si no se pudo correr, decirlo.

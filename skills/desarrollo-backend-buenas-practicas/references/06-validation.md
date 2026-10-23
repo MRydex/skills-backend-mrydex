@@ -21,3 +21,6 @@ public class CreateItemValidator : AbstractValidator<CreateItemRequest>
 - CBU/CVU, CUIT, montos y fechas: validadores reutilizables en `Domain/Validators/`.
 - Paginado: `PageSize` con máximo (ej. 100) siempre. Nunca listados sin límite.
 - Rangos de fechas: `desde <= hasta` y ventana máxima.
+- Mensajes por defecto en español: `ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("es");` una vez, al registrar FluentValidation.
+- Chequeo contra un servicio externo (captcha, existencia en otro sistema): `MustAsync` con la interfaz del cliente inyectada en el constructor del validador. El handler lo ejecuta con `Guard`, igual que el resto.
+- `Regex` siempre con timeout (`new Regex(pattern, RegexOptions.None, TimeSpan.FromMilliseconds(200))` o `[GeneratedRegex(..., matchTimeoutMilliseconds: 200)]`): sin timeout, un input armado cuelga el request (ReDoS).
