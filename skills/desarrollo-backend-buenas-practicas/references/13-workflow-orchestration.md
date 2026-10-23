@@ -52,6 +52,8 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
 - Antes de reportar el cambio, releer el diff completo (no solo el archivo pedido): código muerto,
   usings sin usar, registros de DI faltantes o el error original sin resolver de fondo no deberían
   llegar a revisión.
+- Código muerto: borrar solo lo que el propio cambio dejó sin uso (usings, variables, métodos). El
+  código muerto que ya existía se reporta en una línea y no se toca (§13.5).
 
 ### 13.4 Commits pequeños y acotados
 
@@ -66,6 +68,8 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
 
 - Resolver exactamente lo pedido, aunque la skill prefiera otro enfoque: hacerlo y proponer la
   alternativa en una línea. No reescribir la arquitectura por cuenta propia.
+- Respetar el estilo del archivo que se edita (nombres, formato, forma de los comentarios), aunque se
+  haría distinto. No reformatear ni "mejorar" líneas vecinas que la tarea no toca.
 - Si en el camino aparece otro problema (bug ajeno a la tarea, deuda de [12-tech-debt.md](./12-tech-debt.md), `TODO` viejo),
   anotarlo y reportarlo, no arreglarlo de paso dentro del mismo cambio.
 - Un refactor "ya que estamos" que no hace falta para la tarea pedida se propone aparte, no se aplica
