@@ -87,6 +87,8 @@ app.MapHub<NotificacionesHub>("/api/hubs/notificaciones", o => o.CloseOnAuthenti
 
 - **`[Authorize]` en todo hub.** El navegador no manda headers en WebSocket: el token llega en
   `?access_token=` y se lee solo para la ruta de hubs.
+- El esquema valida issuer, audiencia y vencimiento (§11.2). Hub que usa un microfrontend embebido:
+  llega el token de la app que lo embebe, y la audiencia de ese token va en `ValidAudiences`.
 - **Identidad solo desde claims** (`Context.UserIdentifier` vía `IUserIdProvider` con
   `NameIdentifier`). **Nunca** `Query["username"]` / `Query["userId"]` como identidad: cualquiera se
   conecta como otro.

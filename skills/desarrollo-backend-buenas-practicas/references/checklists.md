@@ -104,6 +104,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Si aplica §11.5, cambio revisado con `security-audit` en modo guía, o avisado que no está instalada.
 - [ ] Auditoría de dependencias §11.4 corrida después del último cambio de paquetes; hallazgos reportados.
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).
+- [ ] JWT con audiencia validada contra `ValidAudiences` explícitas, nunca `ValidateAudience = false`. (§11.2)
+- [ ] Quién actúa sale solo del token, nunca del body, la query ni la ruta. (§11.1)
 - [ ] Deuda de §12 no copiada en código nuevo.
 - [ ] Vulnerabilidades encontradas reportadas en prosa normal, aunque estén fuera del alcance.
 

@@ -5,11 +5,24 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-10-28
+
+Actualizacion de version
+
+### Skill `desarrollo-backend-buenas-practicas`
+
+- Seguridad (§11.1, §11.2): quién actúa sale solo del token (nunca del body, la query ni la ruta); JWT
+  con issuer, audiencia, vencimiento y clave de firma validados, `ValidAudiences` explícitas (incluida
+  la del token que reenvía la app que embebe un microfrontend), nunca `ValidateAudience = false`.
+- Hubs (§16.4): misma validación del token; audiencia de la app que embebe el microfrontend.
+- Checklist de seguridad al día.
+
 ## [1.13.0] - 2026-10-27
 
 Primera versión publicada con historial unificado.
 
 ### Skill `desarrollo-backend-buenas-practicas`
+
 - `SKILL.md` liviano: Paso 0 (graphify), reglas que más se violan, modo de operación del agente,
   stack e índice de referencias.
 - APIs .NET 10 LTS (C# 14) con Clean Architecture; repos en `net8.0` mantienen su TFM.
@@ -22,6 +35,7 @@ Primera versión publicada con historial unificado.
 - Delegación a subagentes solo cuando baja el total de tokens; compactar propuesto al ~30%.
 
 ### Instalador
+
 - `npx github:MRydex/skills-backend-mrydex`: skill global (Claude Code, Codex, Antigravity) y en el
   repo; archivos puente `CLAUDE.md`, `AGENTS.md` y `.cursorrules`; entradas de IA en `.gitignore`.
 - Graphify (CLI, integración por agente, modo estricto en Claude Code, hooks git y primer grafo), uv
@@ -34,4 +48,5 @@ Primera versión publicada con historial unificado.
 - `--doctor` (chequeo de solo lectura) y `--dry-run`.
 
 ### Seguridad
+
 - El instalador no escribe a través de symlinks ni junctions dentro del repo.

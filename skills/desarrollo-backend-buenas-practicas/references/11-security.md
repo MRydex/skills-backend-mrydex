@@ -6,7 +6,7 @@ Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer e
 
 Preguntarse como atacante, para cada endpoint o cambio:
 
-1. **Autorización (API1/API5 BOLA/BFLA)**: ¿tiene `[RoleAuthorization]` (en hubs, `[Authorize(Roles)]`, §16.4) con el rol mínimo? ¿El usuario puede pedir datos de otro banco/entidad cambiando un id? Filtrar siempre por la entidad del token, no por la del request.
+1. **Autorización (API1/API5 BOLA/BFLA)**: ¿tiene `[RoleAuthorization]` (en hubs, `[Authorize(Roles)]`, §16.4) con el rol mínimo? ¿El usuario puede pedir datos de otro banco/entidad cambiando un id? Filtrar siempre por la entidad del token, no por la del request. **Quién actúa sale solo del token**: nunca de un campo del body (`requestUser`), de la query (`?user=`) ni de la ruta (`/{username}`).
 2. **Inyección (A05)**: ¿algún input llega a SQL, a `ORDER BY`, a un path, a un header o a una URL saliente sin parametrizar / whitelist?
 3. **Mass assignment (API3)**: ¿el request expone campos que el usuario no debería setear (estado, auditoría, ids internos)?
 4. **Consumo de recursos (API4)**: ¿hay paginado con máximo, límites de tamaño en uploads/bulk, timeouts en HTTP saliente?
@@ -18,6 +18,10 @@ Preguntarse como atacante, para cada endpoint o cambio:
 ### 11.2 Reglas fijas
 
 - Nunca desactivar `ValidateTokenFilter`, roles, validación de certificados ni `HttpsRedirection` / HSTS.
+- JWT con `AddJwtBearer`: `ValidateIssuer`, `ValidateAudience`, `ValidateLifetime` y
+  `ValidateIssuerSigningKey` en `true`. **Nunca `ValidateAudience = false`**: acepta el token de
+  cualquier cliente del mismo IdP. Cada audiencia legítima va en `ValidAudiences` desde
+  config (ej. la del API de la app que embebe un microfrontend y le reenvía su token).
 - CORS: orígenes explícitos desde config por ambiente. **Nunca** `SetIsOriginAllowed(_ => true)` / `AllowAnyOrigin` junto con `AllowCredentials` en código nuevo.
 - Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP mínima para Swagger) registradas en el pipeline.
 - Swagger deshabilitado en Producción.
