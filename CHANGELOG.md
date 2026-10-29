@@ -5,6 +5,8 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-10-29
+
 ### Instalador
 
 - `-t <ruta>` ya no borra una carpeta con contenido que no es una instalación de la skill (ej. `-t .`).
