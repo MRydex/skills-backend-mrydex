@@ -5,6 +5,24 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Skill `desarrollo-backend-buenas-practicas`
+
+- Auditoría de calidad (§13.10, regla 10): suma las áreas Legibilidad y mantenimiento (CA1502 y
+  CA1506 en el `.editorconfig`), Escalabilidad e Instrucciones de agentes (`/doctor prompt-audit`:
+  reglas para modelos viejos, referencias rotas, contradicciones, `CLAUDE.md` de más de 200
+  líneas). Eficiencia prioriza por impacto medido: sin micro-optimizaciones que empeoren la
+  legibilidad.
+- Chequeo antes de entregar (§13.7.1): forma más simple, aprobaría un staff engineer, qué se
+  rompe primero y `tasks/lessons.md` actualizado.
+- Bug con evidencia: directo a reproducir y a la causa raíz, sin pedir guía (§13.6).
+- Lecciones con línea `Chequeo` para detectar el error antes (§13.8).
+
+### Instalador
+
+- `readClaudeSettings` único para leer `~/.claude/settings.json` (antes, 5 copias). `--doctor`
+  ya no falla y los permisos de graphify ya no rompen la instalación si el archivo contiene `null`
+  o un array.
+
 ## [1.14.1] - 2026-10-29
 
 ### Skill `desarrollo-backend-buenas-practicas`

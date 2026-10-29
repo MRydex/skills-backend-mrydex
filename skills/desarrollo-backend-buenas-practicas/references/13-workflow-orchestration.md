@@ -139,6 +139,9 @@ revisarlo: la revisión no agrega features.
   cambia, elegir la opción razonable, seguir y mencionarla en el reporte final.
 - No preguntar por algo que el agente puede resolver solo con la información del repo: convención ya
   usada en un handler similar, Request/Response ya definido, patrón ya aplicado en otro feature.
+- Reporte de bug con evidencia (error, log, test o pipeline que falla): ir directo a
+  reproducirlo y a la causa raíz (§13.7), sin pedir guía. Preguntar solo si no hay forma de
+  reproducirlo. Si el arreglo resulta grande, igual lleva el plan de §13.2.
 - Preguntar cuando: la decisión es de negocio (qué regla aplica, qué rol puede hacer qué), hay
   ambigüedad real entre dos caminos técnicos válidos sin una convención del equipo que desempate, o la
   acción es irreversible/riesgosa (borrar datos, migración destructiva, `push --force`, romper el
@@ -180,6 +183,12 @@ pide. Nunca antes.
 - ¿Un dev nuevo entiende el cambio en 5 minutos?
 - ¿Cada archivo, clase, método y parámetro nuevo tiene un uso hoy?
 - ¿Se puede borrar algo y sigue funcionando? Entonces sobra: borrarlo.
+- ¿Hay una forma más simple o más clara, sabiendo ahora todo lo que se sabe? Solo en cambios no
+  triviales: un arreglo obvio no se rediseña.
+- ¿Lo aprobaría un staff engineer al revisar el diff?
+- ¿Qué se rompe primero (dato vacío o nulo, volumen x10, red o servicio caído)? Cubierto, o
+  avisado en una línea.
+- ¿Hubo corrección del usuario? Entonces `tasks/lessons.md` actualizado (§13.8).
 
 Si la solución simple tiene un límite real (rendimiento, seguridad), elegir la simple igual y avisar
 el límite en una línea. El usuario decide si vale la complejidad extra.
@@ -188,7 +197,7 @@ el límite en una línea. El usuario decide si vale la complejidad extra.
 
 - Después de cualquier corrección del usuario (rechazó un enfoque, señaló un error, pidió deshacer algo)
   registrar el patrón en `tasks/lessons.md`: qué se hizo mal y la regla concreta para no repetirlo.
-- Formato de cada lección, 4 líneas cortas:
+- Formato de cada lección, 5 líneas cortas:
 
   ```markdown
   ## <tema corto, estable: si el tema vuelve, se actualiza esta entrada>
@@ -196,6 +205,7 @@ el límite en una línea. El usuario decide si vale la complejidad extra.
   - Por qué: <causa>
   - Dónde: <archivo, comando o área>
   - Regla: <qué hacer la próxima vez>
+  - Chequeo: <cómo detectarlo antes la próxima vez>
   ```
 - Revisar `tasks/lessons.md` al arrancar una sesión nueva sobre el mismo proyecto, antes de planificar.
 - Iterar sobre las lecciones ya escritas: si una regla no bajó la tasa de errores, reformularla en vez
@@ -242,7 +252,7 @@ tasks/brief-*.md
   `git rm --cached <archivo>`, que lo borra del repo para todo el equipo en el próximo push. **El
   agente pregunta antes de correrlo.**
 
-### 13.10 Auditoría de calidad: eficiencia, duplicado y código sin uso
+### 13.10 Auditoría de calidad: legibilidad, escalabilidad, eficiencia, duplicado y sin uso
 
 Todo pedido de auditoría que no sea solo de seguridad hace esta pasada completa y corrige lo que
 encuentra. Vale para la solución completa, un proyecto, una feature o el diff. Sin alcance en el
@@ -262,18 +272,22 @@ motivo). Ninguna se saltea en silencio.
 | Área | Qué se busca | Herramienta |
 | :--- | :--- | :--- |
 | Calidad | Bugs de lógica, errores mal manejados (§7), convenciones de la skill ([checklists.md](./checklists.md)), deuda de §12 copiada, sobreingeniería (§13.7.1), handlers sin test (§10.2) | `code-review-and-quality`, `ponytail-audit`, `revisor-checklist-backend` |
-| Eficiencia | N+1 y consultas en loop, `SELECT *` o columnas de más, falta de paginado, tracking innecesario en EF (§15.3), LINQ evaluado en memoria (§15.8), sync sobre async (`.Result`, `.Wait()`), `CancellationToken` no propagado, cache que falta o que no se invalida (§5.3), `HttpClient` sin factory (§9), allocations en caminos calientes | `performance-optimization`, plan de ejecución SQL, logs de duración |
+| Legibilidad y mantenimiento | Nombres que no dicen qué hacen, métodos largos o con complejidad ciclomática alta, más de 3 niveles de anidación, clases fuera del límite de §1.3 o con demasiadas dependencias inyectadas, capas que se saltean (Domain o Application que referencian Infrastructure, §1.1), números mágicos, comentarios desactualizados o que repiten el código | CA1502 (complejidad) y CA1506 (acoplamiento) en `warning` en el `.editorconfig`; `dotnet list reference` por proyecto; lectura del código |
+| Escalabilidad | Lo que se rompe cuando crecen los datos, el tráfico o las instancias: endpoints de lista sin paginado, consultas que escanean la tabla (sin índice para el filtro), estado en memoria del proceso (`static`, `IMemoryCache` como fuente de verdad) que se desincroniza con varias instancias, trabajo pesado dentro del request en vez de en segundo plano, endpoints sin rate limiting (§11.2), llamadas externas sin timeout ni resiliencia (§9) | Plan de ejecución SQL, `graphify query` sobre los flujos con más datos, lectura del código |
+| Eficiencia | N+1 y consultas en loop, `SELECT *` o columnas de más, falta de paginado, tracking innecesario en EF (§15.3), LINQ evaluado en memoria (§15.8), sync sobre async (`.Result`, `.Wait()`), `CancellationToken` no propagado, cache que falta o que no se invalida (§5.3), `HttpClient` sin factory (§9), búsquedas dentro de loops (§15.8), allocations en caminos calientes | `performance-optimization`, plan de ejecución SQL, logs de duración |
 | Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console --ignore "**/bin/**,**/obj/**"`; duplicaciones de SonarCloud si el proyecto lo tiene |
 | Dependencias | Vulnerabilidades (directas y transitivas), paquetes deprecados o sin uso | `dotnet list package --vulnerable --include-transitive`, `--deprecated`, `--outdated` (informativo) |
 | Código sin uso | Usings, miembros privados, parámetros, variables, tipos públicos (handlers, requests, validators, repositorios, DTOs), SPs y queries que nadie llama, secciones de `appsettings` sin `Options`, registros de DI sin consumidor, paquetes NuGet | `dotnet format style --verify-no-changes` con IDE0005, IDE0051, IDE0052 e IDE0060 en `warning` en el `.editorconfig` (en `info`, su default, no se reportan); warnings `CS0168` / `CS0219` / `CS0414` del build; tipos públicos: grafo + búsqueda de referencias |
+| Instrucciones de agentes | `CLAUDE.md`, `AGENTS.md`, `.claude/` (rules, skills, commands, agents): reglas pensadas para modelos viejos, referencias a archivos o comandos que no existen, instrucciones que se contradicen (el modelo elige una al azar), `CLAUDE.md` de más de 200 líneas. N/A si el repo no los tiene | `/doctor prompt-audit` en Claude Code 2.1.283+ (solo reporta, no edita); en otros agentes, la misma revisión a mano |
 
 **Pasos:**
 
 1. **Orientar con el grafo.** `graphify query` para mapear usos. Un símbolo sin referencias en el grafo
    es candidato, no prueba.
 2. **Correr las herramientas** (gratis, sin paquetes nuevos en la solución) y revisar a mano lo que no
-   ven. Si el `.editorconfig` no tiene esas IDE en `warning`, agregarlas para la auditoría y
-   revertirlo al terminar, salvo que el usuario quiera dejarlas. Calidad y eficiencia se leen en el código, no solo en el reporte de una herramienta.
+   ven. Si el `.editorconfig` no tiene esas IDE y CA en `warning`, agregarlas para la auditoría y
+   revertirlo al terminar, salvo que el usuario quiera dejarlas. Calidad y eficiencia se leen en el
+   código, no solo en el reporte de una herramienta.
 3. **Verificar cada candidato** antes de reportarlo o borrarlo. Uso dinámico que las herramientas no
    ven: registro por assembly scanning (handlers, validators, `ApplyConfigurationsFromAssembly`),
    reflexión, propiedades mapeadas por nombre (Dapper, EF, serialización JSON), métodos de hub
@@ -293,7 +307,12 @@ motivo). Ninguna se saltea en silencio.
    - Duplicados: unificar en la capa que corresponde (§13.7.1), sin genéricos ni capas nuevas "por si
      acaso".
    - Eficiencia: aplicar la regla de §5, §9 o §15 que corresponde, la solución más simple. Medir antes
-     y después cuando se pueda (duración de la query, cantidad de roundtrips).
+     y después cuando se pueda (duración de la query, cantidad de roundtrips). Priorizar por
+     impacto medido (camino caliente, volumen, frecuencia); una micro-optimización que empeora la
+     legibilidad sin ganancia medible no se aplica.
+   - Legibilidad y mantenimiento: renombrar, aplanar anidación (guard clauses) y partir solo lo que
+     supera el límite de §1.3, sin cambiar comportamiento y con `dotnet test` en verde.
+     Dependencia entre capas al revés: mover la interfaz a Application (§1.1).
    - Preguntar antes, todo junto y una sola vez (§13.6): endpoints o contratos públicos sin uso visto
      (los puede usar otro cliente), cambios de esquema o SPs, refactors de más de ~400 líneas.
    - Pedido de solo lectura ("solo revisá", "no toques nada"): solo el reporte.
