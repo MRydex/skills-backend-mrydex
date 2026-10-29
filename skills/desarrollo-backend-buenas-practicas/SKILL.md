@@ -3,7 +3,7 @@ name: desarrollo-backend-buenas-practicas
 description: >
   Convenciones del equipo para APIs backend .NET 10 (ASP.NET Core, Clean Architecture, mediator propio, FluentValidation, ProblemDetails, Dapper / EF Core, Key Vault, seguridad OWASP, xUnit + Moq, Azure DevOps con SonarCloud) y forma de trabajar del agente (caveman, graphify, subagentes). Usar siempre, antes de la primera herramienta, en cualquier repo con *.sln, *.csproj o Program.cs, para cualquier pedido: preguntas, explicaciones, revisión, depuración, refactor o cambios, aunque no mencione .NET. Incluye pedidos sobre endpoints, controllers, handlers, validación o errores; acceso a datos (SQL, stored procedures, transacciones, cache); contrato con el front (Request / Response, mapeo, paginado); configuración (appsettings, Options, secretos); integraciones (HttpClient, Polly); logging, tests o pipelines; seguridad de la API ("auditá la seguridad", "¿es seguro?"); y auditorías ("auditá", "optimizá", "limpiá"): calidad, eficiencia, código duplicado y sin uso.
 metadata:
-  version: 1.14.3
+  version: 1.15.0
   triggers:
     files:
       - "**/*.sln"
