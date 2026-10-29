@@ -40,6 +40,9 @@
     "url": "https://github.com/MRydex/skills-backend-mrydex/issues"
   },
   "homepage": "https://github.com/MRydex/skills-backend-mrydex#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "bin",
     "skills",
