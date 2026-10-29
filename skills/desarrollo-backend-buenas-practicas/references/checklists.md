@@ -128,7 +128,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Dudas que cambian el resultado preguntadas juntas, antes de empezar, con opción recomendada (§13.6).
 - [ ] Sin ampliar alcance: deuda de §12 reportada, no arreglada sin pedido (§13.5).
 - [ ] Sin sobreingeniería: cada clase, método y parámetro nuevo tiene un uso hoy (§13.7.1).
-- [ ] Auditoría pedida: cubrió calidad, eficiencia, duplicado y sin uso con tabla de cobertura, candidatos verificados y correcciones en tandas con `dotnet test` en verde (§13.10).
+- [ ] Auditoría pedida: cubrió calidad, eficiencia, duplicado y sin uso con tabla de cobertura, candidatos verificados y correcciones en tandas con `dotnet test` en verde; vulnerabilidades corregidas y auditoría repetida en limpio (§13.10).
 - [ ] Delegación solo si ahorra tokens (3+ archivos a leer, 8+ a editar) (§14.3.4).
 - [ ] Todo resultado de un ejecutor revisado por el orquestador antes de entregarlo (§14.3.5).
 - [ ] Estado en `tasks/todo.md` y compactación propuesta al cerrar cada fase (§14.4).

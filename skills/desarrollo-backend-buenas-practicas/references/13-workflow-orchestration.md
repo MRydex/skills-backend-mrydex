@@ -263,15 +263,17 @@ motivo). Ninguna se saltea en silencio.
 | :--- | :--- | :--- |
 | Calidad | Bugs de lógica, errores mal manejados (§7), convenciones de la skill ([checklists.md](./checklists.md)), deuda de §12 copiada, sobreingeniería (§13.7.1), handlers sin test (§10.2) | `code-review-and-quality`, `ponytail-audit`, `revisor-checklist-backend` |
 | Eficiencia | N+1 y consultas en loop, `SELECT *` o columnas de más, falta de paginado, tracking innecesario en EF (§15.3), LINQ evaluado en memoria (§15.8), sync sobre async (`.Result`, `.Wait()`), `CancellationToken` no propagado, cache que falta o que no se invalida (§5.3), `HttpClient` sin factory (§9), allocations en caminos calientes | `performance-optimization`, plan de ejecución SQL, logs de duración |
-| Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console`; duplicaciones de SonarCloud si el proyecto lo tiene |
-| Código sin uso | Usings, miembros privados, parámetros, variables, tipos públicos (handlers, requests, validators, repositorios, DTOs), SPs y queries que nadie llama, secciones de `appsettings` sin `Options`, registros de DI sin consumidor, paquetes NuGet | `dotnet format style --diagnostics IDE0005 IDE0051 IDE0052 IDE0060 --severity info --verify-no-changes` (IDE0005 en build necesita `<GenerateDocumentationFile>true</GenerateDocumentationFile>`), warnings `CS0168` / `CS0219`; tipos públicos: grafo + búsqueda de referencias |
+| Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console --ignore "**/bin/**,**/obj/**"`; duplicaciones de SonarCloud si el proyecto lo tiene |
+| Dependencias | Vulnerabilidades (directas y transitivas), paquetes deprecados o sin uso | `dotnet list package --vulnerable --include-transitive`, `--deprecated`, `--outdated` (informativo) |
+| Código sin uso | Usings, miembros privados, parámetros, variables, tipos públicos (handlers, requests, validators, repositorios, DTOs), SPs y queries que nadie llama, secciones de `appsettings` sin `Options`, registros de DI sin consumidor, paquetes NuGet | `dotnet format style --verify-no-changes` con IDE0005, IDE0051, IDE0052 e IDE0060 en `warning` en el `.editorconfig` (en `info`, su default, no se reportan); warnings `CS0168` / `CS0219` / `CS0414` del build; tipos públicos: grafo + búsqueda de referencias |
 
 **Pasos:**
 
 1. **Orientar con el grafo.** `graphify query` para mapear usos. Un símbolo sin referencias en el grafo
    es candidato, no prueba.
 2. **Correr las herramientas** (gratis, sin paquetes nuevos en la solución) y revisar a mano lo que no
-   ven: calidad y eficiencia se leen en el código, no solo en el reporte de una herramienta.
+   ven. Si el `.editorconfig` no tiene esas IDE en `warning`, agregarlas para la auditoría y
+   revertirlo al terminar, salvo que el usuario quiera dejarlas. Calidad y eficiencia se leen en el código, no solo en el reporte de una herramienta.
 3. **Verificar cada candidato** antes de reportarlo o borrarlo. Uso dinámico que las herramientas no
    ven: registro por assembly scanning (handlers, validators, `ApplyConfigurationsFromAssembly`),
    reflexión, propiedades mapeadas por nombre (Dapper, EF, serialización JSON), métodos de hub
@@ -281,6 +283,11 @@ motivo). Ninguna se saltea en silencio.
    evidencia, acción y riesgo. Orden: bugs, paquetes sin uso (supply chain, §11.4), eficiencia con
    impacto medible, reglas de negocio duplicadas, el resto.
 5. **Corregir**, en tandas chicas (§13.4) y sin cambiar comportamiento:
+   - Vulnerabilidades: corregirlas siempre (§11.4). Subir a la versión con fix dentro de la misma
+     mayor; transitivo vulnerable: fijar la versión segura como referencia directa o en
+     `Directory.Packages.props`. Versión mayor o reemplazo de paquete se pregunta antes. Después:
+     `dotnet restore`, `dotnet build`, `dotnet test` y la auditoría de nuevo hasta que no quede nada
+     corregible. Lo que no tiene fix se reporta con la salida propuesta.
    - Código sin uso verificado: borrarlo, no comentarlo. Paquete sin uso: `dotnet remove package` y
      auditoría de dependencias (§11.4).
    - Duplicados: unificar en la capa que corresponde (§13.7.1), sin genéricos ni capas nuevas "por si

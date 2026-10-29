@@ -5,17 +5,27 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+## [1.14.1] - 2026-10-29
+
 ### Skill `desarrollo-backend-buenas-practicas`
 
-- Auditoría de código sin usar, duplicado y optimizable (§13.10, regla 10): todo pedido de
-  auditoría la suma a la de seguridad. Herramientas, verificación de falsos positivos, reporte
-  priorizado y correcciones en tandas (borrar sin uso, unificar duplicados, optimizar).
-- Auditar = control de calidad completo (§13.10): calidad, eficiencia, duplicado y sin uso, con
-  tabla de cobertura por área.
-- Auditoría de seguridad (§11.6): corre con todo "auditá" a secas (junto con la de calidad) o pedido de
-  seguridad; suma modelo de
-  amenazas, network (TLS, superficie expuesta, cabeceras, WebSocket) y Blue Team, con pruebas en vivo
-  solo contra hosts autorizados. El instalador agrega las skills de network y Blue Team.
+- Auditar = control de calidad completo (§13.10, regla 10): calidad, eficiencia, dependencias,
+  código duplicado y sin uso, con tabla de cobertura por área, candidatos verificados contra uso
+  dinámico y correcciones en tandas con `dotnet test` en verde.
+- "Auditá" a secas corre además la auditoría de seguridad completa (§11.6); solo seguridad corre
+  solo §11.6; solo calidad suma la seguridad base.
+- Auditoría de seguridad red + blue + network (§11.6): modelo de amenazas, TLS, superficie expuesta,
+  servicio a servicio (mTLS), Azure, SignalR, rate limiting y logs; pruebas en vivo solo contra hosts
+  autorizados.
+- Auditoría de dependencias en la auditoría: corrige vulnerabilidades y reverifica con build, tests y
+  la auditoría de nuevo (§11.4, §13.10).
+- Unicidad garantizada por el índice `UNIQUE`, no por un chequeo previo (§5.2, §15.6).
+
+### Instalador
+
+- Skills de network y Blue Team (TLS, cabeceras, host header, cache poisoning, WebSocket, nmap,
+  rate limiting, mTLS, logs, threat modeling) y `offensive-tls-attacks`, `offensive-network-attacks`,
+  `offensive-cloud`.
 
 ## [1.14.0] - 2026-10-28
 

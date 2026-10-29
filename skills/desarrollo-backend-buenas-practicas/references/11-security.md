@@ -64,7 +64,7 @@ dotnet list package --outdated                          # informativo: no actual
 **Qué hacer con el resultado:**
 - **Reportar siempre**, aunque la tarea no haya tocado dependencias. Una línea por hallazgo: severidad, paquete, versión, si es directo o transitivo y la versión con fix.
 - **`High` / `Critical`**: avisar antes de entregar. Bloquea la entrega igual que en el pipeline.
-- **Corregir** subiendo la versión, solo si la tarea toca dependencias o el usuario lo pide. Después, `dotnet build` + `dotnet test` de UnitTest.
+- **Corregir** subiendo la versión, solo si la tarea toca dependencias o el usuario lo pide (todo pedido de auditoría cuenta, §13.10). Después, `dotnet build` + `dotnet test` de UnitTest y la auditoría de nuevo para confirmar que no quedó nada.
 - **Nunca subir una versión mayor sin preguntar** (ni `Microsoft.Extensions.*` por encima del TFM, `SKILL.md` §0): trae cambios que rompen.
 - **Transitivo vulnerable**: proponer fijar la versión segura como referencia directa (o en `Directory.Packages.props`), sin aplicarlo sin aprobación.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
@@ -154,8 +154,10 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 | Logging y respuesta (Blue Team) | §11.3, §10 | `analyzing-web-server-logs-for-intrusion`, `implementing-api-abuse-detection-with-rate-limiting`, `security-audit` |
 
 **Pruebas en vivo (network).** Escaneo de puertos, evaluación TLS y cabeceras contra un host real son
-acciones hacia afuera. Solo contra hosts propios y autorizados: confirmar host y ambiente con el
-usuario antes de correrlas; producción solo con OK explícito. Sin URL disponible, revisar la
+acciones hacia afuera. Solo contra hosts propios y autorizados. Es lo único que la auditoría
+pregunta (el alcance no): host y ambiente, una sola vez y al empezar; producción solo con OK
+explícito. Mientras no hay respuesta, se avanza con la revisión de
+código. Sin URL disponible, revisar la
 configuración (`Program.cs`, Kestrel, `web.config`, IaC del pipeline) y marcar el área como "sin
 prueba en vivo" en la cobertura.
 

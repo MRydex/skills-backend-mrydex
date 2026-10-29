@@ -49,6 +49,7 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Filtros dinámicos y paginado: `Dapper.SqlBuilder` (`/**where**/`, `/**orderby**/`) con `OFFSET ... FETCH`. Orden dinámico solo desde whitelist de columnas.
 - Stored procedures: `commandType: CommandType.StoredProcedure`, parámetros con nombre. Se usan cuando la lógica ya vive en la base; no migrar SP a inline ni al revés sin pedido.
 - Bulk: `IN @Ids` de Dapper hasta ~1000 valores; más que eso, TVP o `SqlBulkCopy`. Nunca un `ExecuteAsync` por fila en loop.
+- Unicidad: la garantía es el índice `UNIQUE` en la base. Un "¿ya existe?" previo (validador o handler) no la da: dos requests simultáneos pasan los dos el chequeo. Ese chequeo es opcional (mensaje más claro); el `INSERT` siempre maneja el duplicado.
 - Errores: `SqlException 2627/2601` (duplicado) ⇒ `SystemValidationException`; `OperationCanceledException` ⇒ relanzar; resto ⇒ `CommandException` / `QueryException` con parámetros **sin datos sensibles**. Atrapar `SqlException`, no `Exception`, y pasar la original como inner: `throw new QueryException($"No se pudo realizar la consulta a {nameof(GetItemsAsync)}", ex);`.
 - Scripts de base (tablas, índices, SP) en el PR como `.sql` idempotente (`IF NOT EXISTS`) y con rollback.
 

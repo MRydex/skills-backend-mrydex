@@ -192,7 +192,7 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
 
 ### 15.6 Errores y concurrencia
 
-- `DbUpdateException` con `SqlException` 2627/2601 interna (duplicado) ⇒ `SystemValidationException`.
+- `DbUpdateException` con `SqlException` 2627/2601 interna (duplicado) ⇒ `SystemValidationException`. La unicidad la garantiza `HasIndex(...).IsUnique()`, no un `AnyAsync` previo: dos requests simultáneos lo pasan los dos (§5.2).
 - `DbUpdateConcurrencyException` (columna `RowVersion`) ⇒ `SystemValidationException` con mensaje de
   "el registro fue modificado por otro usuario". Tablas editables por varios usuarios llevan
   `RowVersion`.
