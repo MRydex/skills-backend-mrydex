@@ -1,6 +1,6 @@
 ## 11. Seguridad (Red Team / Blue Team)
 
-Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer en todo cambio antes de entregar. §11.6: auditoría completa por áreas cuando el usuario pide seguridad.
+Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer en todo cambio antes de entregar. §11.6: auditoría completa red + blue + network con todo "auditá" a secas o pedido de seguridad.
 
 ### 11.1 Revisión Red Team de cada cambio (obligatoria antes de entregar)
 
@@ -89,18 +89,20 @@ npx skills add https://github.com/cloudflare/security-audit-skill --skill securi
 
 Si la skill no está instalada, decirlo y seguir con la checklist de §11.1. Nunca dar la revisión por hecha con la skill si no se cargó.
 
-### 11.6 Pedido explícito de seguridad (auditoría completa red + blue)
+### 11.6 Pedido de seguridad (auditoría completa red + blue + network)
 
-§11.1–11.4 cubren **cada cambio**. Cuando el usuario pide seguridad a secas ("revisá la seguridad",
-"auditá esto", "¿es seguro?"), el alcance es **todo el código tocado o el que se indique**, no solo el
+§11.1–11.4 cubren **cada cambio**. Esta auditoría corre con todo pedido de auditoría a secas
+("auditá", "auditá la API"), junto con la pasada de calidad de §13.10, y sola cuando el pedido es solo
+de seguridad ("auditá la seguridad", "¿es seguro?", "pentest", "hardening"). El alcance es **todo el código tocado o el que se indique**, no solo el
 último diff. Para el equipo la seguridad es prioridad: se revisan **todas las áreas**, ninguna se
 saltea en silencio, y la profundidad de cada una la decide el agente según lo que encuentra.
 
-1. **Delimitar el alcance.** Preguntar qué auditar si no está claro: el diff actual, una feature, un
+1. **Delimitar el alcance.** Sin alcance en el pedido, todo el repo, sin preguntar; si no, lo indicado: el diff actual, una feature, un
    proyecto de la solución o todo el repo.
 2. **Orientar con graphify** (`graphify query`) para ubicar controllers, handlers, repositorios, SQL,
    auth, uploads, `HttpClient` salientes y límites de confianza. Una sola pasada alimenta a todas las
-   herramientas.
+   herramientas. Alcance feature o repo: modelo de amenazas primero
+   (`performing-threat-modeling-with-owasp-threat-dragon`) para ordenar qué se ataca.
 3. **Revisión base de todas las áreas.** Recorrer la tabla de abajo completa. Cada área termina en
    uno de tres estados: **OK** (con la evidencia, `archivo:línea`), **hallazgo** o **N/A** (con el
    motivo: "no hay uploads en el alcance"). Incluye §11.1 (Red Team), §11.2–11.3 (reglas fijas y
@@ -133,18 +135,29 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 | OAuth2 / OIDC | §11.1 | `offensive-oauth`, `configuring-oauth2-authorization-flow`, `performing-oauth-scope-minimization-review` |
 | Inyección SQL (Dapper, `FromSql`) | §11.1, §5 | `offensive-sqli` |
 | Mass assignment y exposición de datos (API3) | §11.1 | `offensive-api-security`, `testing-api-security-with-owasp-top-10` |
-| Consumo de recursos y rate limiting (API4) | §11.1, §11.2 | `offensive-race-condition`, `offensive-parameter-pollution` |
+| Consumo de recursos y rate limiting (API4) | §11.1, §11.2 | `offensive-race-condition`, `offensive-parameter-pollution`, `performing-api-rate-limiting-bypass`, `implementing-api-rate-limiting-and-throttling` |
 | SSRF y `HttpClient` saliente (API7) | §11.1, §9 | `offensive-ssrf` |
 | XML, deserialización y plantillas | §11.1 | `offensive-xxe`, `offensive-deserialization`, `offensive-ssti` |
 | Uploads | §11.1 | `offensive-file-upload` |
 | Redirects | §11.1 | `offensive-open-redirect` |
 | GraphQL | §11.1 | `offensive-graphql` |
-| Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `security-audit` |
+| Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `performing-security-headers-audit`, `testing-for-host-header-injection`, `performing-web-cache-poisoning-attack`, `security-audit` |
+| TLS y certificados (network) | §11.2 (HSTS, `HttpsRedirection`, solo TLS 1.2/1.3 en Kestrel/IIS, validación de certificados en `HttpClient` sin `ServerCertificateCustomValidationCallback` que devuelva `true`) | `performing-ssl-tls-security-assessment`, `configuring-tls-1-3-for-secure-communications`, `offensive-tls-attacks` |
+| Superficie expuesta (network) | Swagger en producción, health check con datos internos, endpoints internos publicados, puertos y bindings extra, ambientes de prueba públicos | `scanning-network-with-nmap-advanced`, `offensive-network-attacks` |
+| Servicio a servicio (network) | §9: llamadas internas autenticadas (token de cliente o mTLS), sin confiar en la red interna | `implementing-mtls-for-zero-trust-services` |
+| Azure (network) | Key Vault, SQL y Storage sin acceso público innecesario (firewall, private endpoints), restricciones de acceso del App Service, identidad administrada con permisos mínimos | `offensive-cloud` |
+| SignalR / WebSocket | §16: `wss://`, origen validado, token en la conexión, autorización por grupo | `testing-websocket-api-security`, `exploiting-websocket-vulnerabilities` |
 | CORS | §11.2 | `testing-cors-misconfiguration` |
 | Secretos y PII | §8, §11.1 | `implementing-secret-scanning-with-gitleaks` |
 | Errores y `ProblemDetails` (sin filtrar datos internos) | §7, §11.2 | `security-audit` |
 | Dependencias NuGet y supply chain | §11.4 | `offensive-dependency-confusion`, `offensive-supply-chain`, `generating-and-analyzing-sboms` |
-| Logging y respuesta (Blue Team) | §11.3, §10 | `security-audit` |
+| Logging y respuesta (Blue Team) | §11.3, §10 | `analyzing-web-server-logs-for-intrusion`, `implementing-api-abuse-detection-with-rate-limiting`, `security-audit` |
+
+**Pruebas en vivo (network).** Escaneo de puertos, evaluación TLS y cabeceras contra un host real son
+acciones hacia afuera. Solo contra hosts propios y autorizados: confirmar host y ambiente con el
+usuario antes de correrlas; producción solo con OK explícito. Sin URL disponible, revisar la
+configuración (`Program.cs`, Kestrel, `web.config`, IaC del pipeline) y marcar el área como "sin
+prueba en vivo" en la cobertura.
 
 **Eficiencia sin perder cobertura:** la revisión base de todas las áreas es obligatoria; lo que se
 dosifica es la profundidad. No releer lo mismo para cada skill: pasarles los `archivo:línea` que ya

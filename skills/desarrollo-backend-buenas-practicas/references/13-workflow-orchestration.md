@@ -241,3 +241,56 @@ tasks/brief-*.md
 - `.gitignore` no saca del repo lo que ya estaba commiteado. Para eso hace falta
   `git rm --cached <archivo>`, que lo borra del repo para todo el equipo en el próximo push. **El
   agente pregunta antes de correrlo.**
+
+### 13.10 Auditoría de calidad: eficiencia, duplicado y código sin uso
+
+Todo pedido de auditoría que no sea solo de seguridad hace esta pasada completa y corrige lo que
+encuentra. Vale para la solución completa, un proyecto, una feature o el diff. Sin alcance en el
+pedido: la solución completa, sin preguntar.
+
+**Qué corre según el pedido:**
+
+| Pedido | Corre |
+| :--- | :--- |
+| Auditoría a secas ("auditá", "auditá la app", "revisá todo") | Esta pasada completa + auditoría de seguridad completa red + blue + network (§11.6) |
+| Solo seguridad ("auditá la seguridad", "¿es seguro?", "pentest", "hardening") | Solo §11.6 |
+| Solo calidad ("optimizá", "limpiá", "qué sobra", "auditá la calidad / performance") | Esta pasada + seguridad base (§11.1 y auditoría de dependencias, §11.4) |
+
+**Áreas.** Cada una termina en **OK** (con evidencia `archivo:línea`), **hallazgo** o **N/A** (con
+motivo). Ninguna se saltea en silencio.
+
+| Área | Qué se busca | Herramienta |
+| :--- | :--- | :--- |
+| Calidad | Bugs de lógica, errores mal manejados (§7), convenciones de la skill ([checklists.md](./checklists.md)), deuda de §12 copiada, sobreingeniería (§13.7.1), handlers sin test (§10.2) | `code-review-and-quality`, `ponytail-audit`, `revisor-checklist-backend` |
+| Eficiencia | N+1 y consultas en loop, `SELECT *` o columnas de más, falta de paginado, tracking innecesario en EF (§15.3), LINQ evaluado en memoria (§15.8), sync sobre async (`.Result`, `.Wait()`), `CancellationToken` no propagado, cache que falta o que no se invalida (§5.3), `HttpClient` sin factory (§9), allocations en caminos calientes | `performance-optimization`, plan de ejecución SQL, logs de duración |
+| Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console`; duplicaciones de SonarCloud si el proyecto lo tiene |
+| Código sin uso | Usings, miembros privados, parámetros, variables, tipos públicos (handlers, requests, validators, repositorios, DTOs), SPs y queries que nadie llama, secciones de `appsettings` sin `Options`, registros de DI sin consumidor, paquetes NuGet | `dotnet format style --diagnostics IDE0005 IDE0051 IDE0052 IDE0060 --severity info --verify-no-changes` (IDE0005 en build necesita `<GenerateDocumentationFile>true</GenerateDocumentationFile>`), warnings `CS0168` / `CS0219`; tipos públicos: grafo + búsqueda de referencias |
+
+**Pasos:**
+
+1. **Orientar con el grafo.** `graphify query` para mapear usos. Un símbolo sin referencias en el grafo
+   es candidato, no prueba.
+2. **Correr las herramientas** (gratis, sin paquetes nuevos en la solución) y revisar a mano lo que no
+   ven: calidad y eficiencia se leen en el código, no solo en el reporte de una herramienta.
+3. **Verificar cada candidato** antes de reportarlo o borrarlo. Uso dinámico que las herramientas no
+   ven: registro por assembly scanning (handlers, validators, `ApplyConfigurationsFromAssembly`),
+   reflexión, propiedades mapeadas por nombre (Dapper, EF, serialización JSON), métodos de hub
+   SignalR invocados por el cliente (§16), endpoints consumidos por el front. Falso positivo: se
+   descarta, no se reporta.
+4. **Reporte** con la tabla de cobertura por área y una fila por hallazgo: categoría, `archivo:línea`,
+   evidencia, acción y riesgo. Orden: bugs, paquetes sin uso (supply chain, §11.4), eficiencia con
+   impacto medible, reglas de negocio duplicadas, el resto.
+5. **Corregir**, en tandas chicas (§13.4) y sin cambiar comportamiento:
+   - Código sin uso verificado: borrarlo, no comentarlo. Paquete sin uso: `dotnet remove package` y
+     auditoría de dependencias (§11.4).
+   - Duplicados: unificar en la capa que corresponde (§13.7.1), sin genéricos ni capas nuevas "por si
+     acaso".
+   - Eficiencia: aplicar la regla de §5, §9 o §15 que corresponde, la solución más simple. Medir antes
+     y después cuando se pueda (duración de la query, cantidad de roundtrips).
+   - Preguntar antes, todo junto y una sola vez (§13.6): endpoints o contratos públicos sin uso visto
+     (los puede usar otro cliente), cambios de esquema o SPs, refactors de más de ~400 líneas.
+   - Pedido de solo lectura ("solo revisá", "no toques nada"): solo el reporte.
+   - Tras cada tanda: `dotnet build`, `dotnet test` en verde, `ponytail-review` y
+     `revisor-checklist-backend` si la tanda toca 3+ archivos (§13.3).
+6. **Escala.** Barrido por área en subagentes en paralelo si cumple §14.3.4. 5+ unidades
+   independientes (ej. un proyecto o feature por unidad): proponer `/batch <instrucción>`.

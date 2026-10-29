@@ -5,6 +5,18 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Skill `desarrollo-backend-buenas-practicas`
+
+- Auditoría de código sin usar, duplicado y optimizable (§13.10, regla 10): todo pedido de
+  auditoría la suma a la de seguridad. Herramientas, verificación de falsos positivos, reporte
+  priorizado y correcciones en tandas (borrar sin uso, unificar duplicados, optimizar).
+- Auditar = control de calidad completo (§13.10): calidad, eficiencia, duplicado y sin uso, con
+  tabla de cobertura por área.
+- Auditoría de seguridad (§11.6): corre con todo "auditá" a secas (junto con la de calidad) o pedido de
+  seguridad; suma modelo de
+  amenazas, network (TLS, superficie expuesta, cabeceras, WebSocket) y Blue Team, con pruebas en vivo
+  solo contra hosts autorizados. El instalador agrega las skills de network y Blue Team.
+
 ## [1.14.0] - 2026-10-28
 
 Actualizacion de version

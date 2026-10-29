@@ -58,9 +58,9 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
   siempre la skill en repos .NET y delegar solo cuando baja el total de tokens.
 - **caveman**: respuestas cortas (sin él salen 33% más largas).
 - **Seguridad** (§11.6): [security-audit](https://github.com/cloudflare/security-audit-skill),
-  9 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
-  y 19 `offensive-*` de [claude-red](https://github.com/SnailSploit/claude-red), solo de APIs, auth y
-  supply chain. Plugin `claude-security` en Claude Code.
+  23 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
+  y 22 `offensive-*` de [claude-red](https://github.com/SnailSploit/claude-red), solo de APIs, auth,
+  supply chain y network (TLS, cabeceras, Azure, SignalR, superficie expuesta). Plugin `claude-security` en Claude Code.
 - **Claude Code, extras** (cada uno solo si el usuario no lo configuró antes):
   - `permissions.deny` para que el agente no lea secretos (`~/.ssh`, `.env*`, `*.pem`, `*.key`...).
   - MCP [Context7](https://github.com/upstash/context7) (docs vigentes de librerías, gratis).

@@ -645,6 +645,13 @@ const SECURITY_SKILLS = [
       'configuring-oauth2-authorization-flow', 'performing-oauth-scope-minimization-review',
       'performing-web-application-vulnerability-triage', 'implementing-secret-scanning-with-gitleaks',
       'generating-and-analyzing-sboms',
+      // Network y Blue Team de la auditoría de seguridad (§11.6)
+      'performing-ssl-tls-security-assessment', 'configuring-tls-1-3-for-secure-communications',
+      'performing-security-headers-audit', 'testing-for-host-header-injection', 'performing-web-cache-poisoning-attack',
+      'testing-websocket-api-security', 'exploiting-websocket-vulnerabilities', 'scanning-network-with-nmap-advanced',
+      'performing-api-rate-limiting-bypass', 'implementing-api-rate-limiting-and-throttling',
+      'implementing-api-abuse-detection-with-rate-limiting', 'implementing-mtls-for-zero-trust-services',
+      'analyzing-web-server-logs-for-intrusion', 'performing-threat-modeling-with-owasp-threat-dragon',
     ],
   },
   {
@@ -655,7 +662,8 @@ const SECURITY_SKILLS = [
       'offensive-deserialization', 'offensive-file-upload', 'offensive-business-logic', 'offensive-open-redirect',
       'offensive-parameter-pollution', 'offensive-race-condition', 'offensive-request-smuggling', 'offensive-graphql',
       'offensive-api-security', 'offensive-jwt', 'offensive-oauth', 'offensive-dependency-confusion',
-      'offensive-supply-chain', 'offensive-reporting',
+      'offensive-supply-chain', 'offensive-reporting', 'offensive-tls-attacks', 'offensive-network-attacks',
+      'offensive-cloud',
     ],
   },
 ];
