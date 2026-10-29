@@ -105,6 +105,7 @@ skills/desarrollo-backend-buenas-practicas/
     ├── 13-workflow-orchestration.md   # Explorar, planificar, verificar
     ├── 14-agent-efficiency.md         # Caveman, subagentes, graphify
     ├── 15-data-access-ef-core.md      # EF Core 10 y LINQ
+    ├── 16-signalr-hubs.md             # Hubs SignalR, auth y escalado
     └── checklists.md                  # Checklists por área
 ```
 
