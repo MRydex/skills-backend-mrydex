@@ -312,7 +312,7 @@ motivo). Ninguna se saltea en silencio.
      legibilidad sin ganancia medible no se aplica.
    - Legibilidad y mantenimiento: renombrar, aplanar anidación (guard clauses) y partir solo lo que
      supera el límite de §1.3, sin cambiar comportamiento y con `dotnet test` en verde.
-     Dependencia entre capas al revés: mover la interfaz a Application (§1.1).
+     Dependencia entre capas al revés: mover la interfaz a Application (§1.4).
    - Preguntar antes, todo junto y una sola vez (§13.6): endpoints o contratos públicos sin uso visto
      (los puede usar otro cliente), cambios de esquema o SPs, refactors de más de ~400 líneas.
    - Pedido de solo lectura ("solo revisá", "no toques nada"): solo el reporte.

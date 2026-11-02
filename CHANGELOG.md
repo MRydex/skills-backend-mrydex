@@ -5,6 +5,11 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Skill
+
+- `01-solution-structure.md` §1.4: dependencias entre capas de Clean Architecture (qué proyecto
+  referencia a cuál). `13-workflow-orchestration.md` y `checklists.md` apuntan a §1.4.
+
 ### Instalador
 
 - uv se instala desde el binario de la última versión publicada, verificado con el `sha256.sum`

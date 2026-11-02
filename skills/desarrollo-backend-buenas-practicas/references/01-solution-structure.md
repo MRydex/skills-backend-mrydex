@@ -81,3 +81,20 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 - Si un handler pasa el límite: extraer servicio de dominio en `Services/<Feature>Handlers/` con su interfaz.
 - Si un repositorio pasa el límite: partir por agregado o por Command/Query. Nunca "Helpers" genéricos.
 - **Dentro del límite no se divide**: nada de extraer métodos o clases de 5 líneas usadas una vez.
+
+### 1.4 Dependencias entre capas (Clean Architecture)
+
+Las referencias entre proyectos (`<ProjectReference>`) van hacia adentro, nunca al revés:
+
+| Proyecto | Referencia a | No referencia a |
+| :--- | :--- | :--- |
+| `Domain` | nada (ni paquetes de infraestructura) | ningún otro proyecto |
+| `Application` | `Domain` | `Infrastructure`, `Api`, ASP.NET Core, Dapper, EF Core, SignalR, Redis |
+| `Infrastructure` | `Application`, `Domain` | `Api` |
+| `Api` | `Application`, `Infrastructure` (solo para registrar DI en `Program.cs`) | — |
+
+- La interfaz vive en `Application` (`I<Feature>QueryRepository`, `ICacheService`, cliente externo); la implementación `internal` en `Infrastructure`.
+- Si `Application` necesita algo de `Infrastructure`, se mueve la interfaz a `Application`, no se agrega la referencia.
+- Controllers y filtros de `Api` no usan tipos de `Infrastructure`: hablan con `Application` vía mediator.
+- Cada capa registra sus servicios en su `*Dependency.cs`; `Program.cs` solo los llama.
+- No se crean proyectos ni capas nuevas (`Shared`, `Common`, `Core`) sin pedido explícito.
