@@ -16,6 +16,12 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - Nombre del test: `<Metodo>_When<Condicion>_Should<Resultado>` (`Handle_WhenCodeExists_ShouldThrowSystemValidationException`).
 - Estructura Arrange / Act / Assert. Mocks como campos `readonly` creados en el constructor. `It.IsAny<CancellationToken>()` en los `Setup`.
 - Handler nuevo o modificado con lógica ⇒ tests de su camino feliz y sus errores. Bug corregido ⇒ test que lo reproduce.
+- Refactor de una regla de negocio sin tests: primero tests de caracterización que fijan el
+  comportamiento de hoy, rarezas incluidas (comentario `// Fijado a propósito: ...`). Si la regla
+  cambia, cambia a propósito junto con su test, nunca de paso en el refactor. Comprobar que el test
+  detecta: romper la regla, verlo fallar, restaurar.
+- Escenarios con varios datos: un builder del caso base con nombres y métodos `Con<X>(...)`, así cada
+  test muestra solo lo que cambia. Sobre un conjunto de flags, comparar el conjunto completo, no uno solo.
 - No testear el mediator, Dapper ni getters. No mockear lo que no se posee si se puede envolver en una interfaz propia ya existente.
 - Handlers `internal` ⇒ `<InternalsVisibleTo Include="<X>.UnitTest" />` en el `.csproj` de Application; el test crea el handler con `new` y sus mocks.
 - Casos múltiples: `[Theory]` + `[ClassData]`, con las clases de datos en `Data/` dentro de la carpeta del feature.

@@ -12,12 +12,15 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
 [13.6](#136-preguntar-todo-lo-necesario-una-sola-vez-antes-de-empezar) Preguntar todo antes de empezar ·
 [13.7](#137-causa-raíz-y-simplicidad) Causa raíz, simplicidad y sin sobreingeniería ·
 [13.8](#138-ciclo-de-auto-mejora-taskslessonsmd) Ciclo de auto-mejora ·
-[13.9](#139-archivos-de-ia-en-gitignore) Archivos de IA en `.gitignore`.
+[13.9](#139-archivos-de-ia-en-gitignore) Archivos de IA en `.gitignore` ·
+[13.10](#1310-auditoría-de-calidad-legibilidad-escalabilidad-eficiencia-duplicado-y-sin-uso) Auditoría de calidad ·
+[13.11](#1311-gotchas-de-build-y-entorno) Gotchas de build y entorno.
 
 ### 13.1 Explorar antes de editar
 
 - Un pedido de solo lectura (pregunta, explicación, revisión, "¿cómo funciona X?") **sigue siendo de
-  solo lectura**: se responde sin editar archivos. Si la respuesta sugiere un cambio, proponerlo en una
+  solo lectura**: se responde sin editar archivos. Excepción: un pedido de auditoría ("auditá",
+  "revisá todo") corre §13.10, que corrige. Si la respuesta sugiere un cambio, proponerlo en una
   línea y esperar a que el usuario lo pida.
 - Antes de tocar un archivo: leerlo completo (no solo el fragmento del pedido) y revisar quién lo usa
   (callers, interfaces que implementa, registros en DI, tests que lo cubren). Editar a ciegas sobre un
@@ -73,6 +76,8 @@ L1: <pedido del usuario, literal, sin resumir>
 
 - Nunca marcar una tarea como terminada sin probar que funciona: `dotnet build` sin warnings nuevos y,
   desde riesgo medio, `dotnet test Tests/<X>.UnitTest` en verde (ver [10-logging-tests.md](./10-logging-tests.md) §10.2). Si no se pudo correr, decirlo.
+- El reporte dice explícitamente qué **no** se probó (ej. SPs o queries sin correr contra la base,
+  endpoint sin levantar la API, flujo con token real). Gotchas de build que dan falsos errores: §13.11.
 - Si el bug o la feature tiene un caso reproducible (excepción en el log, request que falla, `traceId`
   de producción), demostrar que ahora desaparece: test que lo reproduce o request real contra la API
   local. No alcanza con "debería andar".
@@ -121,6 +126,9 @@ revisarlo: la revisión no agrega features.
   haría distinto. No reformatear ni "mejorar" líneas vecinas que la tarea no toca.
 - Si en el camino aparece otro problema (bug ajeno a la tarea, deuda de [12-tech-debt.md](./12-tech-debt.md), `TODO` viejo),
   anotarlo y reportarlo, no arreglarlo de paso dentro del mismo cambio.
+- En un refactor no se cambian reglas de negocio. Una regla rara o un bug que aparece se anota y se
+  consulta; no se corrige de paso. Antes de "arreglar" algo que parece raro, buscar si el registro de
+  decisiones del repo (ADR, `docs/`) lo fija a propósito.
 - Un refactor "ya que estamos" que no hace falta para la tarea pedida se propone aparte, no se aplica
   sin que el usuario lo pida.
 - Excepción: un cambio mínimo indispensable para que la tarea pedida compile o funcione (ej. ajustar una
@@ -272,7 +280,7 @@ motivo). Ninguna se saltea en silencio.
 | Área | Qué se busca | Herramienta |
 | :--- | :--- | :--- |
 | Calidad | Bugs de lógica, errores mal manejados (§7), convenciones de la skill ([checklists.md](./checklists.md)), deuda de §12 copiada, sobreingeniería (§13.7.1), handlers sin test (§10.2) | `code-review-and-quality`, `ponytail-audit`, `revisor-checklist-backend` |
-| Legibilidad y mantenimiento | Nombres que no dicen qué hacen, métodos largos o con complejidad ciclomática alta, más de 3 niveles de anidación, clases fuera del límite de §1.3 o con demasiadas dependencias inyectadas, capas que se saltean (Domain o Application que referencian Infrastructure, §1.1), números mágicos, comentarios desactualizados o que repiten el código | CA1502 (complejidad) y CA1506 (acoplamiento) en `warning` en el `.editorconfig`; `dotnet list reference` por proyecto; lectura del código |
+| Legibilidad y mantenimiento | Nombres que no dicen qué hacen, métodos largos o con complejidad ciclomática alta, más de 3 niveles de anidación, clases fuera del límite de §1.3 o con demasiadas dependencias inyectadas, capas que se saltean (Domain o Application que referencian Infrastructure, §1.4), números mágicos, comentarios desactualizados o que repiten el código | CA1502 (complejidad) y CA1506 (acoplamiento) en `warning` en el `.editorconfig`; `dotnet list reference` por proyecto; lectura del código |
 | Escalabilidad | Lo que se rompe cuando crecen los datos, el tráfico o las instancias: endpoints de lista sin paginado, consultas que escanean la tabla (sin índice para el filtro), estado en memoria del proceso (`static`, `IMemoryCache` como fuente de verdad) que se desincroniza con varias instancias, trabajo pesado dentro del request en vez de en segundo plano, endpoints sin rate limiting (§11.2), llamadas externas sin timeout ni resiliencia (§9) | Plan de ejecución SQL, `graphify query` sobre los flujos con más datos, lectura del código |
 | Eficiencia | N+1 y consultas en loop, `SELECT *` o columnas de más, falta de paginado, tracking innecesario en EF (§15.3), LINQ evaluado en memoria (§15.8), sync sobre async (`.Result`, `.Wait()`), `CancellationToken` no propagado, cache que falta o que no se invalida (§5.3), `HttpClient` sin factory (§9), búsquedas dentro de loops (§15.8), allocations en caminos calientes | `performance-optimization`, plan de ejecución SQL, logs de duración |
 | Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console --ignore "**/bin/**,**/obj/**"`; duplicaciones de SonarCloud si el proyecto lo tiene |
@@ -320,3 +328,23 @@ motivo). Ninguna se saltea en silencio.
      `revisor-checklist-backend` si la tanda toca 3+ archivos (§13.3).
 6. **Escala.** Barrido por área en subagentes en paralelo si cumple §14.3.4. 5+ unidades
    independientes (ej. un proyecto o feature por unidad): proponer `/batch <instrucción>`.
+
+### 13.11 Gotchas de build y entorno
+
+Falsos errores que no se diagnostican como bug del código:
+
+- `MSB3021` / `MSB3027` (dll bloqueada): la API está corriendo en Visual Studio. Compilar a otra
+  carpeta con `dotnet build -p:OutDir=<carpeta-temporal>\`. Nunca matar procesos del usuario.
+- `MSB3073` en un target post-build que usa `$(SolutionDir)` al compilar un `.csproj` suelto:
+  `-p:SolutionDir="<ruta-de-la-solucion>\"`. Si el build incremental dice éxito sin compilar, `-t:Rebuild`.
+- `MSB4278` en `.sqlproj`: no compila con `dotnet` CLI (necesita MSBuild de Visual Studio). Compilar los
+  `.csproj` y avisar que el `.sqlproj` no se compiló.
+- Un `PreBuild` que copia `appsettings.<Config>.json` sobre `appsettings.json` pisa la config local al
+  compilar en otra configuración: avisar antes de compilar `Release`.
+- Development valida el grafo de DI al arrancar (`ValidateOnBuild`): levantar la API detecta registros
+  faltantes que el build no ve. HTTPS local: `dotnet dev-certs https --trust`.
+- IIS `500.30` sin eventos útiles: `stdoutLogEnabled="true"` en `web.config`, crear `logs\` y darle
+  permiso al pool (`icacls .\logs /grant "IIS AppPool\<pool>:(OI)(CI)M"`). Volver a `false` al terminar.
+- Finales de línea: `sed -i` en Git Bash sobre un repo CRLF deja LF y el diff marca el archivo entero.
+  Editar con el editor o Python, o pasar `unix2dos`. Si el repo no lo fija, proponer (no aplicar sin
+  pedido, §13.5) `.gitattributes` (`* text=auto`, `*.cs text eol=crlf`) o `end_of_line` en `.editorconfig`.

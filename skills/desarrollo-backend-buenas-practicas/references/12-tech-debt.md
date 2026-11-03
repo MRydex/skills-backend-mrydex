@@ -2,7 +2,10 @@
 
 Patrones del repo de referencia que el código nuevo no copia. Leer al tocar código existente.
 
-Patrones frecuentes en los repos existentes del equipo. Código nuevo **no** los copia; arreglarlos solo si el usuario lo pide o si la tarea ya toca esa línea, avisando en una línea.
+Patrones frecuentes en los repos existentes del equipo. Código nuevo **no** los copia. Los de la
+infraestructura compartida (`Mediator`, `Guard`, `UnitOfWork`) se **usan** como están en el repo
+(ejemplos de §4 y §5); lo que no se hace es reimplementarlos así en un repo nuevo ni extenderlos
+con el mismo defecto; arreglarlos solo si el usuario lo pide o si la tarea ya toca esa línea, avisando en una línea.
 
 - Controllers sin `CancellationToken` y `mediator.Send(request)` sin token.
 - `Mediator` resuelve handlers por reflexión en cada request e invoca `Handle` por string.

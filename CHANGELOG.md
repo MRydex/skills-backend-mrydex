@@ -7,8 +7,46 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Skill
 
+- `02-csharp-design.md`: `BannedApiAnalyzers` + `BannedSymbols.txt` con `RS0030` en `error` para
+  convertir reglas "nunca X" en error de compilación; colisión de nombre con namespace (`CS0118`);
+  ciclos de DI.
+- `03-controllers.md`: comparar `swagger.json` antes y después al tocar un endpoint.
+- `08-configuration-di-secrets.md`: variables de entorno con `__` como única excepción a Key Vault
+  en ambientes que no lo tienen (on-prem/IIS) y fail-fast que nombra la variable que falta.
+- `09-http-integrations.md` y `07-errors-responses.md`: status de `ExternalApiException` según la
+  falla del downstream (503 / 504 / 502).
+- `10-logging-tests.md`: tests de caracterización antes de refactorizar una regla; builder de escenarios.
+- `11-security.md` §11.2: en APIs con `AddAuthorization`, `FallbackPolicy` deny-by-default y acceso
+  M2M por atributo resuelto en el handler de la policy global (`[RoleAuthorization]` sigue igual); todo camino a un recurso por el mismo chequeo de permisos (BOLA).
+- `13-workflow-orchestration.md`: decir qué no se probó; refactor sin cambiar reglas de negocio;
+  §13.11 gotchas de build y entorno (dll bloqueada, `$(SolutionDir)`, `.sqlproj`, IIS 500.30, CRLF).
+- `15-data-access-ef-core.md`: `DbConnectionInterceptor` para `sp_set_session_context` con los
+  cuatro overrides sync/async y options por base.
+- `checklists.md`: ítems de lo anterior.
+- `05` §5.2 y `15` §15.4: el código nuevo usa la forma de ejecutar SQL que el repo ya tiene. §15.4
+  reescrita como equivalente EF de §5.2 (texto, parámetros tipados, `SqlQuery<Response>`, composición,
+  SPs con salida, transacción, bulk, timeout, errores).
+- Corregido: el ejemplo de §15.4 componía `SingleAsync` sobre un `EXEC` (SQL inválido); los ejemplos de
+  §5.2/§15.4 atrapaban `Exception` o tenían un `catch (OperationCanceledException)` muerto.
+- Consistencia entre archivos: Key Vault o variables de entorno (SKILL y templates); transacción con
+  EF en la regla 6; límite de método 40 en SKILL y templates; orden de consulta de librerías igual a
+  §14.2; "audit this" en templates igual a §13.10; 204 solo para listados (recurso puntual ⇒ 404); 403
+  en los `ProducesResponseType` de clase; data annotations permitidas en Options; dependencias de
+  Domain/Application en §1.4; §12 aclara que `Mediator` / `Guard` / `UnitOfWork` del repo se usan;
+  `tasks/*.md` no se versionan; tabla de cobertura de auditoría permitida en el reporte; tests de
+  integración EF fuera de CI; índice de §13 y referencias §1.1/§1 corregidas; hub SignalR sin `!`
+  ni literales y su implementación en Api.
+- `09`: `Microsoft.Extensions.Http.Resilience` en repos nuevos; Polly donde ya existe.
+- `03`: `CreatedAtAction` apunta al GET del recurso creado (antes `null`: `Location` al mismo POST).
+
+## [1.16.0] - 2026-11-02
+
+### Skill
+
 - `01-solution-structure.md` §1.4: dependencias entre capas de Clean Architecture (qué proyecto
   referencia a cuál). `13-workflow-orchestration.md` y `checklists.md` apuntan a §1.4.
+
+## [1.15.0] - 2026-10-29
 
 ### Instalador
 
@@ -17,7 +55,7 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   Node (sin curl, wget ni tar del sistema) y cubre Windows, macOS y Linux en todas las
   arquitecturas que publica uv (x64, arm64, 32 bits, ARM, riscv64, ppc64le, s390x).
 - `engines.node >= 18` en `package.json` (usa `fetch`).
-- `~/.claude/settings.json` ay el bloque de `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` se escriben con
+- `~/.claude/settings.json` y el bloque de `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` se escriben con
   copia `.bak` y reemplazo atómico; un corte a mitad ya no deja el archivo roto.
 
 ## [1.14.3] - 2026-10-29

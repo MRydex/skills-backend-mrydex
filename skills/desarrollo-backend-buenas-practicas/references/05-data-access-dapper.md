@@ -11,6 +11,11 @@ Conexiones, transacciones, SQL con Dapper y cache por decorator. Leer al tocar r
 
 ### 5.2 SQL
 
+**Primero, lo que ya hay.** Si el repo ya tiene su forma de ejecutar SQL o SPs (helper, repositorio
+base, wrapper de SPs), el código nuevo la usa aunque esta sección lo haría distinto (§13.5). Lo de
+abajo aplica cuando no hay precedente. Excepción: lo que concatena input o no parametriza no se
+copia: se reporta (§11.3). Con EF Core, el equivalente de esta sección es §15.4.
+
 ```csharp
 internal class ItemCommandRepository(DbSession dbSession) : IItemCommandRepository
 {
@@ -27,15 +32,11 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
             await dbSession.Connection.ExecuteAsync(new CommandDefinition(
                 sql, parameters, transaction: dbSession.Transaction, cancellationToken: cancellationToken));
         }
-        catch (SqlException ex) when (ex.Number == 2627)
+        catch (SqlException ex) when (ex.Number is 2627 or 2601)
         {
             throw new SystemValidationException(ErrorMessage.ItemAlreadyExists);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (SqlException ex) when (!cancellationToken.IsCancellationRequested)
         {
             throw new CommandException(ErrorMessage.CommandFailure, ex, parameters);
         }
@@ -50,7 +51,7 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Stored procedures: `commandType: CommandType.StoredProcedure`, parámetros con nombre. Se usan cuando la lógica ya vive en la base; no migrar SP a inline ni al revés sin pedido.
 - Bulk: `IN @Ids` de Dapper hasta ~1000 valores; más que eso, TVP o `SqlBulkCopy`. Nunca un `ExecuteAsync` por fila en loop.
 - Unicidad: la garantía es el índice `UNIQUE` en la base. Un "¿ya existe?" previo (validador o handler) no la da: dos requests simultáneos pasan los dos el chequeo. Ese chequeo es opcional (mensaje más claro); el `INSERT` siempre maneja el duplicado.
-- Errores: `SqlException 2627/2601` (duplicado) ⇒ `SystemValidationException`; `OperationCanceledException` ⇒ relanzar; resto ⇒ `CommandException` / `QueryException` con parámetros **sin datos sensibles**. Atrapar `SqlException`, no `Exception`, y pasar la original como inner: `throw new QueryException($"No se pudo realizar la consulta a {nameof(GetItemsAsync)}", ex);`.
+- Errores: `SqlException 2627/2601` (duplicado) ⇒ `SystemValidationException`; cancelación ⇒ sube sin mapear (`when (!cancellationToken.IsCancellationRequested)`: SqlClient puede reportarla como `SqlException`); resto ⇒ `CommandException` / `QueryException` con parámetros **sin datos sensibles**. Atrapar `SqlException`, no `Exception`, y pasar la original como inner: `throw new QueryException(ErrorMessage.QueryFailure, ex, parameters);`.
 - Scripts de base (tablas, índices, SP) en el PR como `.sql` idempotente (`IF NOT EXISTS`) y con rollback.
 
 ### 5.3 Cache

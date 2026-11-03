@@ -88,8 +88,8 @@ Las referencias entre proyectos (`<ProjectReference>`) van hacia adentro, nunca 
 
 | Proyecto | Referencia a | No referencia a |
 | :--- | :--- | :--- |
-| `Domain` | nada (ni paquetes de infraestructura) | ningún otro proyecto |
-| `Application` | `Domain` | `Infrastructure`, `Api`, ASP.NET Core, Dapper, EF Core, SignalR, Redis |
+| `Domain` | ningún proyecto; solo paquetes sin infraestructura (ej. FluentValidation para `Validators/`) | ningún otro proyecto, Dapper, EF Core, ASP.NET Core |
+| `Application` | `Domain`; de ASP.NET Core solo lo que piden `Exceptions/Handlers` (`IExceptionHandler`, `ProblemDetails`) | `Infrastructure`, `Api`, resto de ASP.NET Core (controllers, `HttpContext`), Dapper, EF Core, SignalR, Redis |
 | `Infrastructure` | `Application`, `Domain` | `Api` |
 | `Api` | `Application`, `Infrastructure` (solo para registrar DI en `Program.cs`) | — |
 

@@ -34,7 +34,8 @@ Todas las respuestas al usuario se escriben en **modo caveman**: frases cortas, 
 
 **Largo máximo (todo lo que emite la skill):**
 - **Reporte final**: solo qué cambió (con link al archivo), qué falló y qué decide
-  el usuario. Nunca un resumen sección por sección ni tablas que ya están en los archivos.
+  el usuario. Nunca un resumen sección por sección ni tablas que ya están en los archivos. Excepción:
+  la tabla de cobertura que piden las auditorías (§11.6, §13.10).
 - **Avisos de estado**: una línea (`graphify OK: 336 nodos`).
 - **Preguntas**: una línea por pregunta, con opciones cortas.
 - **Subagentes**: sus reportes también en caveman; el orquestador no los reenvía completos.
@@ -196,7 +197,7 @@ como fase separada.
 **Delegar solo por uno de estos 4 motivos**. Nombrar el motivo
 en el brief. Sin motivo, o ante la duda: lo hace el orquestador.
 
-1. **Exploración grande:** más de ~3 búsquedas/lecturas o ~10k tokens para encontrar algo (`investigador`).
+1. **Exploración grande:** 3+ búsquedas/lecturas o ~10k tokens para encontrar algo (`investigador`).
 2. **Escritores en paralelo:** unidades independientes que no se pisan (`ejecutor-backend` por unidad, `/batch`).
 3. **Respaldo de contexto:** la sesión está cargada y la próxima tarea del documento (§13.2) se le
    da a un subagente nuevo con el brief, en vez de seguir sumando contexto.
@@ -261,7 +262,7 @@ implementa y publica su cambio. Requiere repo git. La instrucción debe pedir ve
 ```text
 Modelo seleccionado (orquestador + revisor)
 ├── plan + brief en tasks/brief-cancellation-token.md
-├── subagente rápido    → localizar actions sin CancellationToken            → tabla archivo:línea
+├── investigador       → localizar actions sin CancellationToken            → tabla archivo:línea
 ├── subagente ejecutor  → propagar el token hasta CommandDefinition (§3, §5) → archivos tocados + dotnet build
 ├── subagente rápido    → revisar diff contra checklists.md                  → hallazgos
 └── revisión final del orquestador + respuesta al usuario
@@ -368,7 +369,7 @@ La sesión siguiente arranca leyendo ese resumen y `tasks/lessons.md`, en vez de
 Si el agente tiene un MCP de memoria (herramientas `mem_*` o similares), usarlo además del archivo:
 `mem_context` al empezar, `mem_search` antes de repetir una exploración, `mem_save` para decisiones
 con un `topic_key` fijo por tema, `mem_session_summary` al cerrar. El archivo sigue siendo la fuente
-que comparte el equipo.
+(local: no se versiona, §13.9).
 
 **Compactar con foco.** En Claude Code `/compact` y `/clear` los corre el usuario: el agente propone el comando listo para pegar. El resumen debe conservar lo que sigue siendo útil y descartar el resto:
 

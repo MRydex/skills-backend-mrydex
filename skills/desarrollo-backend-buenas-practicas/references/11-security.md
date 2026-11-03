@@ -22,6 +22,20 @@ Preguntarse como atacante, para cada endpoint o cambio:
   `ValidateIssuerSigningKey` en `true`. **Nunca `ValidateAudience = false`**: acepta el token de
   cualquier cliente del mismo IdP. Cada audiencia legítima va en `ValidAudiences` desde
   config (ej. la del API de la app que embebe un microfrontend y le reenvía su token).
+- APIs con autorización de ASP.NET (`AddJwtBearer` + `AddAuthorization`, no `ValidateTokenFilter`).
+  `[RoleAuthorization]` por action (§3) sigue igual; estas dos reglas suman una red debajo:
+  - Deny by default: `options.FallbackPolicy` = la policy de la app (usuario autenticado con el rol de
+    la app), así un endpoint sin atributo no queda abierto. Anónimo solo con `[AllowAnonymous]`
+    explícito y documentado en el PR (§3).
+  - Clientes M2M (client credentials, cuenta de servicio): entran solo a endpoints marcados con un
+    atributo propio (`[AllowM2m]`), resuelto en el `AuthorizationHandler` de la policy global con
+    `endpoint.Metadata.GetMetadata<AllowM2mAttribute>()`. Un `[Authorize(Roles = ...)]` en el endpoint
+    se suma con AND a la policy global: no sirve para abrirlo a otro rol; el OR vive en el handler.
+    Rol M2M sobre un endpoint no marcado ⇒ denegar y `LogWarning` con usuario y endpoint. Probar con
+    un token real de la cuenta de servicio.
+- Autorización a nivel objeto (API1/BOLA, §11.1 punto 1): **todo camino** que expone o modifica un
+  recurso (detalle, listado, descarga/PDF, acciones, respuesta de una escritura) pasa por el mismo
+  chequeo de permisos. Olvidar uno expone datos en silencio.
 - CORS: orígenes explícitos desde config por ambiente. **Nunca** `SetIsOriginAllowed(_ => true)` / `AllowAnyOrigin` junto con `AllowCredentials` en código nuevo.
 - Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP mínima para Swagger) registradas en el pipeline.
 - Swagger deshabilitado en Producción.
@@ -144,9 +158,9 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 | Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `performing-security-headers-audit`, `testing-for-host-header-injection`, `performing-web-cache-poisoning-attack`, `security-audit` |
 | TLS y certificados (network) | §11.2 (HSTS, `HttpsRedirection`, solo TLS 1.2/1.3 en Kestrel/IIS, validación de certificados en `HttpClient` sin `ServerCertificateCustomValidationCallback` que devuelva `true`) | `performing-ssl-tls-security-assessment`, `configuring-tls-1-3-for-secure-communications`, `offensive-tls-attacks` |
 | Superficie expuesta (network) | Swagger en producción, health check con datos internos, endpoints internos publicados, puertos y bindings extra, ambientes de prueba públicos | `scanning-network-with-nmap-advanced`, `offensive-network-attacks` |
-| Servicio a servicio (network) | §9: llamadas internas autenticadas (token de cliente o mTLS), sin confiar en la red interna | `implementing-mtls-for-zero-trust-services` |
+| Servicio a servicio (network) | §9 (tokens de servicio, certificados): llamadas internas autenticadas, sin confiar en la red interna | `implementing-mtls-for-zero-trust-services` |
 | Azure (network) | Key Vault, SQL y Storage sin acceso público innecesario (firewall, private endpoints), restricciones de acceso del App Service, identidad administrada con permisos mínimos | `offensive-cloud` |
-| SignalR / WebSocket | §16: `wss://`, origen validado, token en la conexión, autorización por grupo | `testing-websocket-api-security`, `exploiting-websocket-vulnerabilities` |
+| SignalR / WebSocket | §16: solo HTTPS/`wss://` (§11.2), origen validado, token en la conexión, autorización por grupo | `testing-websocket-api-security`, `exploiting-websocket-vulnerabilities` |
 | CORS | §11.2 | `testing-cors-misconfiguration` |
 | Secretos y PII | §8, §11.1 | `implementing-secret-scanning-with-gitleaks` |
 | Errores y `ProblemDetails` (sin filtrar datos internos) | §7, §11.2 | `security-audit` |

@@ -26,8 +26,9 @@ public sealed class NotificacionesHub(IAutorizacionSalas autorizacion) : Hub<INo
 {
     public async Task UnirseASala(long salaId)
     {
-        if (!await autorizacion.PuedeVerAsync(Context.UserIdentifier!, salaId, Context.ConnectionAborted))
-            throw new HubException("No autorizado.");
+        if (Context.UserIdentifier is not { } userId
+            || !await autorizacion.PuedeVerAsync(userId, salaId, Context.ConnectionAborted))
+            throw new HubException(ErrorMessage.Forbidden);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, SalaGroup(salaId), Context.ConnectionAborted);
     }
@@ -51,18 +52,19 @@ public sealed class NotificacionesHub(IAutorizacionSalas autorizacion) : Hub<INo
 // Application: abstracción, sin referencia a SignalR
 public interface INotificador
 {
-    Task NotificarAsync(string userId, NotificacionResponse notificacion, CancellationToken ct);
+    Task NotificarAsync(string userId, NotificacionResponse notificacion, CancellationToken cancellationToken);
 }
 
-// Api / Infrastructure: implementación con IHubContext tipado
+// Api (el hub vive ahí): implementación con IHubContext tipado
 internal sealed class SignalRNotificador(IHubContext<NotificacionesHub, INotificacionesClient> hub) : INotificador
 {
-    public Task NotificarAsync(string userId, NotificacionResponse notificacion, CancellationToken ct) =>
+    // Clients.User(...) no acepta CancellationToken: el token queda para trabajo previo al envío
+    public Task NotificarAsync(string userId, NotificacionResponse notificacion, CancellationToken cancellationToken) =>
         hub.Clients.User(userId).NotificacionNueva(notificacion);
 }
 ```
 
-- Application no referencia `Microsoft.AspNetCore.SignalR` (§1). El handler depende de `INotificador`.
+- Application no referencia `Microsoft.AspNetCore.SignalR` (§1.4). El handler depende de `INotificador`.
 - Publicar **después** de confirmar la transacción (`UnitOfWork` §5): si se publica antes y falla el
   commit, el cliente ve un cambio que no existe.
 - `Clients.User(id)` para un usuario (todas sus pestañas), `Clients.Group(...)` para una sala. Nunca

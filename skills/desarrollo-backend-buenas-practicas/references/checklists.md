@@ -37,7 +37,7 @@ internal class GetItemHandler(IValidator<GetItemRequest> validator, IItemQueryRe
 // Repo: const sql con columnas explícitas + CommandDefinition
 const string sql = "SELECT Code, Name, IsActive FROM dbo.Item WHERE Code = @Code;";
 return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
-    new CommandDefinition(sql, new { Code = code }, cancellationToken: cancellationToken));
+    new CommandDefinition(sql, new { Code = code }, transaction: dbSession.Transaction, cancellationToken: cancellationToken));
 ```
 
 ### Estructura y C# ([01](./01-solution-structure.md), [02](./02-csharp-design.md))
@@ -50,6 +50,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Sin `.Result` / `.Wait()` / `GetAwaiter().GetResult()` / `async void`; métodos async con sufijo `Async`.
 - [ ] Sin `!` para callar nullable; sin warnings nuevos en build.
 - [ ] Importes en `decimal`; fechas en UTC o `DateTimeOffset`.
+- [ ] Sin warnings `RS0030` (símbolo de `BannedSymbols.txt`) suprimidos; tipo nuevo sin el nombre de un segmento de su namespace. (§2)
 
 ### Controller ([03](./03-controllers.md))
 
@@ -58,6 +59,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] `CancellationToken` recibido y pasado a `mediator.Send`.
 - [ ] Sin lógica, SQL, `try/catch` ni validación.
 - [ ] Endpoint nuevo documentado en `Documentacion/<Feature>/`.
+- [ ] Endpoint existente tocado: `swagger.json` comparado antes/después, sin cambios de forma ni de `null` sin coordinar.
 
 ### Handler ([04](./04-mediator-handlers.md), [06](./06-validation.md))
 
@@ -83,13 +85,16 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Un `SaveChangesAsync` por handler vía `IUnitOfWork`; masivos con `ExecuteUpdateAsync` / `ExecuteDeleteAsync`.
 - [ ] Sin `dbContext.Update(request)`; `DbUpdateException` / concurrencia mapeadas a excepciones tipadas.
 - [ ] Migración con script `--idempotent` en el PR; nada de `Database.Migrate()` al arrancar.
+- [ ] `DbConnectionInterceptor` con los cuatro overrides (sync y async); cada `DbContext` con las options de su base. (§15.5)
 
 ### Errores, config e integraciones ([07](./07-errors-responses.md), [08](./08-configuration-di-secrets.md), [09](./09-http-integrations.md))
 
 - [ ] Errores solo por excepción tipada → `ProblemDetails`; excepción nueva con handler y entrada `.resx`.
-- [ ] Config por Options con `ValidateOnStart`; secretos solo en Key Vault.
+- [ ] Config por Options con `ValidateOnStart`; secretos solo en Key Vault (o variables de entorno en un ambiente sin Key Vault, §8).
 - [ ] Lifetimes correctos; nada `Scoped` dentro de un `Singleton`.
 - [ ] HTTP saliente por typed client, con timeout y retry solo en transitorios idempotentes.
+- [ ] Falla del downstream mapeada a 503 / 504 / 502, no a 500. (§9)
+- [ ] Clave requerida que falta corta el arranque nombrando la variable de entorno (`Seccion__Clave`). (§8)
 
 ### Logging y tests ([10](./10-logging-tests.md))
 
@@ -97,6 +102,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Handler nuevo o modificado con tests del camino feliz y de sus errores; bug corregido con test que lo reproduce.
 - [ ] Naming `<Metodo>_When<Condicion>_Should<Resultado>`, estructura AAA.
 - [ ] `dotnet build` limpio; desde riesgo medio, `dotnet test` de UnitTest verde (o se dijo por qué no se corrió) (§13.3).
+- [ ] Refactor de regla de negocio: tests de caracterización antes; la regla no cambió de paso. (§10.2)
+- [ ] Reporte dice qué no se probó (base, API levantada, token real). (§13.3)
 
 ### Seguridad ([11](./11-security.md), [12](./12-tech-debt.md))
 
@@ -106,6 +113,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).
 - [ ] JWT con audiencia validada contra `ValidAudiences` explícitas, nunca `ValidateAudience = false`. (§11.2)
 - [ ] Quién actúa sale solo del token, nunca del body, la query ni la ruta. (§11.1)
+- [ ] Con `AddAuthorization`: `FallbackPolicy` deny-by-default y M2M solo en endpoints marcados. Siempre: todo camino al recurso (detalle, descarga, acciones, respuesta de escritura) pasa por el mismo chequeo de permisos. (§11.2)
 - [ ] Deuda de §12 no copiada en código nuevo.
 - [ ] Vulnerabilidades encontradas reportadas en prosa normal, aunque estén fuera del alcance.
 - [ ] "Auditá" a secas o pedido de seguridad: auditoría completa red + blue + network con cobertura por área, y pruebas en vivo solo contra hosts autorizados por el usuario (§11.6).

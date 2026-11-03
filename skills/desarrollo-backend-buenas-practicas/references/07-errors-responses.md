@@ -2,7 +2,7 @@
 
 Excepciones tipadas, `IExceptionHandler` y `ProblemDetails`. Leer al manejar errores o definir respuestas.
 
-- Excepciones de `Application/Exceptions`: `SystemValidationException` (400), `NotFoundException` (404), `LoginException` / `ClaimException` (401/403), `ExternalApiException` (502/500), `CommandException` / `QueryException` (500), `KeyVaultException` (500).
+- Excepciones de `Application/Exceptions`: `SystemValidationException` (400), `NotFoundException` (404), `LoginException` / `ClaimException` (401/403), `ExternalApiException` (502/503/504 según la falla, §9), `CommandException` / `QueryException` (500), `KeyVaultException` (500).
 - Cada excepción tiene su `IExceptionHandler` en `Exceptions/Handlers/`, registrado con `AddExceptionHandler<T>()` en orden de lo específico a lo general; `UnhandledExceptionHandler` último.
 - Respuesta de error: `ProblemDetails` (`type` RFC 9110, `title`/`detail` desde `ExceptionMessages.resx`, `status`, `traceId`). Mismo formato siempre: el frontend depende de él.
 - Excepción nueva ⇒ clase + handler + entrada `.resx`. No agregar `catch` en controllers ni filtros para mapear errores.

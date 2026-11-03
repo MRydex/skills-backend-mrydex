@@ -18,4 +18,30 @@ Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código
   - `System.Threading.Lock` en vez de `lock (new object())` para exclusión mutua.
   - `params ReadOnlySpan<T>` / `params IEnumerable<T>` en vez de `params T[]` en métodos nuevos.
   - Bloques `extension(...)` solo donde el repo ya usa métodos de extensión para ese tipo. No convertir los existentes.
+- Un tipo no se llama igual que un segmento de su namespace (`Infrastructure.Orders.Order`): dentro de
+  ese namespace el nombre corto resuelve al namespace (`CS0118`). En un repo que ya lo tiene, calificar
+  el tipo entero (`Domain.Orders.Entities.Order`).
+- Ciclos de DI: repositorios no dependen de services ni de chequeos de permisos; eso evita la mayoría.
+  Si un puerto nuevo cierra un ciclo, va en una interfaz aparte en vez de agrandar la existente.
+- **Regla "nunca uses X" que importa ⇒ error de compilación**, no solo texto: `BannedApiAnalyzers` +
+  `BannedSymbols.txt` + `RS0030` en `error`. Va en `Directory.Build.props`, condicionado a `.csproj`
+  (los `.sqlproj` no soportan analizadores Roslyn):
+
+  ```xml
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+  ```
+
+  `.editorconfig`: `[*.cs]` + `dotnet_diagnostic.RS0030.severity = error`. `BannedSymbols.txt`, una
+  línea por símbolo con la alternativa en el mensaje (`T:` tipo, `M:` método, `P:` propiedad):
+
+  ```text
+  P:System.DateTime.Now;Usar TimeProvider (§2)
+  M:System.Net.Http.HttpClient.#ctor;Usar un typed client (§9)
+  ```
+
+  Agregar entradas solo para lo que el repo ya rompió o lo que deja un agujero de seguridad; con CPM,
+  la versión va en `Directory.Packages.props`.
 - Sin código comentado, sin `TODO` sin ticket, sin `#region` dentro de métodos. `#region` solo para agrupar registros en DI.

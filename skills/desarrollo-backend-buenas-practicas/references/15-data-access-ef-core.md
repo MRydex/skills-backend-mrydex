@@ -15,7 +15,7 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
 Índice: [15.1](#151-versión-y-registro) Versión y registro ·
 [15.2](#152-entidades-y-configuración) Entidades y configuración ·
 [15.3](#153-consultas-linq) Consultas LINQ ·
-[15.4](#154-sql-a-mano-con-ef) SQL a mano ·
+[15.4](#154-sql-a-mano-con-ef-equivalente-a-52) SQL a mano ·
 [15.5](#155-escrituras-y-transacciones) Escrituras y transacciones ·
 [15.6](#156-errores-y-concurrencia) Errores y concurrencia ·
 [15.7](#157-migraciones) Migraciones ·
@@ -133,29 +133,107 @@ internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepositor
   ([05](./05-data-access-dapper.md) §5.3).
 - Revisar el SQL generado en consultas no triviales (`ToQueryString()` en Development o el log de EF).
 
-### 15.4 SQL a mano con EF
+### 15.4 SQL a mano con EF (equivalente a §5.2)
+
+**Primero, lo que ya hay.** Si el repo ya tiene su forma de ejecutar SQL o SPs con EF (extension
+method, repositorio base, helper de SPs, Dapper sobre la conexión del `DbContext`), el código nuevo
+la usa aunque esta sección lo haría distinto (§13.5). Lo de abajo aplica cuando no hay precedente.
+Excepción: si lo existente concatena input o no parametriza, eso no se copia: se reporta (§11.3) y
+el código nuevo parametriza.
+
+**Cuándo.** LINQ primero (§15.3). SQL a mano cuando la lógica ya vive en un SP, se lee una vista o
+función, o el SQL que genera LINQ es malo y se midió (`ToQueryString()`).
 
 ```csharp
-// ✅ Interpolación parametrizada: EF convierte {code} en @p0
-var item = await dbContext.Items
-    .FromSql($"SELECT Id, Code, Name, IsActive, RowVersion FROM dbo.Item WHERE Code = {code}")
-    .AsNoTracking()
-    .FirstOrDefaultAsync(cancellationToken);
+internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepository
+{
+    // SELECT: EF lo envuelve en subconsulta, se puede componer (FirstOrDefault, Where, paginado)
+    public Task<ItemResponse?> GetByCodeAsync(string code, CancellationToken cancellationToken) =>
+        dbContext.Database
+            .SqlQuery<ItemResponse>($"""
+                SELECT Code, Name, IsActive
+                FROM dbo.Item
+                WHERE Code = {code}
+                """)
+            .FirstOrDefaultAsync(cancellationToken);
 
-// ✅ SP o escalares
-var total = await dbContext.Database
-    .SqlQuery<int>($"EXEC dbo.GetItemCount @IsActive = {isActive}")
-    .SingleAsync(cancellationToken);
+    // SP: no se compone. Materializar primero; el resto, en memoria
+    public async Task<int> GetCountAsync(bool isActive, CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.Database
+            .SqlQuery<int>($"EXEC dbo.GetItemCount @IsActive = {isActive}")
+            .ToListAsync(cancellationToken);
+        return rows.Single();
+    }
+}
 
-// ❌ Inyección SQL: concatenación o FromSqlRaw con texto armado
+internal class ItemCommandRepository(AppDbContext dbContext) : IItemCommandRepository
+{
+    public async Task CreateAsync(string code, string name, CancellationToken cancellationToken)
+    {
+        var codeParam = new SqlParameter("@Code", SqlDbType.VarChar, 3) { Value = code };
+        try
+        {
+            await dbContext.Database.ExecuteSqlAsync($"""
+                INSERT INTO dbo.Item (Code, Name, CreatedAt)
+                VALUES ({codeParam}, {name}, SYSUTCDATETIME());
+                """, cancellationToken);
+        }
+        catch (SqlException ex) when (ex.Number is 2627 or 2601)
+        {
+            throw new SystemValidationException(ErrorMessage.ItemAlreadyExists);
+        }
+        catch (SqlException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new CommandException(ErrorMessage.CommandFailure, ex, new { Code = code });
+        }
+    }
+}
+
+// ❌ Inyección SQL: concatenación, o un string interpolado pasado a un método Raw
 dbContext.Items.FromSqlRaw("SELECT * FROM dbo.Item WHERE Code = '" + code + "'");
+dbContext.Database.ExecuteSqlRaw($"DELETE FROM dbo.Item WHERE Code = '{code}'");
 ```
 
-- `FromSql` / `SqlQuery` / `ExecuteSql` con **string interpolado** (parametriza solo).
-  `FromSqlRaw` / `ExecuteSqlRaw` solo con texto constante y `SqlParameter` explícitos. Nunca
-  concatenar input (§11).
-- Stored procedures existentes se siguen usando con `SqlQuery` / `ExecuteSql`. No reescribir un SP
-  como LINQ sin pedido.
+- Texto: raw string literal (`"""`), esquema explícito (`dbo.`), columnas explícitas, nunca
+  `SELECT *` (igual que §5.2). Con interpolación el SQL va inline en el método; con `FromSqlRaw` /
+  `ExecuteSqlRaw`, en `const string`.
+- Parámetros: `FromSql` / `SqlQuery` / `ExecuteSql` con string interpolado convierten cada `{x}` en
+  `@p0`. `FromSqlRaw` / `ExecuteSqlRaw` solo con texto constante y `SqlParameter`. Nunca concatenar
+  input (§11). Tipo y largo cuando el índice importa (equivalente a `DbString` de Dapper): interpolar
+  un `SqlParameter` con `SqlDbType` y `Size`, como `codeParam` arriba.
+- Resultado: entidad mapeada ⇒ `dbContext.Items.FromSql(...)` + `AsNoTracking()`. `Response` sin
+  mapear ⇒ `Database.SqlQuery<ItemResponse>(...)` (EF Core 8+), columnas con el nombre de las
+  propiedades, como `QueryAsync<ItemResponse>` de Dapper (§1.2). Escalar ⇒ `SqlQuery<int>`; si se le
+  compone LINQ encima, la columna se llama `Value` (`SELECT COUNT(*) AS Value ...`).
+- Componer: sobre un `SELECT`, vista o función, `Where` / `OrderBy` / `Skip` / `Take` / `FirstOrDefaultAsync`
+  se traducen a SQL. Sobre un SP **no**: `FirstOrDefaultAsync`, `SingleAsync` o `CountAsync`
+  directo sobre un `EXEC` arman SQL inválido. Materializar con `ToListAsync` y seguir en memoria.
+- Filtros dinámicos y paginado: componer LINQ sobre la consulta base (en vez de `SqlBuilder`), con
+  `OFFSET`/`FETCH` que arma EF. Orden dinámico solo desde whitelist (§15.3). Si el texto SQL tiene
+  que variar, `FromSqlRaw` con fragmentos constantes elegidos de una whitelist + `SqlParameter`;
+  nunca un fragmento que venga del request.
+- Stored procedures: `SqlQuery<T>($"EXEC dbo.X @A = {a}")` o `ExecuteSqlAsync($"EXEC dbo.X @A = {a}")`,
+  parámetros con nombre. Parámetro de salida: `SqlParameter` con `Direction = ParameterDirection.Output`
+  y `ExecuteSqlRawAsync("EXEC dbo.X @A, @Total OUTPUT", [aParam, totalParam], cancellationToken)`.
+  No migrar un SP a LINQ ni al revés sin pedido.
+- Transacción: `ExecuteSql` y `SqlQuery` usan la conexión del `DbContext` y entran solos en la
+  transacción abierta por `IUnitOfWork` (§15.5). `ExecuteSql` corre en el momento, no espera a
+  `SaveChangesAsync` y no pasa por el change tracker: no modificar las mismas filas con entidades
+  trackeadas y con `ExecuteSql` en el mismo handler. Si afecta datos cacheados, invalidar a mano.
+- Dapper sobre el contexto (solo si el repo ya lo hace): `dbContext.Database.GetDbConnection()` +
+  `CommandDefinition` con `transaction: dbContext.Database.CurrentTransaction?.GetDbTransaction()`
+  y `cancellationToken:`. Las reglas de §5.2 aplican tal cual.
+- Bulk: `ids.Contains(x.Id)` en LINQ para listas (EF lo parametriza); TVP con
+  `SqlParameter { SqlDbType = SqlDbType.Structured, TypeName = "dbo.IdList" }`; miles de filas,
+  `SqlBulkCopy` sobre `GetDbConnection()` con la transacción actual. Nunca un `ExecuteSql` por fila en loop.
+- Timeout: global con `UseSqlServer(..., o => o.CommandTimeout(seconds))` desde Options (§8); una
+  consulta cara puntual, `dbContext.Database.SetCommandTimeout(...)` antes de ejecutarla.
+- Errores: `ExecuteSql` / `SqlQuery` / `FromSql` lanzan `SqlException` directo (no
+  `DbUpdateException`, que es de `SaveChangesAsync`, §15.6). Mismo mapeo que §5.2: 2627/2601 ⇒
+  `SystemValidationException`; la cancelación sube sin mapear (mismo filtro `when` que §5.2); resto de `SqlException`
+  ⇒ `CommandException` / `QueryException` con parámetros sin datos sensibles y la original como inner.
+- Unicidad y scripts `.sql` idempotentes: igual que §5.2.
 
 ### 15.5 Escrituras y transacciones
 
@@ -189,6 +267,16 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
   (API3, §11.1).
 - Auditoría (`CreatedAt`, `UpdatedBy`): en `SaveChangesAsync` del contexto o un interceptor, con
   `TimeProvider`. No en cada handler.
+- Identidad del usuario hacia SQL (`sp_set_session_context` para SPs o triggers que auditan): un
+  `DbConnectionInterceptor` que la setea al abrir y la limpia al cerrar. Overridear los **cuatro**
+  métodos: `ConnectionOpened` / `ConnectionOpenedAsync` / `ConnectionClosing` / `ConnectionClosingAsync`.
+  Una apertura sincrónica (`Database.OpenConnection()`, `BeginTransaction()`) solo dispara los sync:
+  sin ellos el valor llega `NULL` de forma intermitente. Lee el usuario de `IHttpContextAccessor`
+  (registrarlo). Con varias bases, cada `DbContext` con las `DbContextOptions` de su propia base, o el
+  segundo contexto corre contra la primera. Una conexión que no pasa por el contexto (`new SqlConnection(...)`)
+  no lleva la identidad: en ese repo, prohibir el constructor en `BannedSymbols.txt` (§2)
+  (`M:Microsoft.Data.SqlClient.SqlConnection.#ctor(System.String)`), no el tipo:
+  `GetDbConnection()` y `SqlBulkCopy` lo siguen usando.
 
 ### 15.6 Errores y concurrencia
 
@@ -231,6 +319,6 @@ Aplica a cualquier colección, con EF o sin EF.
 
 - Handlers: mockear las interfaces de repositorio y `IUnitOfWork` con Moq, igual que con Dapper
   ([10](./10-logging-tests.md) §10.2). No mockear `DbContext` ni `DbSet`.
-- Consultas LINQ no triviales de un repositorio: test de integración contra SQL Server real
-  (contenedor o base de test), no con el proveedor `InMemory` (no traduce SQL ni respeta
+- Consultas LINQ no triviales de un repositorio: test de integración contra una base SQL Server de test
+  (no corre en CI, como los E2E de §10.2), no con el proveedor `InMemory` (no traduce SQL ni respeta
   restricciones). Si no hay base de test disponible, decirlo y verificar con `ToQueryString()`.

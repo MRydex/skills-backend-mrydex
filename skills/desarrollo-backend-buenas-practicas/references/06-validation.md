@@ -16,7 +16,7 @@ public class CreateItemValidator : AbstractValidator<CreateItemRequest>
 }
 ```
 
-- Todo request con input de usuario tiene validador. Sin data annotations.
+- Todo request con input de usuario tiene validador. Sin data annotations en requests (en Options se permiten, §8).
 - Validar forma (requerido, largo, formato, rango, enum válido) en el validador; reglas que necesitan la base, en el handler con `SystemValidationException`.
 - CBU/CVU, CUIT, montos y fechas: validadores reutilizables en `Domain/Validators/`.
 - Paginado: `PageSize` con máximo (ej. 100) siempre. Nunca listados sin límite.
