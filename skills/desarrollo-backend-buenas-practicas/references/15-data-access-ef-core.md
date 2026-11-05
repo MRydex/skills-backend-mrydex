@@ -319,6 +319,6 @@ Aplica a cualquier colección, con EF o sin EF.
 
 - Handlers: mockear las interfaces de repositorio y `IUnitOfWork` con Moq, igual que con Dapper
   ([10](./10-logging-tests.md) §10.2). No mockear `DbContext` ni `DbSet`.
-- Consultas LINQ no triviales de un repositorio: test de integración contra una base SQL Server de test
-  (no corre en CI, como los E2E de §10.2), no con el proveedor `InMemory` (no traduce SQL ni respeta
-  restricciones). Si no hay base de test disponible, decirlo y verificar con `ToQueryString()`.
+- Consultas LINQ no triviales de un repositorio: verificar con `ToQueryString()`. Test de integración
+  contra una base SQL Server de test solo si el usuario lo pide, como los E2E de §10.2; nunca con el
+  proveedor `InMemory` (no traduce SQL ni respeta restricciones).

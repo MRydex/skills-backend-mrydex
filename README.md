@@ -61,8 +61,8 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
   23 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
   y 22 `offensive-*` de [claude-red](https://github.com/SnailSploit/claude-red), solo de APIs, auth,
   supply chain y network (TLS, cabeceras, Azure, SignalR, superficie expuesta). Plugin `claude-security` en Claude Code.
-- **Claude Code, extras** (cada uno solo si el usuario no lo configuró antes):
-  - `permissions.deny` para que el agente no lea secretos (`~/.ssh`, `.env*`, `*.pem`, `*.key`...).
+- **Claude Code, extras** (cada uno solo si el usuario no lo configuró antes, salvo `permissions.deny`, que se suma):
+  - `permissions.deny` para que el agente no lea secretos (`~/.ssh`, `.env*`, `*.pem`, `*.key`...); se suman a las reglas del usuario.
   - MCP [Context7](https://github.com/upstash/context7) (docs vigentes de librerías, gratis).
   - Subagentes con `effort` (`low` el revisor, `medium` el resto).
 - **`.gitignore`**: agrega los archivos de IA y agentes.

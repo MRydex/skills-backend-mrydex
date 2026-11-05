@@ -201,7 +201,7 @@ en el brief. Sin motivo, o ante la duda: lo hace el orquestador.
 2. **Escritores en paralelo:** unidades independientes que no se pisan (`ejecutor-backend` por unidad, `/batch`).
 3. **Respaldo de contexto:** la sesión está cargada y la próxima tarea del documento (§13.2) se le
    da a un subagente nuevo con el brief, en vez de seguir sumando contexto.
-4. **Verificador independiente:** solo para una tarea marcada de riesgo **alto** (§13.3).
+4. **Verificador independiente:** tarea de riesgo **alto** (§13.3), o diff grande (3+ archivos) contra el checklist (`revisor-checklist-backend`).
 
 | Delegar | Lo hace el orquestador |
 | :--- | :--- |
@@ -234,6 +234,13 @@ unidades independientes (propagar `CancellationToken` en todos los controllers, 
 aprobar. Después corre un subagente en background por unidad, cada uno en su propio worktree, que
 implementa y publica su cambio. Requiere repo git. La instrucción debe pedir verificar con
 `dotnet build` y `dotnet test` (§10.2). Para un patrón mecánico en una sola sesión alcanza el `ejecutor-backend`.
+
+**Pipeline con verificación por unidad: workflow (Claude Code, `Workflow`).** Si cada unidad necesita
+una verificación propia o un pipeline (revisar → verificar cada hallazgo, investigar N fuentes →
+resumir), un workflow corre los agentes por script y deja los resultados intermedios fuera del
+contexto del orquestador. Gasta bastantes más tokens que una conversación: solo si el usuario lo
+pide ("usá un workflow") o lo aceptó después de proponérselo con el costo estimado. Nunca por
+cuenta propia. Para cambios mecánicos por unidad, `/batch` es el default.
 
 **Delegar a un modelo barato cuando la tarea es** (y cumple la regla de decisión):
 - Búsqueda y localización de código ("¿dónde se define X?", "¿quién usa Y?").
@@ -310,8 +317,9 @@ ejecutores:
    `SendMessage`; Codex: retomar el hilo desde `/agent`). Si no lo permite, relanza el ejecutor con el
    brief actualizado con la respuesta.
 3. **Momentos fijos de consulta al orquestador** (los que recomienda Anthropic para el advisor):
-   - **Después de la orientación, antes del trabajo sustantivo.** El ejecutor explora y devuelve lo
-     que encontró. El orquestador fija el enfoque antes de que se escriba nada.
+   - **Después de la orientación, antes del trabajo sustantivo.** Orienta el orquestador (graphify +
+     brief). Si el ejecutor ve que el brief no encaja con el código, devuelve `NECESITA_ADVISOR` antes
+     de escribir.
    - **Cuando el ejecutor se traba o quiere cambiar de enfoque** (punto 2).
    - **Antes de dar por terminado.** El ejecutor deja el resultado en disco (archivos escritos, build
      corrido). Después el orquestador revisa el diff y la salida del build.
@@ -492,7 +500,7 @@ silencio. Recién después seguir con búsqueda normal.
 | `warning: skill is from graphify X, package is Y` | `pip install --upgrade graphifyy && graphify install` |
 | `post-commit: not installed` (`graphify hook status`) | `graphify hook install` |
 | El agente no tiene la integración (Claude Code: sin `hook-guard` en `.claude/settings.json`) | `graphify <agente> install` (tabla del paso 2) |
-| `graphify update .` falla porque no hay grafo | `/graphify .` dentro del asistente (build completo, paso 3) |
+| No existe `graphify-out/graph.json` | `/graphify .` dentro del asistente (build completo, paso 3) |
 | La salida de `graphify update .` dice `Rebuild failed`, `worker failed` o `Nothing to update or rebuild failed` | Falló aunque el exit code sea 0: avisar (causas abajo) |
 
 Causas conocidas:
@@ -605,7 +613,8 @@ estas reglas para que rijan en todas las sesiones.
   - Respaldo de Headroom: si `ANTHROPIC_BASE_URL` apunta al puerto 8787 y el proxy no
     corre, lo levanta (en Windows con la tarea programada oculta) (6 s en frío, 0,1 s si ya está arriba). Si no levanta en 20 s, avisa al usuario con el
     comando para arreglarlo: sin proxy cada llamada al modelo reintenta ~3 min y falla (`ECONNREFUSED`).
-  - No inyecta texto al modelo: si el proxy anda (o no se usa), no escribe nada.
+  - Inyecta `tasks/lessons.md` del proyecto como contexto (tope 12.000 caracteres, §13.8). Si el
+    proxy anda (o no se usa), no agrega avisos.
 - Medido (Claude Code + Headroom, suscripción): la autenticación pasa sin API key; en una tarea
   chica que leyó 2 archivos, Headroom ahorró 63.204 tokens (casi todo en schemas de tools) y 24,4%
   del costo.

@@ -46,8 +46,8 @@ Preguntarse como atacante, para cada endpoint o cambio:
 - Rate limiting (`AddRateLimiter`) en endpoints públicos o costosos (bulk, reportes).
 - 401 y 403 con `ProblemDetails`, mensajes genéricos (no revelar si el usuario existe).
 - Dependencias: dependency-check y SonarCloud del pipeline en verde. Hallazgo crítico/alto ⇒ se resuelve o se documenta excepción en el PR.
-- **El agente no lee secretos.** En Claude Code el instalador agrega a `permissions.deny` (solo si el
-  usuario no tiene su propia lista): `~/.ssh/**`, `~/.aws/credentials`, `.env`, `.env.*`, `*.pem`,
+- **El agente no lee secretos.** En Claude Code el instalador suma a `permissions.deny`, sin quitar las
+  reglas del usuario: `~/.ssh/**`, `~/.aws/credentials`, `.env`, `.env.*`, `*.pem`,
   `*.key`, `*.pfx` y `secrets/**`. Bloquea Read/Edit/Write, no `cat` por Bash: nunca leer esos
   archivos por otra vía. Si una tarea necesita un valor, pedírselo al usuario o usar un placeholder.
   Los valores de `dotnet user-secrets` y de Key Vault también se piden al usuario: el agente no los lee.
@@ -80,7 +80,7 @@ dotnet list package --outdated                          # informativo: no actual
 - **`High` / `Critical`**: avisar antes de entregar. Bloquea la entrega igual que en el pipeline.
 - **Corregir** subiendo la versión, solo si la tarea toca dependencias o el usuario lo pide (todo pedido de auditoría cuenta, §13.10). Después, `dotnet build` + `dotnet test` de UnitTest y la auditoría de nuevo para confirmar que no quedó nada.
 - **Nunca subir una versión mayor sin preguntar** (ni `Microsoft.Extensions.*` por encima del TFM, `SKILL.md` §0): trae cambios que rompen.
-- **Transitivo vulnerable**: proponer fijar la versión segura como referencia directa (o en `Directory.Packages.props`), sin aplicarlo sin aprobación.
+- **Transitivo vulnerable**: fijar la versión segura como referencia directa (o en `Directory.Packages.props`) si la tarea toca dependencias o es una auditoría (§13.10); si no, proponerlo sin aplicar.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
@@ -135,7 +135,8 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 6. **Priorizar** por riesgo (crítico → bajo), mapeado a OWASP API Top 10. Una línea por hallazgo:
    archivo, línea, riesgo, fix propuesto. Triage de hallazgos dudosos o de scanners:
    `performing-web-application-vulnerability-triage`. Redacción: `offensive-reporting`.
-7. **Corregir.** Lo que está dentro del alcance se corrige; crítico/alto bloquea la entrega. Lo que
+7. **Corregir.** Si el pedido es una pregunta o de solo lectura ("¿es seguro?", "solo revisá"), se
+   reporta con el fix propuesto, sin editar (§13.1). Si no, lo que está dentro del alcance se corrige; crítico/alto bloquea la entrega. Lo que
    queda fuera del alcance se reporta y se pregunta antes de tocarlo (§11.3). Nunca desactivar una
    protección para "arreglar".
 8. **Reverificar.** Tras cada fix, `dotnet build` + `dotnet test` de UnitTest.

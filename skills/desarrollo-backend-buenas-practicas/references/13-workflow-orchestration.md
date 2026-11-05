@@ -56,6 +56,11 @@ L1: <pedido del usuario, literal, sin resumir>
 - [ ] T1 (S1): <unidad chica, con criterio de hecho> — riesgo: trivial | medio | alto
 - [ ] T2 (S2): ...
 
+## Estado
+- Revisión: <hash del último commit o "sin commit">
+- Siguiente acción: <una línea concreta>
+- Bloqueos: <qué falta y quién lo decide, o "ninguno">
+
 ## Log
 - <fecha> T1 hecho: <decisión tomada y su porqué, archivos tocados>
 ```
@@ -63,7 +68,12 @@ L1: <pedido del usuario, literal, sin resumir>
 - `L1` guarda el pedido literal: es la referencia para no ampliar el alcance (§13.5).
 - Cada tarea apunta a una spec y lleva su riesgo (§13.3). Se marca al completarla y se anota en `Log`;
   la lista no se reescribe entera.
-- Se implementa **tarea por tarea**: terminar, verificar y anotar una antes de la siguiente.
+- Se implementa **tarea por tarea**: terminar, verificar y anotar una antes de la siguiente. Cada
+  task se define con su criterio de hecho **antes** de programarla (un test, un build o un request
+  que se pueda correr), y no se cierra hasta pasarlo.
+- `Estado` se actualiza al cerrar cada task. Al retomar en otra sesión, el documento no alcanza:
+  comparar `Revisión` con `git log` / `git status` y correr `dotnet build` antes de seguir. Si no
+  coinciden, manda el repo y se corrige el documento.
 - Al cerrar la feature: todas las specs verificadas y el documento se vacía o se borra.
 - Un plan no trivial se relee de forma crítica (o se valida con el usuario cuando la tarea lo amerita)
   antes de arrancar la implementación: cambiar de rumbo después de escribir código sale más caro que
@@ -78,6 +88,16 @@ L1: <pedido del usuario, literal, sin resumir>
   desde riesgo medio, `dotnet test Tests/<X>.UnitTest` en verde (ver [10-logging-tests.md](./10-logging-tests.md) §10.2). Si no se pudo correr, decirlo.
 - El reporte dice explícitamente qué **no** se probó (ej. SPs o queries sin correr contra la base,
   endpoint sin levantar la API, flujo con token real). Gotchas de build que dan falsos errores: §13.11.
+- Un chequeo en verde prueba una sola cosa: el reporte dice qué cubrió y qué no (`dotnet build` no
+  prueba la query contra la base; un test del camino feliz no prueba los errores). La evidencia va
+  primero: el comando que se corrió y su salida, después el resumen.
+- "Tests en verde" es falso si hubo tests salteados (`Skip`, filtro, proyecto sin compilar): el
+  reporte da la cantidad de pasados, fallados y salteados que imprime `dotnet test`.
+- Warnings y tests rojos preexistentes: se juzgan los **nuevos** del cambio. Los viejos se reportan
+  en una línea, no se arreglan fuera de alcance (§13.5) y no sirven de excusa para dejar uno nuevo.
+- Tope de reintentos: si el mismo error de build o de test sigue después de **3 intentos** de corrección, parar,
+  anotarlo en `Bloqueos` (§13.2) con el error exacto y lo probado, y reportarlo. No seguir probando
+  variantes a ciegas.
 - Si el bug o la feature tiene un caso reproducible (excepción en el log, request que falla, `traceId`
   de producción), demostrar que ahora desaparece: test que lo reproduce o request real contra la API
   local. No alcanza con "debería andar".
@@ -95,8 +115,11 @@ revisarlo: la revisión no agrega features.
 | Riesgo | Cuándo | Revisión |
 | :--- | :--- | :--- |
 | **Trivial** | No cambia comportamiento: textos, comentarios, formato, rename mecánico | Releer el diff + `dotnet build` + preguntas de [11-security.md](./11-security.md) §11.1 |
-| **Medio** | Todo lo demás: lógica de handler o servicio, validadores, queries Dapper, logs, config | Lo anterior + `ponytail-review` sobre el diff (+ `dotnet test` si hay proyecto de tests) |
-| **Alto** | Auth, JWT, permisos, secretos, SQL DDL o migraciones, borrado de datos, pipeline de `Program.cs`, paquetes en `.csproj` | Lo anterior + revisor independiente (`revisor-checklist-backend` o `/code-review`) + revisión ofensiva profunda con la skill del área ([11-security.md](./11-security.md) §11.6) |
+| **Medio** | Todo lo demás: lógica de handler o servicio, validadores, queries Dapper, logs, config | Lo anterior + `ponytail-review` sobre el diff (+ `dotnet test` si hay proyecto de tests) + `security-audit` en modo guía si toca endpoints nuevos, auth, SQL, uploads, HTTP saliente o secretos (§11.5) |
+| **Alto** | Auth, JWT, permisos, secretos, SQL DDL o migraciones, borrado de datos, pipeline de `Program.cs`, paquetes en `.csproj` | Lo anterior + revisor independiente (`/code-review`; `revisor-checklist-backend` solo cubre el checklist) + revisión ofensiva profunda con la skill del área ([11-security.md](./11-security.md) §11.6) |
+
+- El revisor independiente recibe el pedido (`L1`), las specs y el diff; no el razonamiento de quien
+  lo escribió. Así juzga contra lo pedido y no hereda sus supuestos.
 
 - **Doble juez**, solo en riesgo alto con mucho en juego (auth,
   migración de datos, manejo de tokens): dos revisores independientes en paralelo, que no ven el
@@ -145,6 +168,12 @@ revisarlo: la revisión no agrega features.
   `AskUserQuestion` (hasta 4 preguntas por llamada, con opciones).
 - Si durante la tarea aparece una duda nueva que cambia el resultado, parar y preguntar. Si no lo
   cambia, elegir la opción razonable, seguir y mencionarla en el reporte final.
+- Los supuestos se dicen, no se esconden: los que se tomaron sin preguntar van en una línea al
+  empezar (tarea grande: en `Specs`). El reporte final lista además las decisiones que tomó el
+  agente y el pedido no fijaba (defaults, qué quedó fuera de alcance, qué requisito interpretó).
+- Si dos fuentes se contradicen (el pedido y la skill, dos archivos de instrucciones, el código y la
+  documentación o el SP), mostrar las dos con su ubicación y preguntar. Nunca promediarlas ni elegir
+  una en silencio.
 - No preguntar por algo que el agente puede resolver solo con la información del repo: convención ya
   usada en un handler similar, Request/Response ya definido, patrón ya aplicado en otro feature.
 - Reporte de bug con evidencia (error, log, test o pipeline que falla): ir directo a
@@ -163,6 +192,9 @@ revisarlo: la revisión no agrega features.
   queda documentado como tal (comentario + motivo + ticket) y no se presenta como solución definitiva.
 - Cambio mínimo necesario: tocar solo lo que la tarea requiere. Reescribir alrededor "para dejarlo
   prolijo" es scope creep (§13.5), no una mejora gratis.
+- Lo que un comando puede responder lo responde el comando: contar, buscar usos, validar tipos,
+  formatear y comparar los resuelven `graphify query`, `grep`, el compilador, `dotnet test` o un
+  script; el modelo queda para las decisiones de criterio.
 - Los límites de tamaño y cuándo dividir ya están en [01-solution-structure.md](./01-solution-structure.md) §1.3: no se repiten acá.
 
 #### 13.7.1 Sin sobreingeniería
@@ -215,7 +247,9 @@ el límite en una línea. El usuario decide si vale la complejidad extra.
   - Regla: <qué hacer la próxima vez>
   - Chequeo: <cómo detectarlo antes la próxima vez>
   ```
-- Revisar `tasks/lessons.md` al arrancar una sesión nueva sobre el mismo proyecto, antes de planificar.
+- Leer `tasks/lessons.md` al arrancar una sesión nueva sobre el mismo proyecto, antes de planificar. En
+  Claude Code lo carga automáticamente el hook `SessionStart` del instalador (también después de compactar); en
+  otros agentes, leerlo a mano.
 - Iterar sobre las lecciones ya escritas: si una regla no bajó la tasa de errores, reformularla en vez
   de acumular reglas redundantes o contradictorias.
 
@@ -286,7 +320,7 @@ motivo). Ninguna se saltea en silencio.
 | Código duplicado | Handlers, queries, validaciones y mapeos copiados | `npx jscpd src --format csharp --min-tokens 50 --reporters console --ignore "**/bin/**,**/obj/**"`; duplicaciones de SonarCloud si el proyecto lo tiene |
 | Dependencias | Vulnerabilidades (directas y transitivas), paquetes deprecados o sin uso | `dotnet list package --vulnerable --include-transitive`, `--deprecated`, `--outdated` (informativo) |
 | Código sin uso | Usings, miembros privados, parámetros, variables, tipos públicos (handlers, requests, validators, repositorios, DTOs), SPs y queries que nadie llama, secciones de `appsettings` sin `Options`, registros de DI sin consumidor, paquetes NuGet | `dotnet format style --verify-no-changes` con IDE0005, IDE0051, IDE0052 e IDE0060 en `warning` en el `.editorconfig` (en `info`, su default, no se reportan); warnings `CS0168` / `CS0219` / `CS0414` del build; tipos públicos: grafo + búsqueda de referencias |
-| Instrucciones de agentes | `CLAUDE.md`, `AGENTS.md`, `.claude/` (rules, skills, commands, agents): reglas pensadas para modelos viejos, referencias a archivos o comandos que no existen, instrucciones que se contradicen (el modelo elige una al azar), `CLAUDE.md` de más de 200 líneas. N/A si el repo no los tiene | `/doctor prompt-audit` en Claude Code 2.1.283+ (solo reporta, no edita); en otros agentes, la misma revisión a mano |
+| Instrucciones de agentes | `CLAUDE.md`, `AGENTS.md`, `.claude/` (rules, skills, commands, agents): reglas pensadas para modelos viejos, referencias a archivos o comandos que no existen, instrucciones que se contradicen (el modelo elige una al azar), `CLAUDE.md` de más de 200 líneas. N/A si el repo no los tiene | `/claude-api prompt-audit` en Claude Code (informe + diff propuesto; aplica solo si se pide); en otros agentes, la misma revisión a mano |
 
 **Pasos:**
 

@@ -16,6 +16,7 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - Nombre del test: `<Metodo>_When<Condicion>_Should<Resultado>` (`Handle_WhenCodeExists_ShouldThrowSystemValidationException`).
 - Estructura Arrange / Act / Assert. Mocks como campos `readonly` creados en el constructor. `It.IsAny<CancellationToken>()` en los `Setup`.
 - Handler nuevo o modificado con lógica ⇒ tests de su camino feliz y sus errores. Bug corregido ⇒ test que lo reproduce.
+- El test verifica la intención (la regla de la spec o del pedido), no la implementación: el `Assert` mira el resultado o la excepción que el negocio espera. `Verify` sobre un mock solo cuando la llamada **es** el resultado (se envió el mail, se grabó el registro). Un test que repite el `Setup` en el `Assert` no prueba nada.
 - Refactor de una regla de negocio sin tests: primero tests de caracterización que fijan el
   comportamiento de hoy, rarezas incluidas (comentario `// Fijado a propósito: ...`). Si la regla
   cambia, cambia a propósito junto con su test, nunca de paso en el refactor. Comprobar que el test
@@ -25,5 +26,5 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - No testear el mediator, Dapper ni getters. No mockear lo que no se posee si se puede envolver en una interfaz propia ya existente.
 - Handlers `internal` ⇒ `<InternalsVisibleTo Include="<X>.UnitTest" />` en el `.csproj` de Application; el test crea el handler con `new` y sus mocks.
 - Casos múltiples: `[Theory]` + `[ClassData]`, con las clases de datos en `Data/` dentro de la carpeta del feature.
-- E2E (`WebApplicationFactory<Program>`) dependen de entorno: no se corren en CI; asserts con un único status esperado. Una `CustomWebApplicationFactory<Program>` reemplaza los clientes externos por mocks.
+- E2E (`WebApplicationFactory<Program>`) y tests contra servicios reales (base, APIs externas) dependen de entorno: no se corren en CI ni por cuenta propia, solo si el usuario lo pide; asserts con un único status esperado. Una `CustomWebApplicationFactory<Program>` reemplaza los clientes externos por mocks.
 - Verificación antes de "terminado": `dotnet build` sin warnings nuevos y, desde riesgo medio, `dotnet test Tests/<X>.UnitTest` verde (§13.3). Si no se pudo correr, decirlo.
