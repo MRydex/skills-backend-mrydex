@@ -110,7 +110,7 @@ Elegir por **nivel**, no por versión: los nombres de versión cambian cada poco
 | :--- | :--- | :--- | :--- | :--- |
 | **Fuerte** | Orquestar, decidir arquitectura, destrabar, revisar siempre | Opus (o Fable) | GPT de mayor nivel con `model_reasoning_effort` alto | Gemini Pro |
 | **Ejecutor** | Implementar con criterio acotado, migrar | Sonnet | GPT con effort medio, o variante `codex` | Gemini Pro con menos razonamiento, o Flash |
-| **Rápido** | Buscar, leer, resumir, ediciones mecánicas, revisar contra checklist | Haiku | Variante `mini`, o effort bajo | Gemini Flash |
+| **Rápido** | Resumir, revisar contra checklist (búsquedas amplias y ediciones mecánicas van al nivel ejecutor, §14.3.2) | Haiku | Variante `mini`, o effort bajo | Gemini Flash |
 
 - Usar el modelo más barato que resuelva la subtarea sin perder calidad.
 - Si la herramienta solo tiene modelos de un proveedor, usar los niveles de ese proveedor.
@@ -201,7 +201,7 @@ en el brief. Sin motivo, o ante la duda: lo hace el orquestador.
 2. **Escritores en paralelo:** unidades independientes que no se pisan (`ejecutor-backend` por unidad, `/batch`).
 3. **Respaldo de contexto:** la sesión está cargada y la próxima tarea del documento (§13.2) se le
    da a un subagente nuevo con el brief, en vez de seguir sumando contexto.
-4. **Verificador independiente:** tarea de riesgo **alto** (§13.3), o diff grande (3+ archivos) contra el checklist (`revisor-checklist-backend`).
+4. **Verificador independiente:** tarea de riesgo **alto** (revisor independiente de §13.3, `/code-review`: el checklist solo no alcanza), o diff grande (3+ archivos) contra el checklist (`revisor-checklist-backend`).
 
 | Delegar | Lo hace el orquestador |
 | :--- | :--- |
@@ -242,7 +242,7 @@ contexto del orquestador. Gasta bastantes más tokens que una conversación: sol
 pide ("usá un workflow") o lo aceptó después de proponérselo con el costo estimado. Nunca por
 cuenta propia. Para cambios mecánicos por unidad, `/batch` es el default.
 
-**Delegar a un modelo barato cuando la tarea es** (y cumple la regla de decisión):
+**Delegar a un subagente cuando la tarea es** (y cumple la regla de decisión):
 - Búsqueda y localización de código ("¿dónde se define X?", "¿quién usa Y?").
 - Lectura/resumen de archivos grandes, logs o salida de `dotnet build` / `dotnet test`.
 - Edición mecánica y acotada: renombres, reemplazos repetitivos, aplicar un patrón ya definido a N archivos.

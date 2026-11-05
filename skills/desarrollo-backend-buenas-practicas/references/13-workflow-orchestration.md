@@ -29,8 +29,8 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
   otro handler, otro repositorio, otro validador) antes de imponer un patrón propio nuevo.
 - Si el pedido es ambiguo sobre **qué** archivos toca, localizar primero (`graphify query`, búsqueda por
   símbolo) y confirmar el alcance real antes de escribir una línea.
-- La exploración pesada (soluciones grandes, buscar en varios proyectos) se delega a un subagente
-  barato; ver [14-agent-efficiency.md](./14-agent-efficiency.md) §14.3.
+- La exploración pesada (soluciones grandes, buscar en varios proyectos) se delega a
+  `investigador`; ver [14-agent-efficiency.md](./14-agent-efficiency.md) §14.3.
 
 ### 13.2 Plan para tareas no triviales
 
