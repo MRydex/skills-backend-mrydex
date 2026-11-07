@@ -52,10 +52,16 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
 - **graphify**: CLI y skill, integración en cada agente, hooks git `post-commit` / `post-checkout`
   y grafo inicial (`graphify update .`, sin costo de tokens). Claude Code queda en modo estricto:
   consulta el grafo antes de leer archivos, y corre `graphify` sin pedir aprobación.
-- **Subagentes** `investigador`, `ejecutor-backend` y `revisor-checklist-backend` en el formato de
-  cada agente. `investigador` es el mismo de frontend; los otros llevan sufijo para no pisarse.
+- **Subagentes** `investigador`, `ejecutor-backend`, `revisor-checklist-backend`, `migrador-dotnet`,
+  `auditor-sql`, `generador-tests-backend`, `operador-pipeline`, `auditor-contrato-api` y
+  `revisor-auth` en el formato de cada agente. `investigador`, `auditor-contrato-api` y
+  `revisor-auth` son los mismos de frontend; `ejecutor-backend` y `revisor-checklist-backend` llevan
+  sufijo para no pisar los de frontend; el resto es solo de backend.
   Bloque global en `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md`: cargar
   siempre la skill en repos .NET y delegar solo cuando baja el total de tokens.
+- **Hooks de Claude Code**: `guard-secrets` (bloquea escribir secretos con Edit/Write) y
+  `format-dotnet` (`dotnet format whitespace` sobre el `.cs` editado, solo si el repo tiene
+  `.editorconfig`).
 - **caveman**: respuestas cortas (sin él salen 33% más largas).
 - **Seguridad** (§11.6): [security-audit](https://github.com/cloudflare/security-audit-skill),
   23 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
@@ -106,6 +112,10 @@ skills/desarrollo-backend-buenas-practicas/
     ├── 14-agent-efficiency.md         # Caveman, subagentes, graphify
     ├── 15-data-access-ef-core.md      # EF Core 10 y LINQ
     ├── 16-signalr-hubs.md             # Hubs SignalR, auth y escalado
+    ├── 17-contrato-openapi.md         # Contrato OpenAPI con el front
+    ├── 18-stored-procedures-sql.md    # Stored procedures y SQL
+    ├── 19-migracion-dotnet.md         # Migración de .NET paso a paso
+    ├── 20-librerias-nuget-ci.md       # Librerías NuGet, pipelines, Docker
     └── checklists.md                  # Checklists por área
 ```
 

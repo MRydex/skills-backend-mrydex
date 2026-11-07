@@ -40,7 +40,7 @@ se puede **retomar en otra sesión solo con el pedido y `git diff`**. La cantida
 | Clase | Criterio | Cómo se trabaja |
 | :--- | :--- | :--- |
 | **Chica** | Se retoma con el pedido + `git diff` (un arreglo, un ajuste de un handler, un rename) | Directo, sin documento de tarea. Subagentes solo si cumplen §14.3.4 |
-| **Grande** | No se retoma sin más contexto: decisiones de diseño, varias etapas, pasos que dependen de otros, más de una sesión | Documento de tarea en `tasks/todo.md` antes de programar |
+| **Grande** | No se retoma sin más contexto: decisiones de diseño, varias etapas, pasos que dependen de otros, más de una sesión | Documento de tarea en `tasks/todo.md` antes de programar (corrida desatendida de una sola sesión: el plan va en el reporte, sin archivo) |
 
 **Documento de tarea** (`tasks/todo.md`, una tarea grande a la vez):
 
@@ -115,8 +115,8 @@ revisarlo: la revisión no agrega features.
 | Riesgo | Cuándo | Revisión |
 | :--- | :--- | :--- |
 | **Trivial** | No cambia comportamiento: textos, comentarios, formato, rename mecánico | Releer el diff + `dotnet build` + preguntas de [11-security.md](./11-security.md) §11.1 |
-| **Medio** | Todo lo demás: lógica de handler o servicio, validadores, queries Dapper, logs, config | Lo anterior + `ponytail-review` sobre el diff (+ `dotnet test` si hay proyecto de tests) + `security-audit` en modo guía si toca endpoints nuevos, auth, SQL, uploads, HTTP saliente o secretos (§11.5) |
-| **Alto** | Auth, JWT, permisos, secretos, SQL DDL o migraciones, borrado de datos, pipeline de `Program.cs`, paquetes en `.csproj` | Lo anterior + revisor independiente (`/code-review`; `revisor-checklist-backend` solo cubre el checklist) + revisión ofensiva profunda con la skill del área ([11-security.md](./11-security.md) §11.6) |
+| **Medio** | Todo lo demás: lógica de handler o servicio, validadores, queries Dapper, logs, config | Lo anterior + `ponytail-review` sobre el diff (+ `dotnet test` si hay proyecto de tests) + `security-audit` en modo guía si toca endpoints nuevos, auth, SQL, uploads, HTTP saliente o secretos (§11.5); un endpoint gemelo de otro ya protegido (misma auth, sin SQL ni HTTP saliente nuevos) solo pasa §11.1 a mano |
+| **Alto** | Auth, JWT, permisos, secretos, SQL DDL o migraciones, borrado de datos, pipeline de `Program.cs`, paquetes en `.csproj`, cambio de status o de forma de un error que el front ya maneja (§17.8) (el scaffold inicial de un repo nuevo: `ponytail-review` + revisor de checklist + `security-audit` en modo guía alcanzan) | Lo anterior + revisor independiente (`/code-review`; `revisor-checklist-backend` solo cubre el checklist) + revisión ofensiva profunda con la skill del área ([11-security.md](./11-security.md) §11.6) |
 
 - El revisor independiente recibe el pedido (`L1`), las specs y el diff; no el razonamiento de quien
   lo escribió. Así juzga contra lo pedido y no hereda sus supuestos.
@@ -134,7 +134,8 @@ revisarlo: la revisión no agrega features.
 - Un commit = un cambio lógico coherente (una corrección, una feature chica, un refactor). No mezclar
   refactor y feature en el mismo commit: dificulta el review y el revert selectivo.
 - Tamaño: unas **400 líneas escritas** por commit como máximo. Una tarea grande se parte en varios
-  commits, uno por tarea (o grupo de tareas) del documento de §13.2.
+  commits, uno por tarea (o grupo de tareas) del documento de §13.2. Un módulo nuevo completo se
+  commitea por capa o por endpoint (estructura, dominio + validación, endpoints, tests), no todo junto.
 - Un cambio de riesgo alto (§13.3) va en su propio commit, sin mezclar con el resto.
 - El mensaje describe el **por qué** del cambio; el **qué** ya lo muestra el diff.
 - Si una tarea terminó tocando features sin relación entre sí, separarlos en commits distintos aunque se
@@ -192,6 +193,8 @@ revisarlo: la revisión no agrega features.
   queda documentado como tal (comentario + motivo + ticket) y no se presenta como solución definitiva.
 - Cambio mínimo necesario: tocar solo lo que la tarea requiere. Reescribir alrededor "para dejarlo
   prolijo" es scope creep (§13.5), no una mejora gratis.
+- Refactor pedido sobre código sin tests que fijen su comportamiento: primero tests de caracterización
+  (§10.2), que pasan en verde contra el código original; después el refactor, con los mismos tests en verde.
 - Lo que un comando puede responder lo responde el comando: contar, buscar usos, validar tipos,
   formatear y comparar los resuelven `graphify query`, `grep`, el compilador, `dotnet test` o un
   script; el modelo queda para las decisiones de criterio.
@@ -305,8 +308,10 @@ pedido: la solución completa, sin preguntar.
 | Pedido | Corre |
 | :--- | :--- |
 | Auditoría a secas ("auditá", "auditá la app", "revisá todo") | Esta pasada completa + auditoría de seguridad completa red + blue + network (§11.6) |
-| Solo seguridad ("auditá la seguridad", "¿es seguro?", "pentest", "hardening") | Solo §11.6 |
+| Solo seguridad ("auditá la seguridad", "¿es segura la app?", "pentest", "hardening") | Solo §11.6 |
+| Pregunta de seguridad sobre algo concreto ("¿es seguro X?") | Solo lectura: `security-audit` en modo guía, sin auditoría completa (§11.6 pasos 5 y 7) |
 | Solo calidad ("optimizá", "limpiá", "qué sobra", "auditá la calidad / performance") | Esta pasada + seguridad base (§11.1 y auditoría de dependencias, §11.4) |
+| Calidad y seguridad juntas ("auditá la calidad y la seguridad", con o sin alcance) | Esta pasada + §11.6, sobre el alcance pedido (igual que auditoría a secas) |
 
 **Áreas.** Cada una termina en **OK** (con evidencia `archivo:línea`), **hallazgo** o **N/A** (con
 motivo). Ninguna se saltea en silencio.
@@ -328,7 +333,8 @@ motivo). Ninguna se saltea en silencio.
    es candidato, no prueba.
 2. **Correr las herramientas** (gratis, sin paquetes nuevos en la solución) y revisar a mano lo que no
    ven. Si el `.editorconfig` no tiene esas IDE y CA en `warning`, agregarlas para la auditoría y
-   revertirlo al terminar, salvo que el usuario quiera dejarlas. Calidad y eficiencia se leen en el
+   revertirlo al terminar, salvo que el usuario quiera dejarlas. En un pedido de solo lectura no se toca:
+   esas áreas se revisan a mano y el reporte lo dice. Calidad y eficiencia se leen en el
    código, no solo en el reporte de una herramienta.
 3. **Verificar cada candidato** antes de reportarlo o borrarlo. Uso dinámico que las herramientas no
    ven: registro por assembly scanning (handlers, validators, `ApplyConfigurationsFromAssembly`),

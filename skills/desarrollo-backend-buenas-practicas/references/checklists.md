@@ -118,6 +118,18 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Vulnerabilidades encontradas reportadas en prosa normal, aunque estén fuera del alcance.
 - [ ] "Auditá" a secas o pedido de seguridad: auditoría completa red + blue + network con cobertura por área, y pruebas en vivo solo contra hosts autorizados por el usuario (§11.6).
 
+### Contrato, SPs, migración, NuGet/CI y auth (solo si aplica)
+
+- [ ] (si aplica, [17](./17-contrato-openapi.md)) Respuestas declaradas con tipo real, errores `ProblemDetails`, `operationId` estable; cambio solo aditivo, documento OpenAPI comparado antes y después. (§17.8)
+- [ ] (si aplica, [17](./17-contrato-openapi.md)) Enums, nulabilidad y fechas acordados con el front; OpenAPI y su UI solo fuera de Producción o con auth. (§17.5, §17.6, §17.9)
+- [ ] (si aplica, [18](./18-stored-procedures-sql.md)) SP con `CommandType.StoredProcedure`, parámetros tipados, sin `AddWithValue` ni SQL dinámico concatenado. (§18.1, §18.6)
+- [ ] (si aplica, [18](./18-stored-procedures-sql.md)) Script `CREATE OR ALTER` versionado con rollback; `SET NOCOUNT ON`, `SET XACT_ABORT ON`, `TRY/CATCH` con `THROW`; `GRANT EXECUTE` mínimo. (§18.4, §18.5, §18.8)
+- [ ] (si aplica, [19](./19-migracion-dotnet.md)) Migración pedida por el usuario: un commit por paso, build y test verdes, sin refactors mezclados, `Newtonsoft` conservado si el contrato lo exige. (§19)
+- [ ] (si aplica, [20](./20-librerias-nuget-ci.md)) Paquete con versión SemVer desde CI, breaking change = mayor; `nuget.config` sin credenciales. (§20.1, §20.2)
+- [ ] (si aplica, [20](./20-librerias-nuget-ci.md)) Pipeline con `--no-restore` / `--no-build`, secretos en variable group o Key Vault (nunca en YAML), aprobaciones en Prod; Dockerfile multi-stage con `USER $APP_UID`. (§20.3, §20.5, §20.6)
+- [ ] (si aplica, [11](./11-security.md)) JWT con `ClockSkew` chico y `MapInboundClaims` revisado; policy por scope/rol por endpoint; CORS con orígenes explícitos. (§11.7)
+- [ ] (si aplica, [11](./11-security.md)) IdP propio con PKCE y redirect URIs exactas; LDAP con LDAPS y filtros escapados; migración de auth con ambos esquemas en paralelo antes del corte. (§11.7)
+
 ### Tiempo real / SignalR ([16](./16-signalr-hubs.md))
 
 - [ ] `Hub<TClient>` con `[Authorize]` (roles con `[Authorize(Roles/Policy)]`, no `[RoleAuthorization]`), sin estado en campos ni lógica de negocio. (§16.2, §16.4)
