@@ -137,10 +137,9 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 
    Un área N/A no se profundiza. Solo sobre el código propio o entornos autorizados.
 5. **Auditoría general** (auditoría pedida de una feature o del repo; una pregunta como "¿es seguro X?"
-   usa `security-audit` en modo guía, sin este paso; en un pedido de solo lectura, `claude-security` solo si
-   el usuario acepta que escriba su reporte fuera del repo, y si no, se anota en la cobertura): correr además la skill `security-audit`
-   (Cloudflare, §11.5) y el plugin `claude-security` (Anthropic), que buscan lo que la tabla no
-   anticipa. Ambos verifican cada hallazgo antes de reportarlo. En un diff chico no: alcanza con los
+   usa `security-audit` en modo guía, sin este paso): correr además la skill `security-audit`
+   (Cloudflare, §11.5), que busca lo que la tabla no anticipa y verifica cada hallazgo antes de
+   reportarlo. El plugin `claude-security` (Anthropic, escaneo multiagente que gasta muchos tokens) solo con pedido explícito o si el usuario acepta su costo cuando se le ofrece en una línea; si no, se anota en la cobertura. En solo lectura, además, que acepte que escriba su reporte fuera del repo. En un diff chico no: alcanza con los
    pasos 3–4.
 6. **Priorizar** por riesgo (crítico → bajo), mapeado a OWASP API Top 10. Una línea por hallazgo:
    archivo, línea, riesgo, fix propuesto. Triage de hallazgos dudosos o de scanners:
@@ -166,16 +165,16 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 | Uploads | §11.1 | `offensive-file-upload` |
 | Redirects | §11.1 | `offensive-open-redirect` |
 | GraphQL | §11.1 | `offensive-graphql` |
-| Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `performing-security-headers-audit`, `testing-for-host-header-injection`, `performing-web-cache-poisoning-attack`, `security-audit` |
+| Proxy, IIS y cabeceras HTTP | §11.2 | `offensive-request-smuggling`, `performing-security-headers-audit`, `performing-clickjacking-attack-test`, `testing-for-host-header-injection`, `performing-web-cache-poisoning-attack`, `security-audit` |
 | TLS y certificados (network) | §11.2 (HSTS, `HttpsRedirection`, solo TLS 1.2/1.3 en Kestrel/IIS, validación de certificados en `HttpClient` sin `ServerCertificateCustomValidationCallback` que devuelva `true`) | `performing-ssl-tls-security-assessment`, `configuring-tls-1-3-for-secure-communications`, `offensive-tls-attacks` |
 | Superficie expuesta (network) | Swagger en producción, health check con datos internos, endpoints internos publicados, puertos y bindings extra, ambientes de prueba públicos | `scanning-network-with-nmap-advanced`, `offensive-network-attacks` |
 | Servicio a servicio (network) | §9 (tokens de servicio, certificados): llamadas internas autenticadas, sin confiar en la red interna | `implementing-mtls-for-zero-trust-services` |
 | Azure (network) | Key Vault, SQL y Storage sin acceso público innecesario (firewall, private endpoints), restricciones de acceso del App Service, identidad administrada con permisos mínimos | `offensive-cloud` |
 | SignalR / WebSocket | §16: solo HTTPS/`wss://` (§11.2), origen validado, token en la conexión, autorización por grupo | `testing-websocket-api-security`, `exploiting-websocket-vulnerabilities` |
-| CORS | §11.2 | `testing-cors-misconfiguration` |
+| CORS y CSRF | §11.2 | `testing-cors-misconfiguration`; `performing-csrf-attack-simulation` si la auth es por cookie |
 | Secretos y PII | §8, §11.1 | `implementing-secret-scanning-with-gitleaks` |
 | Errores y `ProblemDetails` (sin filtrar datos internos) | §7, §11.2 | `security-audit` |
-| Dependencias NuGet y supply chain | §11.4 | `offensive-dependency-confusion`, `offensive-supply-chain`, `generating-and-analyzing-sboms` |
+| Dependencias NuGet y supply chain | §11.4 | `offensive-dependency-confusion`, `offensive-supply-chain`, `generating-and-analyzing-sboms`; `detecting-malicious-npm-packages`, `detecting-typosquatting-packages-in-npm-pypi` si el repo trae tooling npm o pip |
 | Logging y respuesta (Blue Team) | §11.3, §10 | `analyzing-web-server-logs-for-intrusion`, `implementing-api-abuse-detection-with-rate-limiting`, `security-audit` |
 
 **Pruebas en vivo (network).** Escaneo de puertos, evaluación TLS y cabeceras contra un host real son
@@ -190,7 +189,7 @@ prueba en vivo" en la cobertura.
 dosifica es la profundidad. No releer lo mismo para cada skill: pasarles los `archivo:línea` que ya
 ubicó graphify. Si el alcance es grande, delegar el barrido por área a subagentes en paralelo (§14.3);
 la priorización, la corrección y la decisión final quedan en el modelo principal. Si falta una skill
-de la tabla, instalarla (`npx github:MRydex/skills-backend-mrydex`) y avisar en una línea (solo lectura: solo avisar); si no se puede, hacer
+de la tabla, instalar solo esa skill (`npx -y skills add <owner/repo> --global --yes --skill <nombre>`: las `offensive-*` vienen de `SnailSploit/claude-red`, las de AppSec de `mukul975/Anthropic-Cybersecurity-Skills`, `security-audit` de `cloudflare/security-audit-skill`) y avisar en una línea (solo lectura: solo avisar); si no se puede, hacer
 esa área con la revisión base y decirlo en el reporte de cobertura.
 
 ### 11.7 Autenticación y autorización: detalle

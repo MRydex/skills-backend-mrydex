@@ -652,8 +652,8 @@ estas reglas para que rijan en todas las sesiones.
 
 Además de las reglas de esta skill, el agente carga la skill externa del área que toca la tarea
 (instaladas por §14.8, §11.5, §11.6 y el instalador). Primero la regla del repo, después la skill externa
-como método o checklist. Si chocan, gana la regla del repo de la última columna. Si una skill de la tabla no está instalada: avisar en una línea, instalarla con el
-instalador (solo lectura: solo avisar) y mientras tanto seguir con las reglas del repo.
+como método o checklist. Si chocan, gana la regla del repo de la última columna. Si una skill de la tabla no está instalada: avisar en una línea, instalar solo esa skill
+(`npx -y skills add <owner/repo> --global --yes --skill <nombre>`; solo lectura: solo avisar) y mientras tanto seguir con las reglas del repo.
 
 | Área o momento | Skill externa | Manda en caso de conflicto |
 | :--- | :--- | :--- |
