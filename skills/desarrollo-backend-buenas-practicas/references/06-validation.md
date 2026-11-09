@@ -1,6 +1,9 @@
 ## 6. Validación
 
 Validadores FluentValidation y qué se valida dónde. Leer al crear o modificar un request de entrada.
+Repo nuevo con nullable: `SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true` en `AddControllers`,
+si no el `[Required]` implícito de `[ApiController]` responde antes que FluentValidation y con otro mensaje.
+Textos libres (nombre, email): el handler guarda y filtra con `Trim()`, salvo que el repo no normalice (el repo manda); el validador mide el largo sin espacios de borde.
 
 ```csharp
 public class CreateItemValidator : AbstractValidator<CreateItemRequest>
@@ -11,7 +14,8 @@ public class CreateItemValidator : AbstractValidator<CreateItemRequest>
             .Length(3).WithMessage(ErrorMessage.ItemCodeLength);
         RuleFor(x => x.Name).NotEmpty().WithMessage(ErrorMessage.ItemNameRequired)
             .MaximumLength(100);
-        RuleFor(x => x.Services).NotEmpty().WithMessage(ErrorMessage.ItemServicesRequired);
+        // Cascade(Stop): si es null, no corren las reglas siguientes que lo desreferencian (NRE = 500)
+        RuleFor(x => x.Services).Cascade(CascadeMode.Stop).NotEmpty().WithMessage(ErrorMessage.ItemServicesRequired);
     }
 }
 ```

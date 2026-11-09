@@ -12,14 +12,14 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 │   ├── Filters/                 # ValidateTokenFilter, LoggerFilter
 │   ├── Middlewares/
 │   ├── GlobalUsings.cs
-│   └── Program.cs               # termina con `public partial class Program { }` (E2E)
+│   └── Program.cs               # en net8: termina con `public partial class Program { }` (E2E); en net10 ya es público
 ├── <Application>/
 │   ├── Configuration/           # Guard, ApplicationConfiguration + IValidateOptions
 │   ├── Dtos/<Feature>Dtos/      # <Accion><Entidad>Request (record) y <Entidad>Response
 │   │   └── Validators/          # AbstractValidator<TRequest>
 │   ├── Exceptions/              # excepciones + Handlers/ + Helpers/ + Resources/ExceptionMessages.resx
 │   ├── Interfaces/              # IUnitOfWork, ICacheService, clientes externos
-│   ├── Mediator/
+│   ├── Mediator/                # IMediator + DefaultMediator (no una clase `Mediator`: CS0118, §2)
 │   ├── Services/<Feature>Handlers/
 │   │   └── Interfaces/          # I<Feature>CommandRepository / I<Feature>QueryRepository
 │   └── ApplicationDependency.cs # AddApplicationServices
@@ -48,7 +48,7 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 | Validador | `Application/Dtos/<Feature>Dtos/Validators/<Accion>Validator.cs` | `public` |
 | Handler | `Application/Services/<Feature>Handlers/<Accion>Handler.cs` | `internal` |
 | Interfaz de repositorio | `Application/Services/<Feature>Handlers/Interfaces/` | `public` |
-| Repositorio | `Infrastructure/DapperRepositories/<Feature>Repositories/` | `internal` |
+| Repositorio | `Infrastructure/DapperRepositories/<Feature>Repositories/` (en memoria: `InMemoryRepositories/`; EF: §15) | `internal` |
 | Entidad de tabla | `Domain/Entities/` | `public class` |
 | Constantes (roles, mensajes, claves de cache) | `Domain/Structs/` | `public const string` |
 | Cliente HTTP externo | interfaz en `Application/Interfaces/`, impl en `Infrastructure/Clients/<Sistema>/` | `internal` impl |
@@ -80,6 +80,8 @@ Dónde va cada archivo, naming y límites de tamaño. Leer al crear archivos o c
 - Controller 150 líneas, handler 150, repositorio 250, cualquier clase 300, método 40.
 - Si un handler pasa el límite: extraer servicio de dominio en `Services/<Feature>Handlers/` con su interfaz.
 - Si un repositorio pasa el límite: partir por agregado o por Command/Query. Nunca "Helpers" genéricos.
+- Minimal APIs: un `Map<Feature>Endpoints` con lambdas largos se divide pasando cada lambda largo a un
+  método estático con nombre en la misma clase; los de una línea quedan inline.
 - **Dentro del límite no se divide**: nada de extraer métodos o clases de 5 líneas usadas una vez.
 
 ### 1.4 Dependencias entre capas (Clean Architecture)
@@ -97,4 +99,4 @@ Las referencias entre proyectos (`<ProjectReference>`) van hacia adentro, nunca 
 - Si `Application` necesita algo de `Infrastructure`, se mueve la interfaz a `Application`, no se agrega la referencia.
 - Controllers y filtros de `Api` no usan tipos de `Infrastructure`: hablan con `Application` vía mediator.
 - Cada capa registra sus servicios en su `*Dependency.cs`; `Program.cs` solo los llama.
-- No se crean proyectos ni capas nuevas (`Shared`, `Common`, `Core`) sin pedido explícito.
+- No se crean proyectos ni capas nuevas (`Shared`, `Common`, `Core`) sin pedido explícito. Excepción: armar la estructura de §1 en un repo nuevo.

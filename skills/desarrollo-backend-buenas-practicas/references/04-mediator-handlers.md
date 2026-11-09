@@ -4,6 +4,7 @@ Requests, handlers y uso del mediator del equipo. Leer al crear o modificar un c
 
 ```csharp
 // Application/Dtos/ItemDtos/CreateItemRequest.cs
+// EmptyResult es el del mediator del equipo: en el controller choca con Microsoft.AspNetCore.Mvc.EmptyResult (usar alias o nombre completo)
 public record CreateItemRequest(string Code, string Name, IEnumerable<int> Services) : IRequest<EmptyResult>;
 
 // Application/Services/ItemHandlers/CreateItemHandler.cs
@@ -14,6 +15,7 @@ internal class CreateItemHandler(
     public async Task<EmptyResult> Handle(CreateItemRequest request, CancellationToken cancellationToken)
     {
         await Guard.AgainstInvalidSpecification(validator, request);
+        // Modificar o borrar: primero que el recurso exista (404); después, reglas contra otros datos (duplicados = 400)
 
         unitOfWork.BeginTransaction();
         try

@@ -5,24 +5,64 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Agregado
+
+- Headroom vuelve solo si se cae: en Windows la tarea oculta lo revisa cada 2 min (antes 5), dentro
+  de los ~3 min que Claude Code reintenta. README: qué hacer si sigue caído; el aviso del hook da el
+  comando según el sistema.
+
+### Seguridad
+
+- Instalador: `-t` solo borra una instalación propia (`name:` de la skill en `SKILL.md`); el reintento de caveman
+  solo corre `skills add JuliusBrussee/caveman`; `--doctor` sugiere `npx -y github:MRydex/...` (el paquete no está en npm);
+  el `.bak` de `settings.json` guarda el original de la corrida; permisos de graphify solo para `query`, `update`,
+  `explain` y `path` (se quita el `graphify:*` de versiones previas); ruta `C:\Windows` corregida.
+- `guard-secrets`: también NotebookEdit; en Markdown, solo formatos inconfundibles (clave privada, AWS, GitHub, Slack,
+  Anthropic, Stripe, Google); reglas nuevas para JWT literal, firma SAS y `KEY=valor` en `.env` y similares.
+- `session-start`: un `tasks/lessons.md` versionado en el repo no se carga solo (puede traer instrucciones de un tercero);
+  para compartir lecciones de equipo, llevarlas a `CLAUDE.md` / `AGENTS.md`.
+- Skill: el plugin `claude-security` (multiagente, caro) solo con pedido explícito o costo aceptado, también en la
+  auditoría completa; si falta una skill externa se instala solo esa, no el instalador entero; `revisor-auth` en los
+  cambios de auth.
+
 ### Instalador
 
-- Advisor `fable` en `~/.claude/settings.json` (`advisorModel`) si no había uno, la sesión no es Fable y no
-  hay Bedrock/Vertex (ahí no existe). `--advisor <fable|opus|sonnet|off>` elige otro o lo quita. El modelo
-  lo consulta solo al orientarse, al trabarse y antes de terminar; se cobra al precio del advisor.
-- §14.3 según lo publicado con Fable 5.2: alias `fable` en `/advisor`, `advisorModel` y frontmatter `model`;
-  pareo (Fable solo acepta Fable); Claude Code 2.1.321+; límites de Claude Code (20 en paralelo, 3 niveles)
-  frente a Managed Agents (25 hijos, un nivel); link a la doc de Managed Agents.
+- Hooks de Claude Code `guard-secrets` (compartido con la skill de frontend) y `format-dotnet`.
+- Subagentes `migrador-dotnet`, `auditor-sql`, `generador-tests-backend`, `operador-pipeline`,
+  `auditor-contrato-api` y `revisor-auth` (los dos últimos, compartidos con la skill de frontend).
 
 ### Skill
 
-- `05` §5.4 consultas lentas: plan de ejecución antes que `commandTimeout`, señales (`Scan`, `Key Lookup`,
-  conversión implícita), cómo elegir el índice, justificarlo en el PR, lotes para masivos.
-- `03` idempotencia por verbo (`PUT` reemplaza, `PATCH` idempotente por diseño, `POST` con `Idempotency-Key`),
-  cruzado con el retry de `09`. `09`: circuit breaker explícito.
-- `10` §10.3 pruebas de carga (k6 / NBomber, p95 / p99, solo entornos propios, fuera de CI); liveness vs readiness.
-- `02` concurrencia: I/O vs CPU, `Task.WhenAll` con tope, `Parallel.ForEachAsync`, sin `Task.Run` en handlers,
-  conexión por tarea; lookups O(n²) en loops. `15` §15.6: reintento ante deadlock 1205.
+- §14.9 skills externas por área: cada área (endpoints, tests, bugs, rendimiento, seguridad, migración,
+  CI, git...) nombra la skill externa que la acompaña y la regla del repo que gana si chocan. Regla 7
+  de SKILL.md, templates y bloque global apuntan a §14.9. Índice: 14 ya no es lectura "siempre".
+- Subagentes: los que citan la skill reciben dónde buscarla; el bloque global nombra la skill en cada §;
+  `generador-tests-backend` frena tras 3 intentos con el mismo test rojo; `operador-pipeline` en nivel ejecutor.
+- Repo con front y back: cada skill rige sus archivos y el Paso 0 corre una vez (también en `desarrollo-buenas-practicas`).
+  §14.9 suma `ponytail-debt` en auditorías y limpieza; `ponytail-help` / `ponytail-gain` solo las pide el usuario.
+  Gentleman-Skills revisado y no instalado: sus skills de Angular contradicen esta y no trae .NET (motivo en `bin/cli.js`).
+- Seguridad: "¿es seguro X?" es pregunta de solo lectura; cabeceras de seguridad antes de `UseExceptionHandler`
+  y HSTS de 365 días; `dotnet list package` sin restore cae a leer los `.csproj`.
+- `ConflictException` (409) para estado ya aplicado; `PATCH` para cambios de estado; endpoint gemelo de uno ya
+  protegido sin `security-audit`; OpenAPI antes/después solo si el cambio no es aditivo; trim según el repo.
+- Rate limiting nativo por usuario / IP con 429 + `Retry-After`; §14.9 nombra su skill. Cierre de un cambio de
+  riesgo alto: la fila completa de §13.3.
+- Límite de intentos de un secreto: clave por lo que guarda el secreto e intento reservado bajo lock antes de probarlo.
+  Un `code` o campo nuevo en un error es contrato: se documenta y se avisa al front.
+- "Antes de entregar" en SKILL.md: autorevisión de 6 puntos (alcance, corrección con atomicidad y sin `catch`
+  que trague, seguridad, escalabilidad, legibilidad, tests en paralelo y aislados); PIN, contraseñas y sesiones
+  cuentan como auth y la revisión de riesgo alto es parte de terminar (sin subagentes: `checklists.md` completo;
+  sin revisión, pendiente bloqueante en el reporte); lo que marque el revisor (MEDIO o más) se corrige antes de
+  entregar. El `catch` que reintenta también loguea, y la garantía va en el código, no en un comportamiento del SO.
+- Repo nuevo: estructura de 4 proyectos y mediator mínimo, sin restos de la plantilla de `dotnet new` ni
+  campos o servicios no pedidos; CSP estricta en la API (abierta solo en Swagger); en modificar o borrar,
+  404 antes que reglas contra otros datos; tests de error con campo y mensaje exactos.
+
+- Nuevas referencias, aplicables solo si el proyecto ya usa esa tecnología o el usuario lo pide:
+  `17-contrato-openapi.md`, `18-stored-procedures-sql.md`, `19-migracion-dotnet.md` y
+  `20-librerias-nuget-ci.md`. `11-security.md` §11.7: JWT, policies, CORS, IdP propio, LDAP y
+  migración de auth legacy. `12-tech-debt.md`: librerías de mapeo existentes.
+
 - `02-csharp-design.md`: `BannedApiAnalyzers` + `BannedSymbols.txt` con `RS0030` en `error` para
   convertir reglas "nunca X" en error de compilación; colisión de nombre con namespace (`CS0118`);
   ciclos de DI.
