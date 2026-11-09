@@ -5,8 +5,24 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Instalador
+
+- Advisor `fable` en `~/.claude/settings.json` (`advisorModel`) si no había uno, la sesión no es Fable y no
+  hay Bedrock/Vertex (ahí no existe). `--advisor <fable|opus|sonnet|off>` elige otro o lo quita. El modelo
+  lo consulta solo al orientarse, al trabarse y antes de terminar; se cobra al precio del advisor.
+- §14.3 según lo publicado con Fable 5.2: alias `fable` en `/advisor`, `advisorModel` y frontmatter `model`;
+  pareo (Fable solo acepta Fable); Claude Code 2.1.321+; límites de Claude Code (20 en paralelo, 3 niveles)
+  frente a Managed Agents (25 hijos, un nivel); link a la doc de Managed Agents.
+
 ### Skill
 
+- `05` §5.4 consultas lentas: plan de ejecución antes que `commandTimeout`, señales (`Scan`, `Key Lookup`,
+  conversión implícita), cómo elegir el índice, justificarlo en el PR, lotes para masivos.
+- `03` idempotencia por verbo (`PUT` reemplaza, `PATCH` idempotente por diseño, `POST` con `Idempotency-Key`),
+  cruzado con el retry de `09`. `09`: circuit breaker explícito.
+- `10` §10.3 pruebas de carga (k6 / NBomber, p95 / p99, solo entornos propios, fuera de CI); liveness vs readiness.
+- `02` concurrencia: I/O vs CPU, `Task.WhenAll` con tope, `Parallel.ForEachAsync`, sin `Task.Run` en handlers,
+  conexión por tarea; lookups O(n²) en loops. `15` §15.6: reintento ante deadlock 1205.
 - `02-csharp-design.md`: `BannedApiAnalyzers` + `BannedSymbols.txt` con `RS0030` en `error` para
   convertir reglas "nunca X" en error de compilación; colisión de nombre con namespace (`CS0118`);
   ciclos de DI.

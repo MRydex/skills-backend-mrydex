@@ -8,6 +8,9 @@ Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código
 - `async`/`await` en toda la cadena. **Nunca** `.Result`, `.Wait()`, `GetAwaiter().GetResult()` ni `async void`.
 - Sin `async`/`await` de paso: si el método solo devuelve la `Task` de otro (decorator passthrough), retornarla directo.
 - `ConfigureAwait(false)` no se usa en código de aplicación ASP.NET Core (no hay `SynchronizationContext`); no agregarlo.
+- Antes de paralelizar: ¿la tarea espera I/O o calcula CPU? I/O (HTTP, base): `await`; si son independientes, `Task.WhenAll` con tope de concurrencia (`SemaphoreSlim`, o `Parallel.ForEachAsync` con `MaxDegreeOfParallelism`), nunca 1000 tareas a la vez contra un recurso limitado. CPU: `Parallel.ForEachAsync` acotado a los núcleos, solo con medición. Nunca `Task.Run` en controllers o handlers "para no bloquear": en ASP.NET Core solo mueve el trabajo de un hilo del pool a otro.
+- Una `DbConnection`, un `DbContext` o el `UnitOfWork` no se comparten entre tareas concurrentes: una conexión por tarea, o secuencial.
+- Búsquedas repetidas dentro de un loop (`First` / `Any` / `Contains` sobre otra lista): `Dictionary` / `HashSet` armado antes del loop, no O(n²) ([15](./15-data-access-ef-core.md) §15.8; vale sin EF).
 - Colecciones de entrada como `IEnumerable<T>` / `IReadOnlyList<T>`; salida materializada (`ToList()`), nunca `IEnumerable` diferido sobre una conexión abierta.
 - `DateTime`: guardar y comparar en UTC o con `DateTimeOffset`; serializar ISO 8601. Sin `DateTime.Now` en lógica (inyectar `TimeProvider` si hace falta testear tiempo).
 - Dinero e importes: `decimal`, nunca `double`.

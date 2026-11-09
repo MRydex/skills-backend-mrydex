@@ -51,5 +51,6 @@ public class ItemController(IMediator mediator) : ControllerBase
   casing de propiedades, nulabilidad. La forma del JSON no cambia sin coordinar con el front, y un
   campo que pasa de `null` a ausente (o al revés) también rompe.
 - Verbos: `GET` lectura, `POST` alta, `PUT` reemplazo, `PATCH` cambio parcial, `DELETE` baja. Nunca `GET` con efectos.
+- Idempotencia por verbo: `GET` y `DELETE` siempre (borrar lo ya borrado no es error de contrato: documentar si devuelve `204` o `404`). `PUT` reemplaza el recurso entero: lo que el cliente no manda se pisa. `PATCH` cambia solo lo enviado; diseñarlo idempotente ("estado = X", nunca "incrementar"). `POST` no lo es: si el cliente puede reintentar (timeout, red), aceptar header `Idempotency-Key`, guardar key + respuesta con TTL y devolver la misma respuesta ante repetición. Solo los idempotentes se reintentan ([09](./09-http-integrations.md)).
 - Query complejas: `[FromQuery]` sobre el request record. Body: sin atributo (inferido por `[ApiController]`).
 - Endpoint nuevo ⇒ su `.md` en `Documentacion/<Feature>/`.

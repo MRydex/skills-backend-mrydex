@@ -15,8 +15,9 @@ services.AddHttpClient<IAccountBlockClient, AccountBlockClient>(client =>
   mantiene, como en el ejemplo. Repo nuevo sin precedente: `Microsoft.Extensions.Http.Resilience`
   (`AddStandardResilienceHandler()` o `AddResilienceHandler(...)` con Options), que aplica las mismas reglas de abajo.
 - Siempre typed client (`AddHttpClient<IX, X>`). Nunca `new HttpClient()` ni `IHttpClientFactory.CreateClient()` suelto.
-- `Timeout` explícito por cliente. Retry solo para errores transitorios (5xx, 408, 429) y operaciones idempotentes; nunca reintentar un POST que crea algo sin idempotency key.
+- `Timeout` explícito por cliente. Retry solo para errores transitorios (5xx, 408, 429) y operaciones idempotentes; nunca reintentar un POST que crea algo sin idempotency key (qué verbo es idempotente: [03](./03-controllers.md)).
 - `BaseUrl`, `Timeout`, `RetryCount` y `HandlerLifetime` vienen de Options validadas con rango (§8). Retry con backoff exponencial (`WaitAndRetryAsync(retryCount, i => TimeSpan.FromSeconds(Math.Pow(2, i)))`) y `.SetHandlerLifetime(...)` desde config.
+- Circuit breaker: `AddStandardResilienceHandler()` ya lo trae; con Polly clásico, `CircuitBreakerAsync` junto al retry. Un servicio caído no se reintenta en cada request: se corta un tiempo y se responde `ExternalApiException` rápido.
 - Respuesta no exitosa ⇒ `ExternalApiException` con sistema destino y status, sin el body completo si trae datos sensibles. Si falla la llamada, la excepción original va como inner.
 - Status que devuelve la API cuando falla el downstream (lo resuelve el cliente, lo responde el handler de `ExternalApiException`), nunca un 500 genérico:
 

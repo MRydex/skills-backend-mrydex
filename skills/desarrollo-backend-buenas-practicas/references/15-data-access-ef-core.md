@@ -284,6 +284,10 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
 - `DbUpdateConcurrencyException` (columna `RowVersion`) ⇒ `SystemValidationException` con mensaje de
   "el registro fue modificado por otro usuario". Tablas editables por varios usuarios llevan
   `RowVersion`.
+- Deadlock (`SqlException` 1205) o error transitorio de conexión: reintentar la operación completa
+  con `CreateExecutionStrategy()` (la misma de las transacciones explícitas de este archivo), 2 o 3
+  veces con espera corta; nunca reintentar un comando suelto dentro de una transacción ya abierta.
+  Con Dapper, mismo criterio a mano (§5.1).
 - `OperationCanceledException` ⇒ relanzar. Resto ⇒ `CommandException` / `QueryException` con
   parámetros **sin datos sensibles** ([07](./07-errors-responses.md)).
 - El mapeo de excepciones de EF vive en el repositorio o en el `UnitOfWork`, nunca en el handler ni

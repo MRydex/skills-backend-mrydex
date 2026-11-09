@@ -9,6 +9,7 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - **Nunca** loguear: tokens, `Authorization`, contraseñas, connection strings, CBU/CVU/CUIT completos (enmascarar: `0000***1234`), body completo de requests con PII.
 - Correlación: propagar `traceId` (OpenTelemetry). No inventar ids propios.
 - Health checks: `AddHealthChecks().AddSqlServer(...)` por base, con tag `"db"`. El endpoint de salud (`Echo`) queda fuera de auth y del `LoggerFilter`.
+- Dos sondas: liveness ("el proceso vive", sin dependencias) y readiness ("puede atender": base y servicios críticos, filtrando por tag). Si una sola sonda consulta la base, el orquestador reinicia el proceso cuando la que falla es la base. Sin datos internos en la respuesta ([11](./11-security.md)).
 
 ### 10.2 Tests
 
@@ -28,3 +29,9 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 - Casos múltiples: `[Theory]` + `[ClassData]`, con las clases de datos en `Data/` dentro de la carpeta del feature.
 - E2E (`WebApplicationFactory<Program>`) y tests contra servicios reales (base, APIs externas) dependen de entorno: no se corren en CI ni por cuenta propia, solo si el usuario lo pide; asserts con un único status esperado. Una `CustomWebApplicationFactory<Program>` reemplaza los clientes externos por mocks.
 - Verificación antes de "terminado": `dotnet build` sin warnings nuevos y, desde riesgo medio, `dotnet test Tests/<X>.UnitTest` verde (§13.3). Si no se pudo correr, decirlo.
+
+### 10.3 Pruebas de carga
+
+- "Funciona" no es "aguanta". Antes de afirmar la capacidad de un endpoint o de cerrar una tarea de rendimiento: prueba de carga local con base real y volumen realista. Herramienta: k6 o NBomber (.NET); autocannon solo si el entorno ya tiene Node.
+- Reportar RPS, latencia p95 / p99, tasa de error y el punto donde empieza a degradar. Comparar antes / después del cambio con el mismo script.
+- Solo contra entornos propios (local, dev), nunca contra producción ni servicios de terceros. No va a CI (el pipeline corre solo `UnitTest`): es una verificación manual, a pedido o cuando la tarea es de rendimiento (§5.4 para el lado SQL).

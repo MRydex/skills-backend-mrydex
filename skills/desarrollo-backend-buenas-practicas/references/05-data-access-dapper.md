@@ -60,3 +60,12 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Claves en `Domain/Structs/CacheKey.cs`. Toda escritura que afecta datos cacheados invalida la clave en su `Cached<X>CommandRepository`.
 - Entradas de `IMemoryCache` siempre con `Size` y expiración (`SizeLimit` configurado). Nunca cachear datos por usuario sin la identidad en la clave.
 - Redis solo si el flag `EnableRedisCache:IsEnable` está activo; el código no debe asumirlo.
+
+### 5.4 Consultas lentas: primero el plan, después el índice
+
+- Una consulta lenta casi siempre es un índice que falta, no "la base". Antes de subir `commandTimeout`, agregar cache o reescribir la query: plan de ejecución real (`SET STATISTICS IO, TIME ON` + "Include Actual Execution Plan") sobre datos de volumen realista.
+- Señales: `Table Scan` / `Clustered Index Scan` sobre una tabla grande para devolver pocas filas; `Key Lookup` repetido (candidato a `INCLUDE`); warning de conversión implícita (tipo o largo del parámetro distinto al de la columna: `DbString` arriba, §15); `Sort` caro por un `ORDER BY` sin índice.
+- Índice nuevo: columnas de `WHERE` / `JOIN` primero (igualdad antes que rango), después `ORDER BY`; `INCLUDE` para las que solo van en el `SELECT`. `sys.dm_db_missing_index_details` es una pista, no una orden: validar contra el plan.
+- No indexar "por las dudas": cada índice encarece `INSERT` / `UPDATE` / `DELETE`. El PR justifica el índice con lecturas lógicas antes / después, y va como script `.sql` idempotente (§5.2).
+- Borrados o cargas masivas sobre tablas muy indexadas: por lotes (`DELETE TOP (n)` en loop) o por partición, nunca una sola transacción gigante.
+- Vale igual con EF Core (§15): el SQL que genera se analiza con el mismo plan.
