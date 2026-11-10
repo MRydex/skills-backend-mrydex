@@ -122,6 +122,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 
 - [ ] (si aplica, [17](./17-contrato-openapi.md)) Respuestas declaradas con tipo real, errores `ProblemDetails`, `operationId` estable; cambio solo aditivo, documento OpenAPI comparado antes y después. (§17.8)
 - [ ] (si aplica, [17](./17-contrato-openapi.md)) Enums, nulabilidad y fechas acordados con el front; OpenAPI y su UI solo fuera de Producción o con auth. (§17.5, §17.6, §17.9)
+- [ ] (si aplica, [17](./17-contrato-openapi.md)) Deploy con pestañas abiertas: cambio no aditivo recién en el deploy siguiente, o `426` con `X-App-Version` y `VersionMinima` en Options, sin bloquear a quien no manda la cabecera; CORS la permite. (§17.12)
 - [ ] (si aplica, [18](./18-stored-procedures-sql.md)) SP con `CommandType.StoredProcedure`, parámetros tipados, sin `AddWithValue` ni SQL dinámico concatenado. (§18.1, §18.6)
 - [ ] (si aplica, [18](./18-stored-procedures-sql.md)) Script `CREATE OR ALTER` versionado con rollback; `SET NOCOUNT ON`, `SET XACT_ABORT ON`, `TRY/CATCH` con `THROW`; `GRANT EXECUTE` mínimo. (§18.4, §18.5, §18.8)
 - [ ] (si aplica, [19](./19-migracion-dotnet.md)) Migración pedida por el usuario: un commit por paso, build y test verdes, sin refactors mezclados, `Newtonsoft` conservado si el contrato lo exige. (§19)

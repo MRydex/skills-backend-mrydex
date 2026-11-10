@@ -8,6 +8,8 @@ Fuente: docs de ASP.NET Core SignalR (seguridad, configuración, escalado, hosti
 
 - Servidor que avisa a varios clientes (chat, presencia, notificaciones, tableros): **SignalR**.
 - Solo servidor → cliente, sin grupos ni presencia: `TypedResults.ServerSentEvents` (.NET 10) alcanza.
+- Avisar un deploy o una versión nueva del front **no** es un caso de hub: el front lo detecta con Service
+  Worker y al reconectar (skill front §10.14). Contrato durante el deploy y `426`: §17.12.
 - **Comandos por HTTP, avisos por hub.** Crear, editar o enviar un mensaje va por controller + handler
   (validación §6, `ProblemDetails` §7); el handler publica el evento por el hub. Métodos de hub solo para
   la conexión: unirse o salir de un grupo, presencia, typing.

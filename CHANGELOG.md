@@ -7,6 +7,10 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `17` §17.12 deploy con pestañas abiertas: §17.8 vale dentro de la misma versión (lo no aditivo va al deploy
+  siguiente); `426 Upgrade Required` como `ProblemDetails` con `X-App-Version` y `Front:VersionMinima` en Options
+  (`IOptionsMonitor`, sin cabecera no bloquea, CORS); reciclado del app pool; SignalR no avisa deploys (§16.1).
+  Checklists e índice enlazan. Contraparte del front: skill `desarrollo-buenas-practicas` §10.14.
 - Headroom vuelve solo si se cae: en Windows la tarea oculta lo revisa cada 2 min (antes 5), dentro
   de los ~3 min que Claude Code reintenta. README: qué hacer si sigue caído; el aviso del hook da el
   comando según el sistema.

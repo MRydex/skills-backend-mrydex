@@ -139,7 +139,70 @@ Antes de tocar un endpoint existente:
 - El cliente se regenera en el repo del front con el documento de la versión publicada; el API no commitea código generado del front.
 - Nombres de schema = nombres de `Request` / `Response` (§1.2). Dos clases con el mismo nombre en distinto namespace hacen que el generador produzca `ItemResponse2`: evitalo.
 
-### 17.12 Checklist de contrato
+### 17.12 Despliegue con pestañas abiertas (front viejo contra API nueva)
+
+El front se actualiza con Service Worker y pregunta antes de recargar (skill `desarrollo-buenas-practicas`
+§10.14): después de un deploy conviven, durante horas, pestañas con la versión vieja del front y la API
+nueva. La API tiene que servir a las dos.
+
+- **§17.8 aplica también dentro de la misma versión de la API.** Un campo que el front viejo manda sigue
+  aceptándose; un campo nuevo del response lo ignora. Quitar un campo, endurecer una validación o cambiar
+  un código de estado se hace **en el deploy siguiente**, cuando ya nadie tiene la versión vieja abierta
+  (logs de uso, §11.3).
+- Si el cambio no puede ser aditivo y no hay versión nueva (§3 `V2`): la API responde
+  **`426 Upgrade Required`** como `ProblemDetails`. El front manda su versión en la cabecera
+  `X-App-Version` en cada request y trata el `426` como recarga obligatoria. **Sin cabecera no se
+  bloquea**: Swagger, tests, jobs y otros clientes no la mandan.
+
+```csharp
+// Options (§8): "Front": { "VersionMinima": "1.41.0" }; null o ausente = no se exige
+public sealed class FrontOptions
+{
+    public const string Seccion = "Front";
+    public string? VersionMinima { get; init; }
+}
+
+public sealed class VersionFrontMiddleware(RequestDelegate next, IOptionsMonitor<FrontOptions> options)
+{
+    private const string Cabecera = "X-App-Version";
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        if (Version.TryParse(options.CurrentValue.VersionMinima, out var minima)
+            && context.Request.Headers.TryGetValue(Cabecera, out var valor)
+            && Version.TryParse(valor, out var version)
+            && version < minima)
+        {
+            await Results.Problem(
+                    statusCode: StatusCodes.Status426UpgradeRequired,
+                    title: "Versión de la aplicación desactualizada",
+                    detail: $"Se requiere la versión {minima} o superior. Recargá la aplicación.")
+                .ExecuteAsync(context);
+            return;
+        }
+
+        await next(context);
+    }
+}
+
+// Program.cs: después de UseExceptionHandler y antes de MapControllers
+app.UseMiddleware<VersionFrontMiddleware>();
+```
+
+- `IOptionsMonitor`: subir `VersionMinima` en `appsettings.<Ambiente>.json` o en la configuración del
+  app pool (§8) corta a los clientes viejos sin redeploy. Bajarla a `null` lo apaga.
+- `Version.TryParse` acepta `1.41.0`; un valor que no parsea (prerelease, basura) no bloquea.
+- CORS (§11.7): `X-App-Version` es una cabecera custom, el preflight tiene que permitirla
+  (`WithHeaders("Content-Type", "Authorization", "X-App-Version")`). Mismo origen (API como
+  sub-aplicación de IIS): nada que hacer.
+- OpenAPI: declarar el `426` solo si el repo ya documenta respuestas globales; no agregarlo action por action.
+- **Reciclado del app pool** en cada deploy: corta requests en vuelo y los sockets de SignalR. El front
+  reintenta y reconecta solo (skill front §5 y §16.6). En el back: `IHostApplicationLifetime.ApplicationStopping`
+  para terminar trabajo en curso (hosted services que estén corriendo), y no deshabilitar el *overlapped recycle* de IIS.
+- **SignalR no es el mecanismo de aviso de deploy** (§16.1): el front verifica versión al reconectar.
+  Un evento `RecargaObligatoria` desde un endpoint de operación (rol admin, §11) solo si el equipo lo pide.
+
+### 17.13 Checklist de contrato
 
 - [ ] Todas las respuestas del action declaradas con tipo real; errores como `ProblemDetails`.
 - [ ] `operationId` fijo y único en endpoints consumidos por el front.
@@ -148,3 +211,4 @@ Antes de tocar un endpoint existente:
 - [ ] Documento comparado antes y después sin diferencias no aditivas.
 - [ ] UI y documento solo fuera de Producción o con auth; PKCE sin secreto.
 - [ ] Endpoint reemplazado marcado `deprecated` y no retirado hasta confirmar que nadie lo usa (§17.10).
+- [ ] Cambio no aditivo sin versión nueva: recién en el deploy siguiente, o `426` con `X-App-Version` y `VersionMinima` en Options; sin cabecera no bloquea (§17.12).
