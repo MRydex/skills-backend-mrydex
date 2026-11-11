@@ -16,6 +16,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- Instalador: si Windows Smart App Control bloquea el Python que trae uv ("Una directiva de Control de aplicaciones
+  bloqueó este archivo", os error 4551) o no hay Python, instala el Python 3.13 oficial con `winget` (firmado, por
+  usuario, sin admin), saca el shim roto `uv tool uninstall graphifyy` y reintenta `pip install graphifyy`.
 - `14` §14.3.1 effort antes que modelo (Anthropic, nov 2026): arrancar en effort medio, autoverificación → un nivel
   de effort → modelo siguiente en effort más bajo; tareas verificables en `low` con reintento en `high` solo de lo
   que falló. §14.3.4 medición real 2 (sesión Fable 5.1): `Explore` de fábrica corre en Opus ($0.10 por búsqueda)
