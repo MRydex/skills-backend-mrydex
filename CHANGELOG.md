@@ -24,6 +24,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   (`WindowsApps\python.exe`). Ahora ubica el `python.exe` oficial en `%LOCALAPPDATA%\Programs\Python` o
   `%ProgramFiles%` y corre pip por ruta absoluta. Si `winget` termina y no hay Python en esas carpetas, lo dice;
   si pip instala pero `graphify` no arranca, muestra ese error y no el de un intento anterior.
+- Instalador: prueba `python -m pip`, `py -m pip` y `python3 -m pip` antes que `pip` a secas. En Windows con Smart
+  App Control, `pip.exe` no está firmado y cada instalación mostraba un aviso de Seguridad de Windows, aunque
+  graphify quedaba bien instalado.
 - `11` §11.2, de la guía de seguridad de [modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)
   (Chrome, Edge, Firefox y MDN): cookie con prefijo `__Host-`, `Clear-Site-Data` en logout,
   `Cross-Origin-Resource-Policy` en las respuestas, HSTS gradual y endpoint de reportes de CSP.
