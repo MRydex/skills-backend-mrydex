@@ -19,6 +19,14 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - Instalador: si Windows Smart App Control bloquea el Python que trae uv ("Una directiva de Control de aplicaciones
   bloqueó este archivo", os error 4551) o no hay Python, instala el Python 3.13 oficial con `winget` (firmado, por
   usuario, sin admin), saca el shim roto `uv tool uninstall graphifyy` y reintenta `pip install graphifyy`.
+- Instalador (corrección): después de instalar Python con `winget`, graphify seguía fallando con "Python was not
+  found; run without arguments to install from the Microsoft Store" porque `python` resolvía al alias de la Tienda
+  (`WindowsApps\python.exe`). Ahora ubica el `python.exe` oficial en `%LOCALAPPDATA%\Programs\Python` o
+  `%ProgramFiles%` y corre pip por ruta absoluta. Si `winget` termina y no hay Python en esas carpetas, lo dice;
+  si pip instala pero `graphify` no arranca, muestra ese error y no el de un intento anterior.
+- `11` §11.2, de la guía de seguridad de [modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)
+  (Chrome, Edge, Firefox y MDN): cookie con prefijo `__Host-`, `Clear-Site-Data` en logout,
+  `Cross-Origin-Resource-Policy` en las respuestas, HSTS gradual y endpoint de reportes de CSP.
 - `14` §14.3.1 effort antes que modelo (Anthropic, nov 2026): arrancar en effort medio, autoverificación → un nivel
   de effort → modelo siguiente en effort más bajo; tareas verificables en `low` con reintento en `high` solo de lo
   que falló. §14.3.4 medición real 2 (sesión Fable 5.1): `Explore` de fábrica corre en Opus ($0.10 por búsqueda)

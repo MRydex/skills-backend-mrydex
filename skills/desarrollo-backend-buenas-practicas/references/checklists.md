@@ -117,6 +117,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Deuda de §12 no copiada en código nuevo.
 - [ ] Vulnerabilidades encontradas reportadas en prosa normal, aunque estén fuera del alcance.
 - [ ] "Auditá" a secas o pedido de seguridad: auditoría completa red + blue + network con cobertura por área, y pruebas en vivo solo contra hosts autorizados por el usuario (§11.6).
+- [ ] (si la API emite cookies) ¿Cookie de sesión con prefijo `__Host-`, `HttpOnly`, `Secure` y `SameSite`? ¿El logout responde `Clear-Site-Data`? (§11.2)
+- [ ] ¿`Cross-Origin-Resource-Policy` en las respuestas? ¿HSTS nuevo con `max-age` corto antes de subirlo a 365 días? (§11.2)
 
 ### Contrato, SPs, migración, NuGet/CI y auth (solo si aplica)
 

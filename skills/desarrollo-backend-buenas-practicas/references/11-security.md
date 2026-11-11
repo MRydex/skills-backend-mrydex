@@ -40,6 +40,11 @@ Preguntarse como atacante, para cada endpoint o cambio:
 - Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP: `default-src 'none'; frame-ancestors 'none'` en la API y una más abierta solo en la ruta de Swagger) registradas en el pipeline antes de `UseExceptionHandler` (o en `Response.OnStarting`) para que los errores también las lleven; HSTS con `MaxAge` de 365 días.
 - Swagger deshabilitado en Producción.
 - HSTS (`UseHsts`, 365 días) fuera de Development.
+- HSTS nuevo en un dominio: `max-age` corto primero (300 s) y subir a 365 días al confirmar que todo responde por HTTPS. Un valor largo mal puesto deja el sitio inaccesible hasta que vence.
+- Si la API emite una cookie de sesión o de refresh: `HttpOnly; Secure; SameSite=Lax` (o `Strict`) y nombre con prefijo `__Host-` (el navegador solo la acepta con `Secure`, `Path=/` y sin `Domain`: un subdominio no puede pisarla). Con subdominios compartidos, `__Secure-`.
+- Logout: además de invalidar la sesión en el servidor, la respuesta lleva `Clear-Site-Data: "cookies", "storage", "cache"`, que borra en el navegador lo que el front pudo dejar.
+- `Cross-Origin-Resource-Policy: same-origin` en las respuestas de la API: no afecta a los `fetch` con CORS del front y evita que otro sitio las embeba con `<img>` o `<script>`.
+- Si el front reporta violaciones de CSP (`report-to`): un endpoint que las recibe, con rate limiting y sin guardar query strings ni datos personales. La cabecera `Reporting-Endpoints` la manda el servidor que sirve el front.
 - Aprobaciones (maker-checker): quien crea un registro no lo aprueba. Comparar el usuario del token con el creador en el handler y lanzar la excepción 403 del repo (`ClaimException` o `ForbiddenException`).
 - Input del usuario dentro de HTML (mails, plantillas): `HtmlEncoder.Default.Encode(...)` antes de interpolar.
 - Token del header: `AuthenticationHeaderValue.TryParse`, no `Replace("Bearer ", "")`.
