@@ -62,8 +62,9 @@ ${colors.bold}OPCIONES:${colors.reset}
                           cursor, universal y all los generan siempre.
   ${colors.green}--dry-run${colors.reset}               Muestra los archivos y destinos sin escribir cambios
   ${colors.green}--doctor${colors.reset}                Chequea qué está instalado, sin escribir nada
-  ${colors.green}--advisor <modelo>${colors.reset}      Claude Code: advisor (fable | opus | sonnet | off). Sin el flag queda fable si no
-                          había uno; off lo quita. Se cobra al precio del advisor; solo API de Anthropic.
+  ${colors.green}--advisor <modelo>${colors.reset}      Claude Code: advisor (fable | opus | sonnet | off). Sin el flag no se configura
+                          ninguno (medido: no mejora al ejecutor solo); off quita el que haya. Se cobra al
+                          precio del advisor; solo API de Anthropic.
   ${colors.green}-v, --version${colors.reset}           Muestra la versión del paquete
   ${colors.green}-h, --help${colors.reset}              Muestra esta ayuda
 
@@ -109,7 +110,8 @@ function getArgValue(flags) {
 
 const agentArg = getArgValue(['-a', '--agent']);
 const customTarget = getArgValue(['-t', '--target']);
-// Advisor de Claude Code (§14.3.5): fable por defecto, el modelo decide cuándo consultarlo. `off` lo quita.
+// Advisor de Claude Code (§14.3.5): no se configura por defecto (medido: no mejora al ejecutor solo).
+// `--advisor <modelo>` lo activa y el modelo decide cuándo consultarlo; `off` quita el que haya.
 const ADVISOR_ALIASES = ['fable', 'opus', 'sonnet', 'off'];
 const advisorArg = getArgValue(['--advisor']);
 if (args.includes('--advisor') && (!advisorArg || (!ADVISOR_ALIASES.includes(advisorArg) && !advisorArg.startsWith('claude-')))) {
@@ -848,9 +850,9 @@ ${colors.bold}${colors.cyan}Herramientas del agente:${colors.reset} Headroom y c
   if (isDryRun) {
     console.log(`${colors.dim}[dry-run] pip install --upgrade "headroom-ai[all]"${colors.reset}`);
     console.log(`${colors.dim}[dry-run] Claude Code: activar ${CLAUDE_PLUGINS.map(({ id }) => id).join(', ')}${colors.reset}`);
-    console.log(`${colors.dim}[dry-run] Claude Code: hooks SessionStart, guard-secrets, format-dotnet + ANTHROPIC_BASE_URL=${HEADROOM_URL} + CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=${AUTOCOMPACT_PCT}${colors.reset}`);
+    console.log(`${colors.dim}[dry-run] Claude Code: hooks SessionStart, guard-secrets, format-dotnet + ANTHROPIC_BASE_URL=${HEADROOM_URL} + CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=${AUTOCOMPACT_PCT} + CLAUDE_CODE_SUBAGENT_MODEL=${SUBAGENT_MODEL}${colors.reset}`);
     console.log(`${colors.dim}[dry-run] Claude Code: permissions.deny de secretos, MCP context7${colors.reset}`);
-    console.log(`${colors.dim}[dry-run] Claude Code: advisorModel=${advisorArg ?? 'fable (si no había uno y la sesión no es Fable)'}${colors.reset}`);
+    console.log(`${colors.dim}[dry-run] Claude Code: advisorModel=${advisorArg ?? 'sin cambios (no se configura por defecto)'}${colors.reset}`);
     return;
   }
 
@@ -1010,6 +1012,9 @@ const HEADROOM_URL = 'http://127.0.0.1:8787';
 const HOOK_MARKER = 'skills-backend-mrydex';
 const SIBLING_HOOK_MARKERS = ['skills-backend-mrydex', 'skills-frontend-mrydex'];
 const AUTOCOMPACT_PCT = 40;
+// §14.3.4: un subagente sin `model` (general-purpose, skills, plugins) hereda el modelo de la sesión;
+// medido con sesión Fable: $0.90 la corrida contra $0.15 en Sonnet, mismo resultado.
+const SUBAGENT_MODEL = 'sonnet';
 // Hooks de edición (§11, §13). `shared`: lo instalan las dos skills y queda una sola entrada.
 const EDIT_HOOKS = [
   { event: 'PreToolUse', matcher: 'Edit|Write|MultiEdit|NotebookEdit', file: 'guard-secrets.js', timeout: 10, shared: true },
@@ -1072,6 +1077,7 @@ function installSessionStartHook(homeDir) {
     .some((key) => settings.env[key] || process.env[key]);
   if (headroomOk && !ownRoute) settings.env.ANTHROPIC_BASE_URL = HEADROOM_URL;
   settings.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE ??= String(AUTOCOMPACT_PCT);
+  settings.env.CLAUDE_CODE_SUBAGENT_MODEL ??= SUBAGENT_MODEL;
   const advisorNote = configureAdvisor(settings, ownRoute);
   // Lista base de secretos que el agente no lee (§11). Suma las reglas nuevas sin quitar las del usuario.
   settings.permissions ??= {};
@@ -1084,12 +1090,14 @@ function installSessionStartHook(homeDir) {
   if (settings.env.ANTHROPIC_BASE_URL === HEADROOM_URL) logOk(`Claude Code: modelo vía Headroom (${HEADROOM_URL})`);
   else if (ownRoute) console.log(`  ${colors.dim}Ya hay otra ruta al modelo (ANTHROPIC_BASE_URL, Bedrock o Vertex): no se cambió${colors.reset}`);
   logOk(`Claude Code: autocompactación al ${settings.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE}% del contexto`);
+  logOk(`Claude Code: subagentes sin modelo propio en ${settings.env.CLAUDE_CODE_SUBAGENT_MODEL} (CLAUDE_CODE_SUBAGENT_MODEL)`);
   console.log(advisorNote);
   logOk(`Claude Code: ${settings.permissions.deny.length} reglas deny de lectura de secretos`);
 }
 
-// Advisor (§14.3.5): fable por defecto, salvo que el usuario ya tenga uno, pida `off`, use Bedrock/Vertex
-// (ahí no existe) o la sesión ya sea Fable (mismo nivel: no suma y cuesta). Devuelve la línea a mostrar.
+// Advisor (§14.3.5): no se configura por defecto. Anthropic (nov 2026) midió que ningún pareo supera
+// claramente al ejecutor solo y el equipo midió 10x de costo con un advisor del mismo nivel. Solo con
+// `--advisor <modelo>` explícito; `off` quita el que haya. Devuelve la línea a mostrar.
 function configureAdvisor(settings, ownRoute) {
   const sessionIsFable = String(settings.model ?? '').includes('fable');
   if (advisorArg === 'off') {
@@ -1097,13 +1105,12 @@ function configureAdvisor(settings, ownRoute) {
     return `  ${colors.green}✔${colors.reset} Claude Code: advisor quitado`;
   }
   if (advisorArg) settings.advisorModel = advisorArg;
-  else if (!ownRoute && !sessionIsFable) settings.advisorModel ??= 'fable';
   if (settings.advisorModel) {
     const warn = ownRoute ? `\n  ${colors.yellow}⚠${colors.reset} El advisor solo funciona con la API de Anthropic, no con Bedrock, Vertex ni Foundry` : '';
     return `  ${colors.green}✔${colors.reset} Claude Code: advisor ${settings.advisorModel} (se cobra al precio del advisor; el modelo lo consulta solo al orientarse, al trabarse y antes de terminar; quitar con --advisor off)${warn}`;
   }
   if (sessionIsFable) return `  ${colors.dim}Advisor: la sesión ya es Fable, un advisor del mismo nivel no suma${colors.reset}`;
-  return `  ${colors.dim}Advisor: solo funciona con la API de Anthropic, no se configuró${colors.reset}`;
+  return `  ${colors.dim}Advisor: no se configura por defecto (medido: no mejora al ejecutor solo); --advisor fable lo activa${colors.reset}`;
 }
 
 function finish() {
