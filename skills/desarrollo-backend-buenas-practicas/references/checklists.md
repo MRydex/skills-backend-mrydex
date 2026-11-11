@@ -142,7 +142,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 
 ### Proceso del agente ([13](./13-workflow-orchestration.md), [14](./14-agent-efficiency.md))
 
-- [ ] Paso 0 hecho; exploración empezó con `graphify query`; `graphify update .` al final (§14.5).
+- [ ] Búsqueda por nombre con `grep` / `Glob`; `graphify query` solo sin nombre conocido, con `graphify update .` justo antes (§14.5).
 - [ ] Código existente y sus usos leídos antes de editar (§13.1).
 - [ ] Tarea clasificada chica/grande; la grande tiene `tasks/todo.md` con L1, Specs, Tasks y Log (§13.2).
 - [ ] Revisión según el riesgo del cambio (trivial / medio / alto) (§13.3).

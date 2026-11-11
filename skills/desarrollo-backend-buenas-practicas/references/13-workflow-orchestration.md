@@ -27,8 +27,8 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
   fragmento genera regresiones que el diff no deja ver.
 - Buscar la convención ya usada en el feature (naming, estructura, forma de resolver un caso parecido:
   otro handler, otro repositorio, otro validador) antes de imponer un patrón propio nuevo.
-- Si el pedido es ambiguo sobre **qué** archivos toca, localizar primero (`graphify query`, búsqueda por
-  símbolo) y confirmar el alcance real antes de escribir una línea.
+- Si el pedido es ambiguo sobre **qué** archivos toca, localizar primero (`grep` / `Glob` por
+  símbolo; `graphify query` solo sin nombre conocido) y confirmar el alcance real antes de escribir una línea.
 - La exploración pesada (soluciones grandes, buscar en varios proyectos) se delega a
   `investigador`; ver [14-agent-efficiency.md](./14-agent-efficiency.md) §14.3.
 
@@ -196,7 +196,7 @@ revisarlo: la revisión no agrega features.
 - Refactor pedido sobre código sin tests que fijen su comportamiento: primero tests de caracterización
   (§10.2), que pasan en verde contra el código original; después el refactor, con los mismos tests en verde.
 - Lo que un comando puede responder lo responde el comando: contar, buscar usos, validar tipos,
-  formatear y comparar los resuelven `graphify query`, `grep`, el compilador, `dotnet test` o un
+  formatear y comparar los resuelven `grep`, `graphify query`, el compilador, `dotnet test` o un
   script; el modelo queda para las decisiones de criterio.
 - Los límites de tamaño y cuándo dividir ya están en [01-solution-structure.md](./01-solution-structure.md) §1.3: no se repiten acá.
 
@@ -329,8 +329,8 @@ motivo). Ninguna se saltea en silencio.
 
 **Pasos:**
 
-1. **Orientar con el grafo.** `graphify query` para mapear usos. Un símbolo sin referencias en el grafo
-   es candidato, no prueba.
+1. **Orientar con `grep -rl`** para mapear usos (`graphify query` solo sin nombre conocido). Un símbolo sin
+   referencias es candidato, no prueba.
 2. **Correr las herramientas** (gratis, sin paquetes nuevos en la solución) y revisar a mano lo que no
    ven. Si el `.editorconfig` no tiene esas IDE y CA en `warning`, agregarlas para la auditoría y
    revertirlo al terminar, salvo que el usuario quiera dejarlas. En un pedido de solo lectura no se toca:

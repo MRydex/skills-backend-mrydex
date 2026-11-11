@@ -68,7 +68,7 @@ Preguntarse como atacante, para cada endpoint o cambio:
 El agente audita los paquetes NuGet por su cuenta. No espera al dependency-check del pipeline ni a que se lo pidan.
 
 **Cuándo:**
-- Al empezar a trabajar en un proyecto, junto al Paso 0 (graphify).
+- Al empezar a trabajar en un proyecto.
 - Después de cualquier cambio en un `*.csproj`, `Directory.Packages.props` o `packages.lock.json`: paquete nuevo, actualización o borrado.
 - Antes de dar por terminada una tarea que tocó dependencias.
 
@@ -118,7 +118,7 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 
 1. **Delimitar el alcance.** Sin alcance en el pedido, todo el repo, sin preguntar; si no, lo indicado: el diff actual, una feature, un
    proyecto de la solución o todo el repo.
-2. **Orientar con graphify** (`graphify query`) para ubicar controllers, handlers, repositorios, SQL,
+2. **Orientar con `grep -rl`** (`graphify query` solo sin nombre conocido) para ubicar controllers, handlers, repositorios, SQL,
    auth, uploads, `HttpClient` salientes y límites de confianza. Una sola pasada alimenta a todas las
    herramientas. Alcance feature o repo: modelo de amenazas primero
    (`performing-threat-modeling-with-owasp-threat-dragon`) para ordenar qué se ataca. En una pregunta
@@ -127,7 +127,7 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 3. **Revisión base de todas las áreas.** Recorrer la tabla de abajo completa. Cada área termina en
    uno de tres estados: **OK** (con la evidencia, `archivo:línea`), **hallazgo** o **N/A** (con el
    motivo: "no hay uploads en el alcance"). Las áreas ausentes del alcance (sin SQL, sin JWT, sin SignalR)
-   se cierran juntas como N/A con un `graphify query` o `grep` que lo pruebe. Incluye §11.1 (Red Team), §11.2–11.3 (reglas fijas y
+   se cierran juntas como N/A con un `grep` o `graphify query` que lo pruebe. Incluye §11.1 (Red Team), §11.2–11.3 (reglas fijas y
    Blue Team) y `dotnet list package --vulnerable --include-transitive` (§11.4).
 4. **Profundizar donde haga falta.** Por cada área, invocar su herramienta profunda (tabla) cuando se
    da **cualquiera** de estas condiciones:
@@ -187,7 +187,7 @@ prueba en vivo" en la cobertura.
 
 **Eficiencia sin perder cobertura:** la revisión base de todas las áreas es obligatoria; lo que se
 dosifica es la profundidad. No releer lo mismo para cada skill: pasarles los `archivo:línea` que ya
-ubicó graphify. Si el alcance es grande, delegar el barrido por área a subagentes en paralelo (§14.3);
+ubicó el `grep`. Si el alcance es grande, delegar el barrido por área a subagentes en paralelo (§14.3);
 la priorización, la corrección y la decisión final quedan en el modelo principal. Si falta una skill
 de la tabla, instalar solo esa skill (`npx -y skills add <owner/repo> --global --yes --skill <nombre>`: las `offensive-*` vienen de `SnailSploit/claude-red`, las de AppSec de `mukul975/Anthropic-Cybersecurity-Skills`, `security-audit` de `cloudflare/security-audit-skill`) y avisar en una línea (solo lectura: solo avisar); si no se puede, hacer
 esa área con la revisión base y decirlo en el reporte de cobertura.

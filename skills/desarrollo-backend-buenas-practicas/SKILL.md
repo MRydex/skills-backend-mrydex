@@ -52,7 +52,7 @@ metadata:
 
 # Desarrollo Backend — Buenas Prácticas del Equipo (.NET 10)
 
-Convenciones **obligatorias** para APIs ASP.NET Core (.NET 10) y reglas de cómo trabaja el agente. Orden: Paso 0 (graphify), reglas, modo de operación. Stack en §0; detalle en `references/`.
+Convenciones **obligatorias** para APIs ASP.NET Core (.NET 10) y reglas de cómo trabaja el agente. Orden: reglas, modo de operación. Stack en §0; detalle en `references/`. Graphify no tiene paso de arranque (ver abajo).
 
 > **Regla maestra**: si .NET 10 tiene una forma moderna y segura (primary constructors, records, `IExceptionHandler`, `ProblemDetails`, Options con `ValidateOnStart`, typed `HttpClient`, `CancellationToken`, `CommandDefinition` de Dapper), **siempre usarla**. La forma legacy solo por interoperabilidad con código existente, justificada en el PR.
 
@@ -70,23 +70,20 @@ Convenciones **obligatorias** para APIs ASP.NET Core (.NET 10) y reglas de cómo
 
 ---
 
-### Paso 0 — Arranque de graphify (obligatorio, antes de cualquier otra acción)
+### Graphify (sin paso de arranque)
 
-Primera acción de cada sesión, en cualquier repo, antes de buscar, leer o editar, también en tareas chicas (una consulta al grafo cuesta menos que leer los archivos que reemplaza). Sin preguntar (pedido de solo lectura: ver Alcance):
+No hay comando al empezar ni al cerrar la tarea. El grafo (`graphify-out/graph.json`) lo mantiene el hook git
+`post-commit` que deja el instalador; `graphify update .` se corre **solo justo antes de un `graphify query`**,
+y ese query es raro (ver abajo). Medido: `graphify update .` sin cambios tarda 0,7 s en 584 nodos, 1 s en 1.247
+y 17,4 s en 12.598; correrlo al arrancar y tras cada edición gastaba casi un minuto por tarea en un repo grande
+para un grafo que casi nunca se consulta.
 
-```bash
-graphify update .                # grafo al día (solo código, sin LLM, sin costo)
-# Solo si falla o si es la primera vez en el repo (no hay graphify-out/):
-graphify --help 2>&1 | head -3   # ¿existe? ¿warning de versión?
-graphify hook status             # ¿hooks git instalados?
-```
-
-- Falta el CLI → `pip install graphifyy && graphify install`. `warning: skill is from graphify X, package is Y` → `pip install --upgrade graphifyy && graphify install`. Hooks sin instalar → `graphify hook install` + `graphify <agente> install` (en un git worktree o carpeta temporal, no instalar hooks: avisar en una línea; si el agente lo bloquea por permisos, se reporta y se sigue). Sin grafo → `/graphify .`. Resto de casos y causas conocidas: §14.5 paso 6.
-- `graphify update .` puede salir con 0 y haber fallado: si dice `Rebuild failed`, `worker failed` o `Nothing to update or rebuild failed`, es fallo.
-- **Si algo falla: siempre avisar** con el comando, el error exacto y la causa probable. Nunca seguir en silencio. Recién después, búsqueda normal. Vale también al actualizar al final (§14.5 paso 5).
-- Con el instalador ya está hecho: el chequeo igual se corre. Después: agregar al `.gitignore` lo que creó graphify (§13.9) y avisar en una línea (`graphify OK: N nodos`).
-
-**Durante la tarea**: la primera búsqueda sobre el código es `graphify query`, antes de `grep`, `Glob` o leer archivos. Excepción: el usuario nombró el archivo y la línea exactos. Texto literal (de UI, de un mensaje de error, un string exacto): `grep` directo, el grafo no indexa textos.
+**Durante la tarea**: buscar por nombre (símbolo, archivo, texto literal) con `grep` / `Glob`, directo. `graphify
+query` solo para una pregunta de flujo sin ningún nombre conocido: antes `graphify update .`, después el query
+con `--budget 800`; si devuelve nodos sin relación, `grep`. Medido en §14.5: `grep -l` costó de 10 a 120 veces
+menos que una consulta al grafo, también en un repo de 12.600 nodos. Si `graphify update .` falla (`command not
+found`, `Rebuild failed`, `worker failed`, `Nothing to update or rebuild failed` aunque el exit code sea 0):
+**avisar** con el comando, el error exacto y la causa probable (§14.5 "Si algo falla"); nunca seguir en silencio.
 
 ---
 
@@ -113,7 +110,7 @@ Rige toda la sesión desde que la skill se carga. Para sesiones que no tocan .NE
 3. **El modelo seleccionado orquesta, decide y siempre revisa; delega solo si ahorra tokens.** Delegar búsquedas/lecturas grandes (3+ archivos, logs de build, `dotnet test`, docs) y ediciones mecánicas en 8+ archivos a `investigador`, `ejecutor-backend`, `revisor-checklist-backend` (en 3 archivos delegar costó 38% más, §14.3.4). Regla práctica: delegar si lo que habría que leer es 3 veces o más lo que hace falta saber. Solo por un motivo nombrado (exploración grande, escritores en paralelo, respaldo de contexto, verificador de tarea de riesgo alto o de diff grande (3+ archivos) contra el checklist); ante la duda, lo hace el orquestador. 5+ unidades independientes en todo el codebase: proponer `/batch <instrucción>`. Contexto compartido en `tasks/brief-<tarea>.md`, con solo las reglas compactas que aplican. El ejecutor no adivina: si se traba devuelve `NECESITA_ADVISOR: <duda>`. El orquestador interviene tras la orientación, cuando el ejecutor se traba y antes de dar por terminado; advisor nativo: el instalador configura `fable` (nivel superior a Sonnet y Opus; no si la sesión ya es Fable), consultarlo solo en esos mismos momentos, nunca en pasos mecánicos; `/advisor off` lo quita. §14.3.
 4. **Preguntar todo antes de empezar.** En tareas no triviales, juntar las dudas que cambian el resultado (contrato del endpoint, rol, tabla/SP, cache sí/no) y preguntarlas de una vez, con opciones y una recomendada (Claude Code: `AskUserQuestion`). No preguntar lo que resuelve el repo (§13.6). Sin usuario que responda (ejecución desatendida): tomar la opción recomendada y listarla como supuesto en el reporte. Tarea **chica** si se retoma con el pedido + `git diff` (directo); **grande** si no (`tasks/todo.md` con L1 literal, Specs, Tasks con riesgo y Log; tarea por tarea; commits de ~400 líneas). Revisión según riesgo trivial / medio / alto (§13.2, §13.3).
 5. **Autocompactar.** Al cerrar fase o antes de una tarea nueva: estado en `tasks/todo.md` y proponer compactar con foco (Claude Code: `/compact Conservar: decisiones, archivos tocados, pendientes`; el agente no puede correrlo solo). Tarea nueva sin relación: proponer `/clear`. Nunca con un cambio a medio aplicar ni con pregunta pendiente. §14.4.
-6. **Graphify primero.** Paso 0 al empezar cada sesión. Toda pregunta sobre el código: `graphify query` antes de `grep` o leer. Tras editar (antes de la respuesta final) o antes de compactar: `graphify update .` (sin LLM). §14.5.
+6. **Graphify sin ceremonia.** Sin paso de arranque ni de cierre: el hook git actualiza el grafo en cada commit. Buscar por nombre con `grep` / `Glob`; `graphify query` solo para preguntas de flujo sin nombre conocido, con `graphify update .` justo antes. §14.5.
 7. **Herramientas del agente, siempre.** ponytail (código mínimo; `ponytail-review` sobre el diff en todo cambio no trivial, §13.3); agent-skills por fase; en cada área, además de estas reglas, la skill externa que le toca según la tabla de [§14.9](./references/14-agent-efficiency.md#149-skills-externas-por-área) (gana la regla del repo); claude-code-setup en repos sin setup. Si falta una, instalarla y avisar en una línea. §14.8.
 8. **Seguridad siempre (Red + Blue Team).** Todo cambio pasa §11.1 antes de entregarse; riesgo alto suma revisión ofensiva profunda (§13.3). Nunca desactivar protecciones (validación de token, roles, TLS, parametrización). Nunca secretos en código ni en `appsettings*.json`. Toda vulnerabilidad se reporta, aunque esté fuera de alcance. "Auditá" a secas o pedido de seguridad ("auditá la seguridad", "¿es segura la app?", "pentest"): auditoría completa red + blue + network de §11.6, corrigiendo lo que esté en alcance. Pregunta sobre algo concreto ("¿es seguro X?") o pedido de solo lectura: solo reporte con fix propuesto y cobertura de la parte preguntada (sus áreas de la tabla), `security-audit` en modo guía, `claude-security` (escaneo multiagente, caro) solo con pedido explícito o si el usuario acepta su costo, también en la auditoría completa (§11.6 paso 5). **Auditoría de dependencias siempre**: una vez por sesión, en la primera tarea no trivial, tras cada cambio de paquetes y antes de entregar si se tocaron paquetes; reportar todo hallazgo (§11.4). [11](./references/11-security.md).
 9. **Archivos de IA en `.gitignore`.** Al empezar en un proyecto, verificar que excluya todo lo de IA y agentes (`.claude/`, `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `graphify-out/`, `tasks/todo.md`, etc.) y agregar lo que falte en la primera tarea no trivial (tarea trivial: avisar en una línea). Preguntar antes de `git rm --cached`. §13.9.
