@@ -16,6 +16,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- Aviso de versión nueva (Claude Code): el hook `SessionStart` compara la versión instalada con la de GitHub una vez
+  por día y muestra una línea con el comando para actualizar. Cubre las dos skills (backend y front). No gasta
+  tokens ni actualiza solo. Empieza a avisar después de reinstalar con esta versión. `14` §14.8.
 - `11` §11.4: feed Zero Wire de Cloudflare Radar (`https://radar.cloudflare.com/zero-wire/rss`) para lo que
   `dotnet list package --vulnerable` no ve: runtime, IIS / Kestrel, imagen base del `Dockerfile`, proxy. Se lee bajo
   demanda en la auditoría de seguridad (§11.6 paso 3), antes de subir el target framework (`19`) y al cambiar la
