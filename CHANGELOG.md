@@ -16,6 +16,10 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `11` §11.4: feed Zero Wire de Cloudflare Radar (`https://radar.cloudflare.com/zero-wire/rss`) para lo que
+  `dotnet list package --vulnerable` no ve: runtime, IIS / Kestrel, imagen base del `Dockerfile`, proxy. Se lee bajo
+  demanda en la auditoría de seguridad (§11.6 paso 3), antes de subir el target framework (`19`) y al cambiar la
+  imagen base. Sin hook ni tarea programada.
 - Instalador: si Windows Smart App Control bloquea el Python que trae uv ("Una directiva de Control de aplicaciones
   bloqueó este archivo", os error 4551) o no hay Python, instala el Python 3.13 oficial con `winget` (firmado, por
   usuario, sin admin), saca el shim roto `uv tool uninstall graphifyy` y reintenta `pip install graphifyy`.

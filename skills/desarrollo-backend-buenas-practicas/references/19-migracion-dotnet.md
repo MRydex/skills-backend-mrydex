@@ -133,7 +133,7 @@ Por cada proyecto o familia de paquetes migrada:
 2. `dotnet test` de los tests del proyecto y de los que lo referencian, en verde (§13.3).
 3. Cuando el Api ya compila: levantarla y probar los endpoints principales con un token real, o decir que no se pudo (§13.3).
 4. Commit del paso (§13.4) con mensaje del tipo `chore(deps): net6.0 -> net10.0 en Corp.Domain`.
-5. Al cerrar: `dotnet list package --vulnerable` y `--deprecated` (§11.4), `Dockerfile` y pipeline en 10.x (§20), y `tasks/todo.md` actualizado.
+5. Al cerrar: `dotnet list package --vulnerable` y `--deprecated`, y el feed Zero Wire contra el runtime nuevo (§11.4), `Dockerfile` y pipeline en 10.x (§20), y `tasks/todo.md` actualizado.
 
 ### 19.8 Qué hacer si falla
 

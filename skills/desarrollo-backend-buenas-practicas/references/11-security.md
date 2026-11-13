@@ -94,6 +94,30 @@ dotnet list package --outdated                          # informativo: no actual
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
+**Lo que `dotnet list package` no ve: Zero Wire (Cloudflare Radar).** Feed público y gratis de avisos sobre
+vulnerabilidades críticas en software expuesto a internet: runtimes, servidores, sistema operativo, proxies y librerías
+muy usadas. Cada aviso dice qué está afectado, si ya se explota y a qué versión actualizar. Complementa a
+`dotnet list package --vulnerable`, no lo reemplaza: son pocos avisos, solo los graves.
+
+- **Cuándo** (bajo demanda, una lectura por pedido; nunca en un hook ni en una tarea programada):
+  - auditoría de seguridad (§11.6 paso 3);
+  - antes de subir el target framework ([19](./19-migracion-dotnet.md));
+  - al crear o cambiar la imagen base de un `Dockerfile` ([20](./20-librerias-nuget-ci.md) §20.6).
+- **Cómo:** leer solo título, link y resumen de cada aviso (unos 3 KB). El feed entero pesa unos 68 KB por el
+  detalle en `<content:encoded>`: no leerlo completo. Abrir el `<link>` solo del aviso que coincide.
+  ```bash
+  node -e "fetch('https://radar.cloudflare.com/zero-wire/rss').then(r=>r.text()).then(x=>{for(const i of x.split('<item>').slice(1))console.log(['title','link','description'].map(t=>(i.match(new RegExp('<'+t+'>([^]*?)</'+t+'>'))||[])[1]).join(' | '))})"
+  ```
+  Solo se descarga el feed: no mandar afuera la lista de paquetes ni el nombre del proyecto.
+- **Contra qué cruzarlo:** `TargetFramework` y runtime de .NET / ASP.NET Core, Kestrel, IIS y `http.sys`; imagen base
+  del `Dockerfile` (Alpine, Debian, OpenSSL, OpenSSH); `PackageReference` directos; proxy o balanceador delante de la
+  API, si el repo lo declara.
+- **Resultado:** reportar solo las coincidencias, una línea cada una: aviso, componente afectado en el repo
+  (`archivo:línea`), versión con fix y link. Sin coincidencias, una línea: "Zero Wire: sin avisos que apliquen
+  (leído el <fecha>)". Una coincidencia se trata como `High` / `Critical` (bloquea la entrega). Lo que el repo no
+  declara (versión del sistema o del proxy en el servidor) se anota como "no verificable desde el repo".
+- Si el feed no responde, decirlo con el error exacto y seguir. Nunca darlo por leído.
+
 ### 11.5 Skill `security-audit` (Cloudflare)
 
 Revisión de seguridad con la skill [`security-audit`](https://github.com/cloudflare/security-audit-skill). El instalador la deja global.
@@ -133,7 +157,7 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
    uno de tres estados: **OK** (con la evidencia, `archivo:línea`), **hallazgo** o **N/A** (con el
    motivo: "no hay uploads en el alcance"). Las áreas ausentes del alcance (sin SQL, sin JWT, sin SignalR)
    se cierran juntas como N/A con un `grep` o `graphify query` que lo pruebe. Incluye §11.1 (Red Team), §11.2–11.3 (reglas fijas y
-   Blue Team) y `dotnet list package --vulnerable --include-transitive` (§11.4).
+   Blue Team), `dotnet list package --vulnerable --include-transitive` y el feed Zero Wire (§11.4).
 4. **Profundizar donde haga falta.** Por cada área, invocar su herramienta profunda (tabla) cuando se
    da **cualquiera** de estas condiciones:
    - la revisión base encontró un hallazgo o una señal dudosa;
