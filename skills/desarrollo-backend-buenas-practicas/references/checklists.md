@@ -45,6 +45,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Una clase por archivo, archivo = nombre de la clase, carpeta = namespace.
 - [ ] Límites de tamaño: controller y handler 150 líneas, repositorio 250, clase 300, método 40.
 - [ ] Capas respetadas: Api → Application → Domain; Infrastructure implementa interfaces de Application; Application no referencia Infrastructure ni Api. (§1.4)
+- [ ] La forma es la que pide el tipo de uso y la que ya tiene el repo: la de §1 por defecto; Onion (reglas en `Domain`, interfaces de repositorio de escritura en `Domain/Interfaces/`) solo con dominio con reglas propias o más de un host. Sin mezclar las dos en una feature. (§1.5)
 - [ ] Primary constructors; requests y responses inmutables como `record`.
 - [ ] Contrato con el front: `<Accion><Entidad>Request` lo que entra, `<Entidad>Response` lo que sale, mismo nombre en TypeScript; sin sufijo `Dto`; proyección directa al `Response`, sin AutoMapper. (§1.2)
 - [ ] Sin `.Result` / `.Wait()` / `GetAwaiter().GetResult()` / `async void`; métodos async con sufijo `Async`.

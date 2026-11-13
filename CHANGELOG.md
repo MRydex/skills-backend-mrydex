@@ -16,6 +16,10 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `01` §1.5: cuándo usar la forma de §1 (por defecto) y cuándo Onion, según el tipo de uso. Onion para dominio con
+  reglas propias o usado por más de un host: reglas en entidades y `Domain/Services/`, interfaces de repositorio de
+  escritura en `Domain/Interfaces/`. Repo existente: la que ya tiene. `SKILL.md` (regla 8, Simplicidad) y
+  `checklists.md` apuntan a §1.5.
 - `03`: método HTTP `QUERY` (RFC 10008). No es el default: .NET 10 no trae `[HttpQuery]` ni lo incluye en el
   OpenAPI. Solo con pedido explícito y verificando IIS, proxy y CORS.
 - Aviso de versión nueva (Claude Code): el hook `SessionStart` compara la versión instalada con la de GitHub una vez

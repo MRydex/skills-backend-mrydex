@@ -100,3 +100,38 @@ Las referencias entre proyectos (`<ProjectReference>`) van hacia adentro, nunca 
 - Controllers y filtros de `Api` no usan tipos de `Infrastructure`: hablan con `Application` vía mediator.
 - Cada capa registra sus servicios en su `*Dependency.cs`; `Program.cs` solo los llama.
 - No se crean proyectos ni capas nuevas (`Shared`, `Common`, `Core`) sin pedido explícito. Excepción: armar la estructura de §1 en un repo nuevo.
+
+### 1.5 Qué forma usar: la de §1 (por defecto) u Onion
+
+Se decide una sola vez, al crear el repo o el módulo, según para qué se usa. Los 4 proyectos, el mediator,
+los controllers, la validación y los errores son los mismos en las dos: cambia dónde viven las reglas de
+negocio y las interfaces de repositorio.
+
+| Tipo de uso | Forma |
+| :--- | :--- |
+| API sobre datos: ABM, consultas, stored procedures, integraciones. Las reglas son validaciones del request. | La de §1 (por defecto) |
+| Dominio con reglas propias: invariantes, estados y transiciones, cálculos que cruzan varias entidades. | Onion |
+| Las mismas reglas las usa más de un host (API + worker, consola, Functions). | Onion |
+| Repo que ya existe. | La que ya tiene |
+
+- **Repo existente**: manda lo que hay. Es Onion si las interfaces de repositorio están en `Domain` o existe
+  `Domain/Services/`. No se migra de una forma a la otra sin pedido explícito, ni se mezclan en una misma feature.
+- **Repo nuevo y el pedido no alcanza para decidir**: la de §1, y avisar en una línea que se eligió por defecto.
+- No se pasa a Onion "por si el dominio crece": se pasa cuando aparece la primera regla que no es validación del request.
+
+Qué cambia en Onion respecto de §1 a §1.4:
+
+| Qué | En §1 | En Onion |
+| :--- | :--- | :--- |
+| Regla de negocio | Handler | Entidad (métodos que cuidan sus invariantes) o `Domain/Services/` si cruza entidades |
+| Entidad | Clase de tabla, solo propiedades | Con comportamiento; `private set` y métodos con nombre del negocio |
+| Interfaz de repositorio de escritura | `Application/Services/<Feature>Handlers/Interfaces/` | `Domain/Interfaces/`; recibe y devuelve entidades |
+| Interfaz de repositorio de lectura que proyecta a `Response` | `Application/Services/<Feature>Handlers/Interfaces/` | Igual: `Domain` no conoce los `Response` |
+| Handler | Valida, aplica la regla, persiste | Valida, carga la entidad, llama a su método o al servicio de dominio, persiste |
+| Tests unitarios | Del handler con mocks | De la entidad y del servicio de dominio sin mocks; del handler con mocks |
+
+- Las dependencias de §1.4 no cambian: `Domain` sigue sin referenciar proyectos y sin Dapper, EF Core ni ASP.NET Core.
+  `Infrastructure` implementa interfaces de `Domain` y de `Application`.
+- `Domain/Services/` lleva solo reglas: sin acceso a datos directo, sin `HttpClient`, sin logging. Si necesita
+  datos, los recibe por parámetro o por una interfaz de `Domain/Interfaces/`.
+- Interfaces de cache, clientes externos e `IUnitOfWork` quedan en `Application/Interfaces/`.
