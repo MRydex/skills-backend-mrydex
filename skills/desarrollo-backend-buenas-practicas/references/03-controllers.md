@@ -53,4 +53,11 @@ public class ItemController(IMediator mediator) : ControllerBase
 - Verbos: `GET` lectura, `POST` alta, `PUT` reemplazo, `PATCH` cambio parcial o de estado (reactivar, aprobar), `DELETE` baja. Nunca `GET` con efectos.
 - Idempotencia por verbo: `GET` y `DELETE` siempre (borrar lo ya borrado no es error de contrato: documentar si devuelve `204` o `404`). `PUT` reemplaza el recurso entero: lo que el cliente no manda se pisa. `PATCH` cambia solo lo enviado; diseñarlo idempotente ("estado = X", nunca "incrementar"). `POST` no lo es: si el cliente puede reintentar (timeout, red), aceptar header `Idempotency-Key`, guardar key + respuesta con TTL y devolver la misma respuesta ante repetición. Solo los idempotentes se reintentan ([09](./09-http-integrations.md)).
 - Query complejas: `[FromQuery]` sobre el request record. Body: sin atributo (inferido por `[ApiController]`).
+- Método HTTP `QUERY` (RFC 10008, junio 2026): lectura como `GET` (segura, idempotente) con los filtros en el body,
+  para búsquedas que no entran en la URL. **Todavía no es el default del equipo.** .NET 10 trae `HttpMethods.Query` y
+  `HttpMethod.Query`, pero no `[HttpQuery]` ni `MapQuery` (se declara con `[AcceptVerbs("QUERY")]` o `MapMethods`), y
+  el OpenAPI generado no incluye esos endpoints, así que el contrato con el front ([17](./17-contrato-openapi.md)) no
+  los ve. Usarlo solo con pedido explícito y después de verificar que IIS, el proxy y CORS dejan pasar el verbo
+  (`Access-Control-Allow-Methods: QUERY`); documentar el endpoint a mano. Si no, `GET` + `[FromQuery]`, o `POST`
+  cuando los filtros no entran en la URL.
 - Endpoint nuevo ⇒ su `.md` en la carpeta de docs que el repo ya usa (`Documentacion/<Feature>/` por defecto). Si el repo no documenta endpoints (o es nuevo y el usuario no lo pidió), no se crea la carpeta: alcanza con el OpenAPI.

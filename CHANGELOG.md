@@ -16,6 +16,8 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `03`: método HTTP `QUERY` (RFC 10008). No es el default: .NET 10 no trae `[HttpQuery]` ni lo incluye en el
+  OpenAPI. Solo con pedido explícito y verificando IIS, proxy y CORS.
 - Aviso de versión nueva (Claude Code): el hook `SessionStart` compara la versión instalada con la de GitHub una vez
   por día y muestra una línea con el comando para actualizar. Cubre las dos skills (backend y front). No gasta
   tokens ni actualiza solo. Empieza a avisar después de reinstalar con esta versión. `14` §14.8.
