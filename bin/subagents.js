@@ -35,7 +35,7 @@ const ROLES = [
       'Use in .NET backend repos (*.sln / *.csproj) to implement a concrete brief from the main model when it saves tokens (mechanical edits with a clear pattern across 8+ files, independent units run in parallel, or the next tasks/todo.md task handed to a fresh context). Returns a short caveman report: files changed, decisions the brief left open, problems. Skip small edits the main model can do inline.',
     instructions: `Implementá exactamente el brief que te pasa el modelo principal. Nada más.
 
-1. Seguí las reglas compactas del brief (\`tasks/brief-<tarea>.md\`). Abrí una referencia de la skill \`desarrollo-backend-buenas-practicas\` solo si el brief la cita.
+1. Seguí las reglas compactas del brief (\`tasks/brief-<tarea>.md\`). Abrí una referencia de la skill \`develop-back\` solo si el brief la cita.
 2. Antes de buscar código: \`grep\` / \`Glob\` por nombre; \`graphify query\` solo sin nombre conocido.
 3. No amplíes el alcance. No agregues abstracciones, paquetes ni capas que el brief no pide. Tests solo si el brief los pide (xUnit + Moq, \`references/10-logging-tests.md\`).
 4. Si el brief es ambiguo o te trabás, no adivines: devolvé \`NECESITA_ADVISOR: <duda>\`.
@@ -47,8 +47,8 @@ const ROLES = [
     readonly: true,
     cheap: true,
     description:
-      'Use in .NET backend repos after large code changes (3+ files) to check the diff against the desarrollo-backend-buenas-practicas checklists (controllers, handlers, Dapper, EF Core, validation, errors, security, no over-engineering). Read-only. Returns one line per finding. Pass the verbatim request (L1), the specs and the diff scope. Ends with a verdict: LISTO / CORREGIR Y LISTO / REHACER. Not a substitute for the final review by the main model.',
-    instructions: `Revisá el diff que te pasa el orquestador (o \`git diff\` si podés correrlo) contra \`references/checklists.md\` y la revisión Red Team §11.1 de \`references/11-security.md\` de la skill \`desarrollo-backend-buenas-practicas\`.
+      'Use in .NET backend repos after large code changes (3+ files) to check the diff against the develop-back checklists (controllers, handlers, Dapper, EF Core, validation, errors, security, no over-engineering). Read-only. Returns one line per finding. Pass the verbatim request (L1), the specs and the diff scope. Ends with a verdict: LISTO / CORREGIR Y LISTO / REHACER. Not a substitute for the final review by the main model.',
+    instructions: `Revisá el diff que te pasa el orquestador (o \`git diff\` si podés correrlo) contra \`references/checklists.md\` y la revisión Red Team §11.1 de \`references/11-security.md\` de la skill \`develop-back\`.
 
 1. Una línea por hallazgo: \`archivo:línea: [ALTO|MEDIO|BAJO] problema. arreglo.\` Sin elogios, sin resumen.
 2. Solo reglas de la skill y lo que piden el pedido y las specs que te pasen. Nada de gustos personales ni formato.
@@ -63,7 +63,7 @@ const ROLES = [
     cheap: false,
     description:
       'Use only when the user asks to upgrade the target framework of .NET projects (netcoreapp2.x/3.1, net5/6/8 to net10) or their packages. Goes project by project from the leaves of the dependency graph, keeps dotnet build and dotnet test green and lists the breaking changes found. Not for regular feature work.',
-    instructions: `Migrá siguiendo \`references/19-migracion-dotnet.md\` de la skill \`desarrollo-backend-buenas-practicas\`. Nada fuera de la migración pedida.
+    instructions: `Migrá siguiendo \`references/19-migracion-dotnet.md\` de la skill \`develop-back\`. Nada fuera de la migración pedida.
 
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido. Inventariá el \`TargetFramework\` de cada \`.csproj\` y el orden de dependencias (hojas primero).
 2. Un proyecto por vez: \`TargetFramework\`, paquetes alineados, APIs obsoletas y los breaking changes de §19.
@@ -81,7 +81,7 @@ const ROLES = [
     instructions: `Revisá el acceso a datos del diff o de las rutas que te pasen. Nunca edites archivos.
 
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido.
-2. Reglas: skill \`desarrollo-backend-buenas-practicas\` §05 (Dapper), §15 (EF Core) y §18 (stored procedures), y la revisión de seguridad de §11. Aplicá solo las de la tecnología que el proyecto usa.
+2. Reglas: skill \`develop-back\` §05 (Dapper), §15 (EF Core) y §18 (stored procedures), y la revisión de seguridad de §11. Aplicá solo las de la tecnología que el proyecto usa.
 3. Buscá: SQL armado concatenando texto, parámetros sin tipo o \`AddWithValue\`, SQL dinámico sin \`sp_executesql\`, transacciones que no cubren todas las escrituras, N+1, falta de \`CancellationToken\` o timeout, \`SET NOCOUNT ON\` y manejo de errores en los SP, permisos más amplios que \`EXECUTE\`.
 4. Una línea por hallazgo: \`archivo:línea: [ALTO|MEDIO|BAJO] problema. arreglo.\` Sin hallazgos: \`Sin hallazgos.\`
 5. Última línea, el veredicto: \`LISTO\`, \`CORREGIR Y LISTO\` (solo MEDIO/BAJO) o \`REHACER\` (algún ALTO).`,
@@ -92,7 +92,7 @@ const ROLES = [
     cheap: false,
     description:
       'Use in .NET repos to write missing xUnit + Moq unit tests for existing handlers, validators and services, when the user asks for tests or coverage. Follows the existing test project conventions, runs dotnet test and reports. Does not change production code.',
-    instructions: `Escribí tests unitarios para el código que te indica el brief, siguiendo \`references/10-logging-tests.md\` de la skill \`desarrollo-backend-buenas-practicas\`.
+    instructions: `Escribí tests unitarios para el código que te indica el brief, siguiendo \`references/10-logging-tests.md\` de la skill \`develop-back\`.
 
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido. Leé un test existente y copiá su estilo (nombres, carpetas, builders, aserciones).
 2. Si no hay proyecto de tests, no lo crees: devolvé \`NECESITA_ADVISOR: no hay proyecto de tests\`.
@@ -107,7 +107,7 @@ const ROLES = [
     cheap: false,
     description:
       'Use in .NET repos to create or fix Azure DevOps YAML pipelines, Dockerfiles or the pack and publish of an internal NuGet package, when the user asks. Follows the pipelines the repo already has. Never writes secrets. Returns a short report.',
-    instructions: `Creá o arreglá el pipeline, el Dockerfile o la publicación NuGet que pide el brief, siguiendo \`references/20-librerias-nuget-ci.md\` de la skill \`desarrollo-backend-buenas-practicas\`.
+    instructions: `Creá o arreglá el pipeline, el Dockerfile o la publicación NuGet que pide el brief, siguiendo \`references/20-librerias-nuget-ci.md\` de la skill \`develop-back\`.
 
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido. Si el repo ya tiene pipelines, copiá su estructura (un YAML por ambiente o stages) en vez de inventar otra.
 2. Nunca escribas secretos, tokens ni connection strings: usá variable groups, Key Vault o variables secretas del pipeline.
@@ -128,7 +128,7 @@ const ROLES = [
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido.
 2. Fuentes: el OpenAPI (documento generado o \`swagger.json\` del repo) o los controllers y DTOs; en el front, los modelos Request/Response, los servicios y los \`httpResource\`. Si solo tenés un lado, devolvé \`NECESITA_ADVISOR: ruta del otro repo\`.
 3. Revisá: rutas y verbos; nombres y casing de campos; tipos (número o texto, enums como texto o número); nullability; fechas (ISO UTC o local sin offset: tiene que coincidir con el interceptor de fechas del front si existe; \`DateOnly\` viaja como texto \`yyyy-MM-dd\`, nunca como \`Date\` del front); paginado; códigos de estado y forma del error (ProblemDetails); campos que el front lee y la API ya no manda.
-4. Reglas: skill \`desarrollo-backend-buenas-practicas\` §17 y skill \`desarrollo-buenas-practicas\` §02 (Request/Response y mapeo). Aplicá solo lo que el proyecto usa.
+4. Reglas: skill \`develop-back\` §17 y skill \`develop-front\` §02 (Request/Response y mapeo). Aplicá solo lo que el proyecto usa.
 5. Una línea por hallazgo: \`archivo:línea: [ALTO|MEDIO|BAJO] diferencia. arreglo.\` ALTO = rompe en runtime. Sin hallazgos: \`Sin hallazgos.\``,
   },
   {
@@ -140,8 +140,8 @@ const ROLES = [
     instructions: `Revisá la autenticación y la autorización del diff o de las rutas que te pasen. Nunca edites archivos.
 
 1. Buscá por nombre con \`grep\` / \`Glob\`; \`graphify query "<pregunta>" --budget 800\` solo si no hay nombre conocido.
-2. Backend (skill \`desarrollo-backend-buenas-practicas\` §11): validación del token (issuer, audience, lifetime, firma, ClockSkew), política fallback, autorización por endpoint, CORS con orígenes explícitos, secretos fuera del repo; si hay IdP propio, PKCE y redirect URIs exactas; si hay LDAP, filtros escapados.
-3. Front (skill \`desarrollo-buenas-practicas\` §15): code flow con PKCE, token solo hacia la API propia, dónde se guarda el token, URL de retorno validada (mismo origen), guards solo como UX, nada sensible en logs.
+2. Backend (skill \`develop-back\` §11): validación del token (issuer, audience, lifetime, firma, ClockSkew), política fallback, autorización por endpoint, CORS con orígenes explícitos, secretos fuera del repo; si hay IdP propio, PKCE y redirect URIs exactas; si hay LDAP, filtros escapados.
+3. Front (skill \`develop-front\` §15): code flow con PKCE, token solo hacia la API propia, dónde se guarda el token, URL de retorno validada (mismo origen), guards solo como UX, nada sensible en logs.
 4. Solo lo que el proyecto usa: no pidas una librería o un flujo que no está.
 5. Una línea por hallazgo: \`archivo:línea: [ALTO|MEDIO|BAJO] problema. arreglo.\` Sin hallazgos: \`Sin hallazgos.\`
 6. Última línea, el veredicto: \`LISTO\`, \`CORREGIR Y LISTO\` (solo MEDIO/BAJO) o \`REHACER\` (algún ALTO).`,
@@ -269,7 +269,7 @@ const BLOCK_END = '<!-- skills-backend-mrydex:end -->';
 const DELEGATION_BLOCK = `${BLOCK_START}
 ## Backend skill (always)
 
-In any repo with \`*.sln\`, \`*.csproj\` or \`Program.cs\` (.NET backend: C#, SQL, appsettings, pipelines, tests), load the \`desarrollo-backend-buenas-practicas\` skill **before your first tool call**, for **every** request: questions, explanations, reviews, debugging and code changes. Even if the request is vague or does not mention .NET. If it is not available as a skill, read its \`SKILL.md\`.
+In any repo with \`*.sln\`, \`*.csproj\` or \`Program.cs\` (.NET backend: C#, SQL, appsettings, pipelines, tests), load the \`develop-back\` skill **before your first tool call**, for **every** request: questions, explanations, reviews, debugging and code changes. Even if the request is vague or does not mention .NET. If it is not available as a skill, read its \`SKILL.md\`.
 
 ## Graphify (no ceremony, any git repo)
 
@@ -279,11 +279,11 @@ No startup or closing command: the git \`post-commit\` hook keeps the graph curr
 
 Installed by skills-backend-mrydex. Use them in every session; if one is missing, install it and tell me in one line (exact error if it fails):
 
-- **ponytail**: write only the code the task needs. Prefer the platform and standard library over new dependencies or abstractions. Before the final answer on a non-trivial code change (\`desarrollo-backend-buenas-practicas\` §13.3), run \`ponytail-review\` on the diff.
-- **agent-skills**: use the skill that matches the phase (spec, plan, build, review, ship). In .NET repos tests are part of the work (xUnit + Moq, \`desarrollo-backend-buenas-practicas\` §10.2): any "no test files" rule from the frontend block does not apply here.
-- **External skills by area**: besides this skill's rules, load the external skill that matches the area of the task (table in \`desarrollo-backend-buenas-practicas\` §14.9). On conflict, the repo rule wins.
+- **ponytail**: write only the code the task needs. Prefer the platform and standard library over new dependencies or abstractions. Before the final answer on a non-trivial code change (\`develop-back\` §13.3), run \`ponytail-review\` on the diff.
+- **agent-skills**: use the skill that matches the phase (spec, plan, build, review, ship). In .NET repos tests are part of the work (xUnit + Moq, \`develop-back\` §10.2): any "no test files" rule from the frontend block does not apply here.
+- **External skills by area**: besides this skill's rules, load the external skill that matches the area of the task (table in \`develop-back\` §14.9). On conflict, the repo rule wins.
 - **claude-code-setup** (Claude Code): in a repo without Claude Code setup, run \`claude-automation-recommender\` once and propose its result.
-- **Security**: for a vulnerability scan of the code, use the \`claude-security\` plugin (Claude Code); for focused web/API/NuGet checks, the matching Anthropic-Cybersecurity-Skills or claude-red \`offensive-*\` skill. Use \`offensive-*\` only to harden the project's own code against that attack surface (\`desarrollo-backend-buenas-practicas\` §11.6), never against third-party systems.
+- **Security**: for a vulnerability scan of the code, use the \`claude-security\` plugin (Claude Code); for focused web/API/NuGet checks, the matching Anthropic-Cybersecurity-Skills or claude-red \`offensive-*\` skill. Use \`offensive-*\` only to harden the project's own code against that attack surface (\`develop-back\` §11.6), never against third-party systems.
 
 ## Delegation to subagents (explicit, standing user request)
 
@@ -345,9 +345,37 @@ function upsertBlock(filePath, block) {
     console.log(`  ⚠ ${filePath}: bloque de la skill incompleto, no se actualizó`);
     return;
   }
+  appendBlock(filePath, current, block);
+}
+
+function appendBlock(filePath, current, block) {
   let separator = '';
   if (current) separator = current.endsWith('\n') ? '\n' : '\n\n';
   writeFileSafe(filePath, `${current}${separator}${block}\n`);
+}
+
+// `graphify install` reescribe los archivos globales y se lleva los bloques marcados: el de esta skill y
+// el de la skill hermana. Se guardan antes y se devuelven los que falten después, tal como estaban.
+const MARKED_BLOCK = /<!-- (skills-(?:frontend|backend)-mrydex):start -->[\s\S]*?<!-- \1:end -->/g;
+
+function snapshotBlocks(homeDir) {
+  const saved = [];
+  for (const entry of DELEGATION_FILES) {
+    const filePath = path.join(homeDir, ...entry.file);
+    if (!fs.existsSync(filePath)) continue;
+    saved.push({ filePath, blocks: fs.readFileSync(filePath, 'utf8').match(MARKED_BLOCK) || [] });
+  }
+  return saved;
+}
+
+function restoreBlocks(saved) {
+  for (const { filePath, blocks } of saved) {
+    for (const block of blocks) {
+      const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+      const startMarker = block.slice(0, block.indexOf('\n'));
+      if (!current.includes(startMarker)) appendBlock(filePath, current, block);
+    }
+  }
 }
 
 // Lee ~/.claude/settings.json: {} si no existe, null si no es un objeto JSON válido.
@@ -419,4 +447,4 @@ function installSubagents({ homeDir, isDryRun, only, log }) {
   }
 }
 
-module.exports = { installSubagents, readClaudeSettings, writeFileSafe };
+module.exports = { installSubagents, readClaudeSettings, writeFileSafe, snapshotBlocks, restoreBlocks };

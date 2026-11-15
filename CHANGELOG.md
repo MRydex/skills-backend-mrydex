@@ -1,6 +1,6 @@
 # Changelog
 
-Cambios de la skill `desarrollo-backend-buenas-practicas` y del instalador `skills-backend-mrydex`.
+Cambios de la skill `develop-back` (antes `desarrollo-backend-buenas-practicas`) y del instalador `skills-backend-mrydex`.
 Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
@@ -53,8 +53,23 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - Instalador (Claude Code): subagente `Explore` propio en Haiku con `effort: low` (reemplaza al de fábrica) y
   `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` en `~/.claude/settings.json` si no estaba.
 
+### Corregido
+
+- Hook `SessionStart`: el aviso de versión nueva salía solo por `systemMessage`, que en la extensión de VS Code puede no
+  verse. Ahora va también por `additionalContext` y el modelo lo dice en la primera respuesta (unos 60 tokens, solo
+  en la sesión con aviso).
+- Instalador: `graphify install` reescribe `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` y `~/.gemini/GEMINI.md` y se
+  llevaba los bloques globales marcados. Instalar una skill borraba el bloque de la otra, e instalar con `--target`
+  borraba también el propio. Ahora se guardan antes y se devuelven los que falten.
+- Instalador: en `--dry-run`, el aviso de la carpeta con el nombre anterior ya no dice que la quitó.
+
 ### Cambiado
 
+- La skill pasa a llamarse `develop-back` (antes `desarrollo-backend-buenas-practicas`): se invoca con `/develop-back`.
+  Al actualizar, el instalador borra la carpeta con el nombre anterior en cada destino y reescribe el bloque global.
+  Las citas a la otra skill pasan a `develop-front`. El `.gitignore` de un proyecto ya instalado conserva la línea vieja
+  (`skills/desarrollo-backend-buenas-practicas/`); se puede borrar a mano.
+- README: secciones "Usar" y "Actualizar" propias; "Modelos: qué corre dónde" baja después de "Contenido". Cada comando de instalación en su bloque. Sale "Publicar cambios".
 - Graphify sin ceremonia (medido en nov 2026 contra `grep` en los dos repos de skills y en una app de 12.598 nodos:
   `grep -l` costó de 10 a 120 veces menos que `graphify query`, también en el repo grande; sin nombre conocido el
   grafo devolvió ruido). Paso 0 queda en `graphify update .` (gratis); `graphify query` pasa a último recurso con

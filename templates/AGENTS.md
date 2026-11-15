@@ -2,7 +2,7 @@
 
 This project strictly follows the **.NET 10 Backend Best Practices** defined in the project skills:
 
-👉 **Skill Entrypoint**: [`skills/desarrollo-backend-buenas-practicas/SKILL.md`](./skills/desarrollo-backend-buenas-practicas/SKILL.md) (or [`.agents/skills/desarrollo-backend-buenas-practicas/SKILL.md`](./.agents/skills/desarrollo-backend-buenas-practicas/SKILL.md))
+👉 **Skill Entrypoint**: [`skills/develop-back/SKILL.md`](./skills/develop-back/SKILL.md) (or [`.agents/skills/develop-back/SKILL.md`](./.agents/skills/develop-back/SKILL.md))
 
 **How to load it (any agent):** at the start of every coding session, read `SKILL.md` fully. Then read only the `references/*.md` file (and section) that matches the current task, as listed in its reference index. Do not load all references at once.
 

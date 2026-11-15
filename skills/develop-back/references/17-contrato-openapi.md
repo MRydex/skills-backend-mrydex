@@ -141,7 +141,7 @@ Antes de tocar un endpoint existente:
 
 ### 17.12 Despliegue con pestañas abiertas (front viejo contra API nueva)
 
-El front se actualiza con Service Worker y pregunta antes de recargar (skill `desarrollo-buenas-practicas`
+El front se actualiza con Service Worker y pregunta antes de recargar (skill `develop-front`
 §10.14): después de un deploy conviven, durante horas, pestañas con la versión vieja del front y la API
 nueva. La API tiene que servir a las dos.
 

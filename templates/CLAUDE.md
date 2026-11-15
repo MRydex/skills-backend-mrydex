@@ -1,7 +1,7 @@
 # Claude Code Project Guidelines
 
 ## Backend / .NET Stack Conventions
-This project enforces the official **.NET 10 backend** standards in [`skills/desarrollo-backend-buenas-practicas/SKILL.md`](./skills/desarrollo-backend-buenas-practicas/SKILL.md) (or `~/.claude/skills/desarrollo-backend-buenas-practicas/SKILL.md`). Read `SKILL.md` first; then read only the reference that matches the task (paths relative to the skill folder):
+This project enforces the official **.NET 10 backend** standards in [`skills/develop-back/SKILL.md`](./skills/develop-back/SKILL.md) (or `~/.claude/skills/develop-back/SKILL.md`). Read `SKILL.md` first; then read only the reference that matches the task (paths relative to the skill folder):
 
 - **Architecture and size** (`references/01-solution-structure.md`): Clean Architecture (Api → Application → Domain; Infrastructure implements Application interfaces). Onion only when the domain has its own rules or more than one host uses it (§1.5); an existing repo keeps the shape it has. One class per file. Max 150 lines per controller or handler, 250 per repository, 300 per class, 40 per method.
 - **C#** (`references/02-csharp-design.md`): primary constructors, records, real nullable, `async` all the way. Never `.Result`, `.Wait()` or `async void`.

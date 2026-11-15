@@ -272,7 +272,7 @@ en un proyecto, el agente verifica el `.gitignore` y agrega las entradas que fal
 .clinerules/
 .opencode/
 .aider*
-skills/desarrollo-backend-buenas-practicas/
+skills/develop-back/
 CLAUDE.md
 CLAUDE.local.md
 AGENTS.md

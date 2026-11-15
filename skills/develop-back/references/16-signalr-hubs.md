@@ -1,7 +1,7 @@
 ## 16. Tiempo real — Hubs de SignalR
 
 Hubs, autenticación, grupos, gateway y despliegue. Leer al crear o tocar un hub. Contraparte del front:
-skill `desarrollo-buenas-practicas` §16.
+skill `develop-front` §16.
 Fuente: docs de ASP.NET Core SignalR (seguridad, configuración, escalado, hosting).
 
 ### 16.1 Cuándo un hub
