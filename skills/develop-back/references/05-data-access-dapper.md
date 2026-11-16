@@ -48,6 +48,7 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Siempre `CommandDefinition` con `transaction:` y `cancellationToken:`.
 - Parámetros: objeto anónimo o `DynamicParameters`. Strings con tipo/largo cuando el índice importa: `new DbString { Value = x, IsAnsi = true, Length = 22 }` (evita conversiones implícitas y scans).
 - Filtros dinámicos y paginado: `Dapper.SqlBuilder` (`/**where**/`, `/**orderby**/`) con `OFFSET ... FETCH`. Orden dinámico solo desde whitelist de columnas.
+- Paginado por keyset (solo con pedido explícito o problema medido en tabla grande, ver [15](./15-data-access-ef-core.md) §15.3): `WHERE (CreatedAt > @LastCreatedAt OR (CreatedAt = @LastCreatedAt AND Id > @LastId)) ORDER BY CreatedAt, Id OFFSET 0 ROWS FETCH NEXT @PageSize ROWS ONLY`, con índice sobre `(CreatedAt, Id)`. SQL Server no soporta `(a, b) > (@a, @b)`.
 - Stored procedures: `commandType: CommandType.StoredProcedure`, parámetros con nombre. Se usan cuando la lógica ya vive en la base; no migrar SP a inline ni al revés sin pedido.
 - Bulk: `IN @Ids` de Dapper hasta ~1000 valores; más que eso, TVP o `SqlBulkCopy`. Nunca un `ExecuteAsync` por fila en loop.
 - Unicidad: la garantía es el índice `UNIQUE` en la base. Un "¿ya existe?" previo (validador o handler) no la da: dos requests simultáneos pasan los dos el chequeo. Ese chequeo es opcional (mensaje más claro); el `INSERT` siempre maneja el duplicado.

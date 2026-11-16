@@ -89,7 +89,7 @@ La forma de la fecha es parte del contrato y se **acuerda con el front**; no se 
 
 ### 17.7 Paginado y comentarios
 
-- Forma única de listas paginadas: `PagedResponse<T>` (§7), con `PageSize` máximo (§6). Un endpoint nuevo no inventa otra forma (`items` / `total` / `results`). Si el repo ya usa otra, se sigue esa (§13.5).
+- Forma única de listas paginadas: `PagedResponse<T>` (§7), con `PageSize` máximo (§6). Un endpoint nuevo no inventa otra forma (`items` / `total` / `results`). Si el repo ya usa otra, se sigue esa (§13.5). Única excepción: paginado por keyset (§15.3), acordado con el front, que no lleva página ni total.
 - Comentarios XML (`/// <summary>`): con `GenerateDocumentationFile` en el `.csproj`, `Microsoft.AspNetCore.OpenApi` los toma para `description` de operaciones y schemas. Solo si el repo ya los usa; no los agregues en bloque a código existente.
 - Ejemplos y descripciones sin datos reales ni internos (§11.1 punto 5): ni nombres de clientes, ni IDs, ni hosts.
 

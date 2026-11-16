@@ -120,6 +120,21 @@ internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepositor
   whitelist (`switch` sobre un enum → `OrderBy` con la columna), nunca con el nombre de columna del
   request (§11).
 - Paginado siempre con `OrderBy` estable + `Skip` / `Take` y `PageSize` máximo ([06](./06-validation.md)).
+- Paginado por keyset (seek): solo con pedido explícito o problema medido (tabla grande con páginas
+  profundas, scroll infinito, export por lotes). `Skip` hace que la base lea y descarte todas las filas
+  anteriores; keyset filtra desde la última fila vista. Requiere orden único (columna + `Id` de desempate)
+  y un índice con esas columnas en ese orden:
+
+  ```csharp
+  query
+      .Where(x => x.CreatedAt > lastCreatedAt || (x.CreatedAt == lastCreatedAt && x.Id > lastId))
+      .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
+      .Take(request.PageSize)
+  ```
+
+  No permite saltar a la página N ni devuelve total: no reemplaza a `PagedResponse<T>` en listados con
+  paginador (§17.7). El response lleva los ítems y la clave de la última fila (`CreatedAt` + `Id`), que el
+  cliente manda en el pedido siguiente.
 - Existencia con `AnyAsync`, no `CountAsync() > 0` ni `FirstOrDefaultAsync() != null`.
 - **N+1 prohibido**: nada de consultas dentro de un `foreach`. Usar `Select` con navegaciones
   (EF arma el join), `Include` solo cuando se necesita la entidad para modificarla, y `Contains`

@@ -27,6 +27,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   se copian igual, con un frontmatter mínimo. Antes salía con 0 y no quedaban instaladas.
 - Instalador: las skills externas que su autor marcó solo para uso manual (`disable-model-invocation: true`) quedan
   habilitadas para que el agente las cargue solo.
+- `15` §15.3, `05` y `17` §17.7: paginado por keyset (seek) para tablas grandes con páginas profundas, scroll
+  infinito o export por lotes. Solo con pedido explícito o problema medido; el default sigue siendo
+  `Skip` / `Take` con `PagedResponse<T>`.
 - `SKILL.md` regla 9: listados paginados con `PageSize` máximo, `OrderBy` estable antes de `Skip` / `Take`, y
   listado vacío ⇒ `204 NoContent` con su `[ProducesResponseType]`. Ya estaba en `03`, `04`, `06` y `15`, pero sin
   leer la referencia se cumplía poco. Medido en 3 tareas reales: el `204` pasó de 1 de 3 a 3 de 3.
