@@ -41,20 +41,24 @@ const format = (root, relative, extra = []) =>
   spawnSync('dotnet', ['format', 'whitespace', root, '--folder', '--include', relative, ...extra], { ...OPTIONS, cwd: root });
 
 // false solo si el archivo está en HEAD y esa versión no estaba formateada. La versión de HEAD se
-// chequea en una copia temporal junto al archivo, así le aplica el mismo `.editorconfig`.
+// chequea en una copia temporal en una subcarpeta oculta, así le aplica el mismo `.editorconfig` y un
+// `dotnet build` en paralelo no la compila (MSBuild ignora las carpetas que empiezan con punto; una copia
+// suelta junto al archivo daba CS0101, clase duplicada).
 function wasFormatted(root, file) {
   const git = spawnSync('git', ['show', `HEAD:./${path.basename(file)}`], {
     cwd: path.dirname(file), encoding: 'utf8', windowsHide: true, timeout: 5000, maxBuffer: 20 * 1024 * 1024,
   });
   if (git.status !== 0) return true;
-  const temp = path.join(path.dirname(file), `.${path.basename(file, '.cs')}.${process.pid}.head.cs`);
+  const tempDir = path.join(path.dirname(file), `.format-head-${process.pid}`);
+  const temp = path.join(tempDir, path.basename(file));
   try {
+    fs.mkdirSync(tempDir);
     // git guarda LF; con autocrlf la copia de trabajo es CRLF y `end_of_line` la validaría en falso
     const crlf = fs.readFileSync(file, 'utf8').includes('\r\n');
     fs.writeFileSync(temp, crlf ? git.stdout.replace(/\r?\n/g, '\r\n') : git.stdout);
     return format(root, path.relative(root, temp), ['--verify-no-changes']).status === 0;
   } finally {
-    fs.rmSync(temp, { force: true });
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 

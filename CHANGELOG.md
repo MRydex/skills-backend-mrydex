@@ -16,6 +16,20 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- Instalador: `--no-external` instala solo la skill, sus subagentes y hooks; saltea caveman, las skills externas y
+  los plugins de Claude Code.
+- Instalador (Claude Code): `~/.claude/settings.json` recibe `skillListingBudgetFraction: 0.025` y las skills que
+  instala el paquete quedan en `skillOverrides` como `name-only`. Con el presupuesto por defecto, el listado de
+  skills se cortaba y 77 quedaban sin descripción. Medido con una consulta por skill: 99/99 bien elegidas con 45.900
+  tokens de prompt, contra 60.600 con las descripciones completas. No pisa valores que ya estén puestos; una skill
+  vuelve a mostrar su descripción con `"on"` en su entrada de `skillOverrides`.
+- Instalador: las skills externas que `skills add` saltea por no tener frontmatter (10 de `SnailSploit/claude-red`)
+  se copian igual, con un frontmatter mínimo. Antes salía con 0 y no quedaban instaladas.
+- Instalador: las skills externas que su autor marcó solo para uso manual (`disable-model-invocation: true`) quedan
+  habilitadas para que el agente las cargue solo.
+- `SKILL.md` regla 9: listados paginados con `PageSize` máximo, `OrderBy` estable antes de `Skip` / `Take`, y
+  listado vacío ⇒ `204 NoContent` con su `[ProducesResponseType]`. Ya estaba en `03`, `04`, `06` y `15`, pero sin
+  leer la referencia se cumplía poco. Medido en 3 tareas reales: el `204` pasó de 1 de 3 a 3 de 3.
 - `01` §1.5: cuándo usar la forma de §1 (por defecto) y cuándo Onion, según el tipo de uso. Onion para dominio con
   reglas propias o usado por más de un host: reglas en entidades y `Domain/Services/`, interfaces de repositorio de
   escritura en `Domain/Interfaces/`. Repo existente: la que ya tiene. `SKILL.md` (regla 8, Simplicidad) y
@@ -55,6 +69,24 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Corregido
 
+- Instalador: `--target` o `--agent` sin valor (seguido de otra opción) ahora da error en vez de tomar la opción
+  como valor; un agente desconocido se rechaza con la lista de los válidos.
+- Instalador: instalar sobre la carpeta de la propia skill (origen igual a destino) se saltea con un aviso en vez de
+  borrarla.
+- Instalador: cada comando externo tiene un tope de 10 minutos; uno colgado ya no deja la instalación esperando
+  para siempre.
+- Instalador: con los dos paquetes instalados, la sección de Graphify quedaba duplicada en el bloque global
+  (`~/.claude/CLAUDE.md` y equivalentes). Ahora la escribe uno solo.
+- Instalador: la copia `.bak` de un archivo de agente se crea solo si no existe, así una segunda instalación no
+  pisa el respaldo del original.
+- `--doctor`: daba falsa alarma por el hook `SessionStart` cuando lo había registrado el paquete hermano, y no
+  avisaba si quedaba la carpeta de la skill con el nombre viejo.
+- Hook `guard-secrets`: una contraseña o API key literal en archivos de test (`*.spec.ts`, `*Tests.cs`, `tests/`,
+  `fixtures/`) ya no bloquea; son datos de ejemplo. En la regla del token de `.npmrc`, un valor con `(` o `[` se
+  toma como código y no como secreto.
+- Hook `SessionStart`: un error interno ya no muestra el hook como roto al abrir la sesión.
+- Hook `format-dotnet`: la copia temporal de la versión de `HEAD` quedaba junto al archivo y un `dotnet build` en
+  paralelo la compilaba (`CS0101`, clase duplicada). Ahora va en una subcarpeta oculta, que MSBuild ignora.
 - Hook `SessionStart`: el aviso de versión nueva salía solo por `systemMessage`, que en la extensión de VS Code puede no
   verse. Ahora va también por `additionalContext` y el modelo lo dice en la primera respuesta (unos 60 tokens, solo
   en la sesión con aviso).
@@ -65,6 +97,10 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Cambiado
 
+- `SKILL.md`: sale la sección "Graphify (sin paso de arranque)", que repetía la regla 6 del modo de operación y
+  `14` §14.5. La regla 6 suma qué hacer si `graphify update .` falla.
+- `SKILL.md` regla 7: `ponytail-review` se carga en la misma tanda de llamadas que el build final. Medido en 3
+  tareas reales: la revisión pasó de hacerse 0 de 3 a 3 de 3.
 - La skill pasa a llamarse `develop-back` (antes `desarrollo-backend-buenas-practicas`): se invoca con `/develop-back`.
   Al actualizar, el instalador borra la carpeta con el nombre anterior en cada destino y reescribe el bloque global.
   Las citas a la otra skill pasan a `develop-front`. El `.gitignore` de un proyecto ya instalado conserva la línea vieja

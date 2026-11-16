@@ -98,7 +98,7 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
   `.editorconfig`).
 - **caveman**: respuestas cortas (sin él salen 33% más largas).
 - **Seguridad** (§11.6): [security-audit](https://github.com/cloudflare/security-audit-skill),
-  23 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
+  27 skills de [Anthropic-Cybersecurity-Skills](https://github.com/mukul975/Anthropic-Cybersecurity-Skills)
   y 22 `offensive-*` de [claude-red](https://github.com/SnailSploit/claude-red), solo de APIs, auth,
   supply chain y network (TLS, cabeceras, Azure, SignalR, superficie expuesta). Plugin `claude-security` en Claude Code.
 - **Claude Code, extras** (cada uno solo si el usuario no lo configuró antes, salvo `permissions.deny`, que se suma):
@@ -107,6 +107,15 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
   - `CLAUDE_CODE_SUBAGENT_MODEL=sonnet`: todo subagente sin `model` propio (`general-purpose`, skills, plugins)
     corre en Sonnet en vez de heredar el modelo de la sesión (medido con sesión Fable: $0.90 contra $0.15 por
     búsqueda, mismo resultado).
+  - `skillListingBudgetFraction: 0.025`: el listado de skills pasa de 1% a 2,5% del contexto. Con el 1% de
+    fábrica, más de la mitad de las skills instaladas quedaba listada sin descripción y el agente no las
+    activaba solo (medido: 77 de 135). Cuesta unos 11.500 tokens más por sesión.
+  - `skillOverrides`: las skills que instala este paquete se listan solo con el nombre; se cargan igual
+    cuando hacen falta. Medido con 41 pedidos que no nombran la skill: mismo acierto que con la descripción
+    completa (41 de 41) y 14.000 tokens menos por sesión. Para volver a la descripción completa de una, poner
+    `"on"` en su entrada de `skillOverrides`.
+  - Las skills externas que su autor marcó solo para uso manual (`disable-model-invocation: true`) quedan
+    habilitadas para que el agente las cargue solo.
   - Subagente `Explore` propio en Haiku con `effort: low`: reemplaza al `Explore` de fábrica, que corre con el
     modelo de la sesión (medido: $0.14 en Opus contra $0.002 en Haiku, mismo resultado).
   - Advisor: no se configura por defecto (medido: no mejora al ejecutor solo). `--advisor fable|opus` lo
@@ -124,6 +133,7 @@ Fuera de un repo git instala solo global. Dentro de un repo instala además en l
 -b, --bridge           Copia AGENTS.md, CLAUDE.md y .cursorrules
 --dry-run              Muestra qué haría, sin escribir
 --doctor               Chequea qué está instalado, sin escribir nada
+--no-external          No baja código de terceros (caveman, skills externas, plugins, CLI de Claude Code)
 --advisor <modelo>     Claude Code: advisor (fable | opus | sonnet | off); sin el flag no se configura
 -v, --version          Versión
 -h, --help             Ayuda
