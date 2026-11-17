@@ -5,14 +5,15 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
-### Quitado
+## [1.33.2] - 2026-11-16
 
-- Headroom. Medido en 14.558 requests (oct-nov 2026, suscripción): ahorró 1,52% de los tokens de entrada; a cambio el
-  proxy se colgaba sin aviso, la tarea de Windows entraba en loop de reinicios (`[winerror 10048]`) y el hook
-  `PreToolUse` sumaba hasta 45 s por comando. El instalador ya no lo instala ni lo configura; si quedó de una
-  versión anterior, quita `env.ANTHROPIC_BASE_URL` (`http://127.0.0.1:8787`) y los hooks `headroom init hook ensure`
-  de `~/.claude/settings.json`. Para el resto (tarea `headroom-init-user-health`, variables de usuario `HEADROOM_*`):
-  `headroom install remove --profile init-user` y `headroom unwrap claude`. `14` §14.8 documenta la medición.
+### Agregado
+
+- `15` §15.3, `05` y `17` §17.7: paginado por keyset (seek) para tablas grandes con páginas profundas, scroll
+  infinito o export por lotes. Solo con pedido explícito o problema medido; el default sigue siendo
+  `Skip` / `Take` con `PagedResponse<T>`.
+
+## [1.33.0] - 2026-11-15
 
 ### Agregado
 
@@ -27,48 +28,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   se copian igual, con un frontmatter mínimo. Antes salía con 0 y no quedaban instaladas.
 - Instalador: las skills externas que su autor marcó solo para uso manual (`disable-model-invocation: true`) quedan
   habilitadas para que el agente las cargue solo.
-- `15` §15.3, `05` y `17` §17.7: paginado por keyset (seek) para tablas grandes con páginas profundas, scroll
-  infinito o export por lotes. Solo con pedido explícito o problema medido; el default sigue siendo
-  `Skip` / `Take` con `PagedResponse<T>`.
 - `SKILL.md` regla 9: listados paginados con `PageSize` máximo, `OrderBy` estable antes de `Skip` / `Take`, y
   listado vacío ⇒ `204 NoContent` con su `[ProducesResponseType]`. Ya estaba en `03`, `04`, `06` y `15`, pero sin
   leer la referencia se cumplía poco. Medido en 3 tareas reales: el `204` pasó de 1 de 3 a 3 de 3.
-- `01` §1.5: cuándo usar la forma de §1 (por defecto) y cuándo Onion, según el tipo de uso. Onion para dominio con
-  reglas propias o usado por más de un host: reglas en entidades y `Domain/Services/`, interfaces de repositorio de
-  escritura en `Domain/Interfaces/`. Repo existente: la que ya tiene. `SKILL.md` (regla 8, Simplicidad) y
-  `checklists.md` apuntan a §1.5.
-- `03`: método HTTP `QUERY` (RFC 10008). No es el default: .NET 10 no trae `[HttpQuery]` ni lo incluye en el
-  OpenAPI. Solo con pedido explícito y verificando IIS, proxy y CORS.
-- Aviso de versión nueva (Claude Code): el hook `SessionStart` compara la versión instalada con la de GitHub una vez
-  por día y muestra una línea con el comando para actualizar. Cubre las dos skills (backend y front). No gasta
-  tokens ni actualiza solo. Empieza a avisar después de reinstalar con esta versión. `14` §14.8.
-- `11` §11.4: feed Zero Wire de Cloudflare Radar (`https://radar.cloudflare.com/zero-wire/rss`) para lo que
-  `dotnet list package --vulnerable` no ve: runtime, IIS / Kestrel, imagen base del `Dockerfile`, proxy. Se lee bajo
-  demanda en la auditoría de seguridad (§11.6 paso 3), antes de subir el target framework (`19`) y al cambiar la
-  imagen base. Sin hook ni tarea programada.
-- Instalador: si Windows Smart App Control bloquea el Python que trae uv ("Una directiva de Control de aplicaciones
-  bloqueó este archivo", os error 4551) o no hay Python, instala el Python 3.13 oficial con `winget` (firmado, por
-  usuario, sin admin), saca el shim roto `uv tool uninstall graphifyy` y reintenta `pip install graphifyy`.
-- Instalador (corrección): después de instalar Python con `winget`, graphify seguía fallando con "Python was not
-  found; run without arguments to install from the Microsoft Store" porque `python` resolvía al alias de la Tienda
-  (`WindowsApps\python.exe`). Ahora ubica el `python.exe` oficial en `%LOCALAPPDATA%\Programs\Python` o
-  `%ProgramFiles%` y corre pip por ruta absoluta. Si `winget` termina y no hay Python en esas carpetas, lo dice;
-  si pip instala pero `graphify` no arranca, muestra ese error y no el de un intento anterior.
-- Instalador: prueba `python -m pip`, `py -m pip` y `python3 -m pip` antes que `pip` a secas. En Windows con Smart
-  App Control, `pip.exe` no está firmado y cada instalación mostraba un aviso de Seguridad de Windows, aunque
-  graphify quedaba bien instalado.
-- `11` §11.2, de la guía de seguridad de [modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)
-  (Chrome, Edge, Firefox y MDN): cookie con prefijo `__Host-`, `Clear-Site-Data` en logout,
-  `Cross-Origin-Resource-Policy` en las respuestas, HSTS gradual y endpoint de reportes de CSP.
-- `14` §14.3.1 effort antes que modelo (Anthropic, nov 2026): arrancar en effort medio, autoverificación → un nivel
-  de effort → modelo siguiente en effort más bajo; tareas verificables en `low` con reintento en `high` solo de lo
-  que falló. §14.3.4 medición real 2 (sesión Fable 5.1): `Explore` de fábrica corre en Opus ($0.10 por búsqueda)
-  contra `Explore` propio en Haiku ($0.001); `general-purpose` hereda la sesión ($0.90 la corrida) contra
-  `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` ($0.15); mismo resultado en las 6 corridas. §14.4 cambio de modelo solo en
-  un corte natural con `/compact` (caché y razonamiento no se heredan hacia abajo). §14.7 fila para el dial de
-  esfuerzo.
-- Instalador (Claude Code): subagente `Explore` propio en Haiku con `effort: low` (reemplaza al de fábrica) y
-  `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` en `~/.claude/settings.json` si no estaba.
 
 ### Corregido
 
@@ -90,6 +52,18 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - Hook `SessionStart`: un error interno ya no muestra el hook como roto al abrir la sesión.
 - Hook `format-dotnet`: la copia temporal de la versión de `HEAD` quedaba junto al archivo y un `dotnet build` en
   paralelo la compilaba (`CS0101`, clase duplicada). Ahora va en una subcarpeta oculta, que MSBuild ignora.
+
+### Cambiado
+
+- `SKILL.md`: sale la sección "Graphify (sin paso de arranque)", que repetía la regla 6 del modo de operación y
+  `14` §14.5. La regla 6 suma qué hacer si `graphify update .` falla.
+- `SKILL.md` regla 7: `ponytail-review` se carga en la misma tanda de llamadas que el build final. Medido en 3
+  tareas reales: la revisión pasó de hacerse 0 de 3 a 3 de 3.
+
+## [1.32.0] - 2026-11-14
+
+### Corregido
+
 - Hook `SessionStart`: el aviso de versión nueva salía solo por `systemMessage`, que en la extensión de VS Code puede no
   verse. Ahora va también por `additionalContext` y el modelo lo dice en la primera respuesta (unos 60 tokens, solo
   en la sesión con aviso).
@@ -100,15 +74,78 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Cambiado
 
-- `SKILL.md`: sale la sección "Graphify (sin paso de arranque)", que repetía la regla 6 del modo de operación y
-  `14` §14.5. La regla 6 suma qué hacer si `graphify update .` falla.
-- `SKILL.md` regla 7: `ponytail-review` se carga en la misma tanda de llamadas que el build final. Medido en 3
-  tareas reales: la revisión pasó de hacerse 0 de 3 a 3 de 3.
 - La skill pasa a llamarse `develop-back` (antes `desarrollo-backend-buenas-practicas`): se invoca con `/develop-back`.
   Al actualizar, el instalador borra la carpeta con el nombre anterior en cada destino y reescribe el bloque global.
   Las citas a la otra skill pasan a `develop-front`. El `.gitignore` de un proyecto ya instalado conserva la línea vieja
   (`skills/desarrollo-backend-buenas-practicas/`); se puede borrar a mano.
 - README: secciones "Usar" y "Actualizar" propias; "Modelos: qué corre dónde" baja después de "Contenido". Cada comando de instalación en su bloque. Sale "Publicar cambios".
+
+## [1.31.0] - 2026-11-13
+
+### Agregado
+
+- `01` §1.5: cuándo usar la forma de §1 (por defecto) y cuándo Onion, según el tipo de uso. Onion para dominio con
+  reglas propias o usado por más de un host: reglas en entidades y `Domain/Services/`, interfaces de repositorio de
+  escritura en `Domain/Interfaces/`. Repo existente: la que ya tiene. `SKILL.md` (regla 8, Simplicidad) y
+  `checklists.md` apuntan a §1.5.
+
+## [1.30.0] - 2026-11-13
+
+### Agregado
+
+- `03`: método HTTP `QUERY` (RFC 10008). No es el default: .NET 10 no trae `[HttpQuery]` ni lo incluye en el
+  OpenAPI. Solo con pedido explícito y verificando IIS, proxy y CORS.
+
+## [1.29.0] - 2026-11-13
+
+### Agregado
+
+- Aviso de versión nueva (Claude Code): el hook `SessionStart` compara la versión instalada con la de GitHub una vez
+  por día y muestra una línea con el comando para actualizar. Cubre las dos skills (backend y front). No gasta
+  tokens ni actualiza solo. Empieza a avisar después de reinstalar con esta versión. `14` §14.8.
+
+## [1.28.0] - 2026-11-13
+
+### Agregado
+
+- `11` §11.4: feed Zero Wire de Cloudflare Radar (`https://radar.cloudflare.com/zero-wire/rss`) para lo que
+  `dotnet list package --vulnerable` no ve: runtime, IIS / Kestrel, imagen base del `Dockerfile`, proxy. Se lee bajo
+  demanda en la auditoría de seguridad (§11.6 paso 3), antes de subir el target framework (`19`) y al cambiar la
+  imagen base. Sin hook ni tarea programada.
+
+## [1.27.3] - 2026-11-11
+
+### Agregado
+
+- Instalador: prueba `python -m pip`, `py -m pip` y `python3 -m pip` antes que `pip` a secas. En Windows con Smart
+  App Control, `pip.exe` no está firmado y cada instalación mostraba un aviso de Seguridad de Windows, aunque
+  graphify quedaba bien instalado.
+
+## [1.27.2] - 2026-11-11
+
+### Agregado
+
+- Instalador (corrección): después de instalar Python con `winget`, graphify seguía fallando con "Python was not
+  found; run without arguments to install from the Microsoft Store" porque `python` resolvía al alias de la Tienda
+  (`WindowsApps\python.exe`). Ahora ubica el `python.exe` oficial en `%LOCALAPPDATA%\Programs\Python` o
+  `%ProgramFiles%` y corre pip por ruta absoluta. Si `winget` termina y no hay Python en esas carpetas, lo dice;
+  si pip instala pero `graphify` no arranca, muestra ese error y no el de un intento anterior.
+- `11` §11.2, de la guía de seguridad de [modern-web-guidance](https://github.com/GoogleChrome/modern-web-guidance)
+  (Chrome, Edge, Firefox y MDN): cookie con prefijo `__Host-`, `Clear-Site-Data` en logout,
+  `Cross-Origin-Resource-Policy` en las respuestas, HSTS gradual y endpoint de reportes de CSP.
+
+## [1.27.1] - 2026-11-11
+
+### Agregado
+
+- Instalador: si Windows Smart App Control bloquea el Python que trae uv ("Una directiva de Control de aplicaciones
+  bloqueó este archivo", os error 4551) o no hay Python, instala el Python 3.13 oficial con `winget` (firmado, por
+  usuario, sin admin), saca el shim roto `uv tool uninstall graphifyy` y reintenta `pip install graphifyy`.
+
+## [1.27.0] - 2026-11-11
+
+### Cambiado
+
 - Graphify sin ceremonia (medido en nov 2026 contra `grep` en los dos repos de skills y en una app de 12.598 nodos:
   `grep -l` costó de 10 a 120 veces menos que `graphify query`, también en el repo grande; sin nombre conocido el
   grafo devolvió ruido). Paso 0 queda en `graphify update .` (gratis); `graphify query` pasa a último recurso con
@@ -119,19 +156,58 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   queda sin comando (el hook git actualiza en cada commit; `update` solo justo antes de un `query`). El hook
   `SessionStart` poda los snapshots diarios `graphify-out/AAAA-MM-DD` (graphify no los borra: 442 MB en 27
   carpetas en el repo grande), quedan los 2 más nuevos.
+
+## [1.26.0] - 2026-11-11
+
+### Quitado
+
+- Headroom. Medido en 14.558 requests (oct-nov 2026, suscripción): ahorró 1,52% de los tokens de entrada; a cambio el
+  proxy se colgaba sin aviso, la tarea de Windows entraba en loop de reinicios (`[winerror 10048]`) y el hook
+  `PreToolUse` sumaba hasta 45 s por comando. El instalador ya no lo instala ni lo configura; si quedó de una
+  versión anterior, quita `env.ANTHROPIC_BASE_URL` (`http://127.0.0.1:8787`) y los hooks `headroom init hook ensure`
+  de `~/.claude/settings.json`. Para el resto (tarea `headroom-init-user-health`, variables de usuario `HEADROOM_*`):
+  `headroom install remove --profile init-user` y `headroom unwrap claude`. `14` §14.8 documenta la medición.
+
+## [1.25.0] - 2026-11-11
+
+### Agregado
+
+- `14` §14.3.1 effort antes que modelo (Anthropic, nov 2026): arrancar en effort medio, autoverificación → un nivel
+  de effort → modelo siguiente en effort más bajo; tareas verificables en `low` con reintento en `high` solo de lo
+  que falló. §14.3.4 medición real 2 (sesión Fable 5.1): `Explore` de fábrica corre en Opus ($0.10 por búsqueda)
+  contra `Explore` propio en Haiku ($0.001); `general-purpose` hereda la sesión ($0.90 la corrida) contra
+  `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` ($0.15); mismo resultado en las 6 corridas. §14.4 cambio de modelo solo en
+  un corte natural con `/compact` (caché y razonamiento no se heredan hacia abajo). §14.7 fila para el dial de
+  esfuerzo.
+- Instalador (Claude Code): subagente `Explore` propio en Haiku con `effort: low` (reemplaza al de fábrica) y
+  `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` en `~/.claude/settings.json` si no estaba.
+
+### Cambiado
+
 - Instalador: el advisor ya no se configura por defecto (Anthropic, nov 2026: ningún pareo superó claramente al
   ejecutor solo; el equipo midió 10x con un advisor del mismo nivel). `--advisor fable|opus` lo activa, `--advisor
   off` quita el que haya. §14.3.4, §14.3.5, README (sección nueva "Modelos: qué corre dónde": qué modelo corre cada
   cosa, qué pasa con sesión Fable / Opus / Sonnet, cuándo cambiar effort o modelo, cuándo prender el advisor) y
   `templates/CLAUDE.md` actualizados.
 
+## [1.24.0] - 2026-11-10
+
+### Cambiado
+
 - `17` §17.12 deploy con pestañas abiertas: §17.8 vale dentro de la misma versión (lo no aditivo va al deploy
   siguiente); `426 Upgrade Required` como `ProblemDetails` con `X-App-Version` y `Front:VersionMinima` en Options
   (`IOptionsMonitor`, sin cabecera no bloquea, CORS); reciclado del app pool; SignalR no avisa deploys (§16.1).
   Checklists e índice enlazan. Contraparte del front: skill `desarrollo-buenas-practicas` §10.14.
+
+## [1.22.0] - 2026-11-07
+
+### Cambiado
+
 - Headroom vuelve solo si se cae: en Windows la tarea oculta lo revisa cada 2 min (antes 5), dentro
   de los ~3 min que Claude Code reintenta. README: qué hacer si sigue caído; el aviso del hook da el
   comando según el sistema.
+
+## [1.21.0] - 2026-11-07
 
 ### Seguridad
 
@@ -146,6 +222,8 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - Skill: el plugin `claude-security` (multiagente, caro) solo con pedido explícito o costo aceptado, también en la
   auditoría completa; si falta una skill externa se instala solo esa, no el instalador entero; `revisor-auth` en los
   cambios de auth.
+
+## [1.20.0] - 2026-11-07
 
 ### Instalador
 
@@ -179,11 +257,14 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - Repo nuevo: estructura de 4 proyectos y mediator mínimo, sin restos de la plantilla de `dotnet new` ni
   campos o servicios no pedidos; CSP estricta en la API (abierta solo en Swagger); en modificar o borrar,
   404 antes que reglas contra otros datos; tests de error con campo y mensaje exactos.
-
 - Nuevas referencias, aplicables solo si el proyecto ya usa esa tecnología o el usuario lo pide:
   `17-contrato-openapi.md`, `18-stored-procedures-sql.md`, `19-migracion-dotnet.md` y
   `20-librerias-nuget-ci.md`. `11-security.md` §11.7: JWT, policies, CORS, IdP propio, LDAP y
   migración de auth legacy. `12-tech-debt.md`: librerías de mapeo existentes.
+
+## [1.17.0] - 2026-11-03
+
+### Skill
 
 - `02-csharp-design.md`: `BannedApiAnalyzers` + `BannedSymbols.txt` con `RS0030` en `error` para
   convertir reglas "nunca X" en error de compilación; colisión de nombre con namespace (`CS0118`);
