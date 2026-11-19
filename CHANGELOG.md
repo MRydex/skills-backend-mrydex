@@ -5,6 +5,15 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+## [1.33.4] - 2026-11-19
+
+### Agregado
+
+- `20` §20.7: cambiar la URL de actualizaciones de una app de escritorio sin reinstalar. Versión puente publicada
+  en el feed viejo con la URL nueva, feed viejo vivo semanas, y alternativas (DNS o redirección, override por
+  equipo, nombre estable). Solo aplica a apps con actualización automática que leen la URL de su configuración.
+  El checklist pasa a §20.8.
+
 ## [1.33.2] - 2026-11-16
 
 ### Agregado

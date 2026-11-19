@@ -167,7 +167,7 @@ skills/develop-back/
     ├── 17-contrato-openapi.md         # Contrato OpenAPI con el front
     ├── 18-stored-procedures-sql.md    # Stored procedures y SQL
     ├── 19-migracion-dotnet.md         # Migración de .NET paso a paso
-    ├── 20-librerias-nuget-ci.md       # Librerías NuGet, pipelines, Docker
+    ├── 20-librerias-nuget-ci.md       # Librerías NuGet, pipelines, Docker, feed de actualizaciones
     └── checklists.md                  # Checklists por área
 ```
 

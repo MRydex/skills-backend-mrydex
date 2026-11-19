@@ -150,7 +150,7 @@ Leer solo la referencia (y la sección `§N.x`) que corresponde a la tarea.
 | [17-contrato-openapi.md](./references/17-contrato-openapi.md) | Respuestas tipadas, `operationId`, enums, fechas, cambios aditivos, deploy con pestañas abiertas (`426` + `X-App-Version`, §17.12). | Solo si la API ya expone OpenAPI/Swagger: al crear, cambiar o versionar un endpoint; §17.12 en todo deploy que cambie el contrato. |
 | [18-stored-procedures-sql.md](./references/18-stored-procedures-sql.md) | SP con Dapper/ADO.NET, T-SQL seguro, TVP, permisos. | Solo si el proyecto ya usa stored procedures o ADO.NET crudo. |
 | [19-migracion-dotnet.md](./references/19-migracion-dotnet.md) | Inventario, orden, `Startup` → `Program`, Newtonsoft, qué hacer si falla. | Solo si el usuario pide subir el target framework a net10. |
-| [20-librerias-nuget-ci.md](./references/20-librerias-nuget-ci.md) | Paquete NuGet, Azure DevOps YAML, Dockerfile. | Solo si el repo publica un paquete NuGet o tiene pipelines/Dockerfile. |
+| [20-librerias-nuget-ci.md](./references/20-librerias-nuget-ci.md) | Paquete NuGet, Azure DevOps YAML, Dockerfile, cambio de URL de actualizaciones de una app de escritorio (§20.7). | Solo si el repo publica un paquete NuGet, tiene pipelines/Dockerfile o cambia el feed de actualizaciones de una app de escritorio. |
 | [checklists.md](./references/checklists.md) | Do & Don't; código, seguridad, proceso. | Antes de entregar código o al revisar un PR. |
 
 ---

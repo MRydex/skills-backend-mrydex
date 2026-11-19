@@ -1,6 +1,6 @@
 ## 20. Librerías NuGet, CI/CD y Docker
 
-Paquetes NuGet propios, pipelines de Azure DevOps y Dockerfile de una API. Leer al crear o tocar un paquete publicable, un YAML de pipeline o un `Dockerfile`.
+Paquetes NuGet propios, pipelines de Azure DevOps, Dockerfile de una API y cambio de la URL de actualizaciones de una app de escritorio. Leer al crear o tocar un paquete publicable, un YAML de pipeline, un `Dockerfile` o el feed de actualizaciones.
 
 **Cuándo aplica**: el repo publica un paquete NuGet, o ya tiene pipelines de CI/CD o un `Dockerfile`; o el usuario pide alguno. Si el proyecto no lo usa, no lo agregues. Si el repo ya tiene su forma (por ejemplo un YAML por ambiente, o un solo YAML con stages), **se sigue esa** (§13.5); lo de abajo es el criterio cuando no hay precedente. Para el análisis de dependencias y SonarCloud como regla de seguridad, ver §11.2 y §11.4. Es riesgo alto si toca el pipeline de despliegue (§13.3).
 
@@ -208,7 +208,26 @@ ENTRYPOINT ["dotnet", "Corp.Api.dll"]
 - **`.dockerignore`**: `bin/`, `obj/`, `.git/`, `.vs/`, `*.user`, `**/appsettings.Development.json`, `.env*`, `tests/`, archivos de agentes (`.claude/`, `graphify-out/`, `tasks/`, §13.9). Evita filtrar secretos y acelera el build.
 - Health check por `HEALTHCHECK` o del orquestador contra `Echo/HealthCheck` (§11.3).
 
-### 20.7 Checklist
+### 20.7 Cambiar la URL de actualizaciones de una app de escritorio
+
+**Cuándo aplica**: una app de escritorio con actualización automática (Velopack, Squirrel, ClickOnce, Sparkle o un updater propio) lee la URL del feed de su propia configuración, y esa URL cambia: servidor nuevo, otro dominio, otra ruta o se da de baja el feed actual. No aplica a una API web ni a un paquete NuGet. Antes de proponerlo, confirmar en el código de dónde sale la URL: archivo de config instalado con la app, variable de entorno, argumento, registro.
+
+Las apps instaladas solo conocen la URL vieja: si el feed viejo desaparece primero, quedan sin actualizaciones y hay que reinstalarlas a mano. Para evitarlo, una **versión puente**:
+
+1. Publicar una versión nueva **en el feed viejo**, con la **URL nueva** en su configuración. Sirve solo si la config viaja con la app y la reemplaza cada actualización; si la URL vive fuera de la carpeta de la app (registro, archivo de usuario), la versión puente tiene que migrarla al arrancar.
+2. Cada equipo se actualiza desde el feed viejo y, desde esa versión, busca en el nuevo. El feed nuevo ya tiene que tener esa versión o una mayor, para que no la ofrezca como "nueva" ni haga un downgrade.
+3. Mantener el feed viejo semanas, no días: los equipos apagados, de licencia o sin red se actualizan recién cuando vuelven.
+4. Darlo de baja recién entonces. Si el updater registra qué versión pide cada cliente, usar ese dato para decidir.
+
+Alternativas, si no se puede publicar en el feed viejo o quedan equipos rezagados:
+
+- **Que la URL vieja apunte a la nueva**: DNS (CNAME) o redirección HTTP 301/302 en el servidor viejo. No toca la app; verificar que el updater siga redirecciones (de `https` a `http` no se siguen).
+- **Override por equipo**, si la app lo soporta (variable de entorno, argumento, GPO): rescata equipos sin reinstalar. Si no existe, conviene agregarlo en la versión puente.
+- **Prevenirlo**: usar desde el principio un nombre propio y estable (`actualizaciones.<dominio>`), aunque cambie el servidor de atrás.
+
+Es riesgo alto (§13.3): un error deja a todos los equipos sin actualizaciones. Probar la versión puente en un equipo con la versión anterior instalada antes de publicarla.
+
+### 20.8 Checklist
 
 - [ ] Paquete: `PackageId`, versión desde CI (SemVer), README, XML docs, SourceLink; breaking change ⇒ mayor.
 - [ ] `nuget.config` sin credenciales; `NuGetAuthenticate@1` en CI; `packageSourceMapping` si hay varios feeds.
@@ -217,3 +236,4 @@ ENTRYPOINT ["dotnet", "Corp.Api.dll"]
 - [ ] Mismo artefacto por ambiente, aprobaciones en Prod, secretos en variable group o Key Vault.
 - [ ] Un YAML por ambiente existente se respeta.
 - [ ] Dockerfile multi-stage, `USER $APP_UID`, `ASPNETCORE_HTTP_PORTS`, `.dockerignore`, sin secretos en la imagen.
+- [ ] App de escritorio que cambia la URL de actualizaciones: versión puente publicada en el feed viejo con la URL nueva, y feed viejo vivo hasta que se actualicen los rezagados (§20.7).
