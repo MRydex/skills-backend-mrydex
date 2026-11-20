@@ -5,6 +5,12 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Cambiado
+
+- `11` §11.4 y templates: con vulnerabilidades de `dotnet list package --vulnerable` se corrige siempre, no solo
+  cuando la tarea toca dependencias: subir a la versión con fix dentro de la misma mayor y fijar el transitivo
+  vulnerable como referencia directa o en `Directory.Packages.props`. Versión mayor se sigue preguntando antes.
+
 ### Corregido
 
 Revisión de concurrencia de toda la skill: ejemplos que fallaban con muchos requests a la vez o con varias instancias.

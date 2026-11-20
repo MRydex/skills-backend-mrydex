@@ -141,9 +141,9 @@ dotnet list package --outdated                          # informativo: no actual
 **Qué hacer con el resultado:**
 - **Reportar siempre**, aunque la tarea no haya tocado dependencias. Una línea por hallazgo: severidad, paquete, versión, si es directo o transitivo y la versión con fix.
 - **`High` / `Critical`**: avisar antes de entregar. Bloquea la entrega igual que en el pipeline.
-- **Corregir** subiendo la versión, solo si la tarea toca dependencias o el usuario lo pide (todo pedido de auditoría cuenta, §13.10). Después, `dotnet build` + `dotnet test` de UnitTest y la auditoría de nuevo para confirmar que no quedó nada.
+- **Corregir siempre que haya vulnerabilidades**, con el árbol de git limpio, subiendo a la versión con fix dentro de la misma mayor. Después, `dotnet build` + `dotnet test` de UnitTest y la auditoría de nuevo para confirmar que no quedó nada.
 - **Nunca subir una versión mayor sin preguntar** (ni `Microsoft.Extensions.*` por encima del TFM, `SKILL.md` §0): trae cambios que rompen.
-- **Transitivo vulnerable**: fijar la versión segura como referencia directa (o en `Directory.Packages.props`) si la tarea toca dependencias o es una auditoría (§13.10); si no, proponerlo sin aplicar.
+- **Transitivo vulnerable**: fijar la versión segura como referencia directa (o en `Directory.Packages.props`). Se anota en el reporte con el motivo (CVE o aviso) y se quita cuando el paquete padre ya trae la versión corregida.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
