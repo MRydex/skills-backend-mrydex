@@ -17,16 +17,16 @@ internal class CreateItemHandler(
         await Guard.AgainstInvalidSpecification(validator, request);
         // Modificar o borrar: primero que el recurso exista (404); después, reglas contra otros datos (duplicados = 400)
 
-        unitOfWork.BeginTransaction();
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             await unitOfWork.ItemCommandRepository.CreateAsync(request.Code, request.Name, cancellationToken);
             await unitOfWork.ItemServiceCommandRepository.CreateManyAsync(request.Code, request.Services, cancellationToken);
-            unitOfWork.Commit();
+            await unitOfWork.CommitAsync(cancellationToken);
         }
         catch
         {
-            unitOfWork.Rollback();
+            await unitOfWork.RollbackAsync(CancellationToken.None);   // sin el token del request: si se canceló, el rollback igual tiene que correr
             throw;
         }
 
@@ -35,6 +35,7 @@ internal class CreateItemHandler(
 }
 ```
 
+- Transacción: `BeginTransactionAsync` / `CommitAsync` / `RollbackAsync` (`DbTransaction` las trae async). Si el `UnitOfWork` del repo todavía es sincrónico (`BeginTransaction` / `Commit` / `Rollback`, deuda de [12](./12-tech-debt.md)), el código nuevo usa la forma del repo y no lo reescribe sin pedido. Dentro de la transacción solo SQL: sin `HttpClient`, colas, mails ni esperas (§5.1); hacer eso antes de abrirla o después del `Commit`.
 - Un handler por caso de uso. El handler orquesta: valida, llama repos/clientes, arma la respuesta. Sin SQL ni `HttpClient` directo.
 - Handlers `internal`; el mediator los resuelve por reflexión con `ActivatorUtilities` (no se registran en DI). Dependencias del handler sí deben estar registradas.
 - Sin resultado ⇒ `IRequest<EmptyResult>`. Listado o búsqueda vacía ⇒ devolver `null` y el controller responde `204`. Recurso puntual pedido por id o código que no existe ⇒ `NotFoundException` (404).

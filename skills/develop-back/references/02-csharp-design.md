@@ -10,6 +10,19 @@ Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código
 - `ConfigureAwait(false)` no se usa en código de aplicación ASP.NET Core (no hay `SynchronizationContext`); no agregarlo.
 - Antes de paralelizar: ¿la tarea espera I/O o calcula CPU? I/O (HTTP, base): `await`; si son independientes, `Task.WhenAll` con tope de concurrencia (`SemaphoreSlim`, o `Parallel.ForEachAsync` con `MaxDegreeOfParallelism`), nunca 1000 tareas a la vez contra un recurso limitado. CPU: `Parallel.ForEachAsync` acotado a los núcleos, solo con medición. Nunca `Task.Run` en controllers o handlers "para no bloquear": en ASP.NET Core solo mueve el trabajo de un hilo del pool a otro.
 - Una `DbConnection`, un `DbContext` o el `UnitOfWork` no se comparten entre tareas concurrentes: una conexión por tarea, o secuencial.
+- **Estado compartido en el proceso** (singletons, `static`, `IMemoryCache`; solo si hay una instancia, `SKILL.md` "Antes de entregar" 4): nunca un `Dictionary` / `List` / `HashSet` mutable, que con escrituras concurrentes se corrompe o pierde elementos. `ConcurrentDictionary` o `lock` / `Lock` sobre el acceso. `GetOrAdd(key, factory)` puede ejecutar la fábrica **más de una vez** y quedarse con un solo resultado: si la fábrica tiene efectos o es cara, el valor es un `Lazy<T>` (o `Lazy<Task<T>>`), y si falla se saca para no cachear el error. `Random.Shared` es seguro entre hilos (un `Random` compartido no lo es); para PIN, OTP o tokens, `RandomNumberGenerator`, nunca `Random`.
+
+  ```csharp
+  private readonly ConcurrentDictionary<string, Lazy<Task<Config>>> cache = new();
+
+  public async Task<Config> GetAsync(string key)
+  {
+      var lazy = cache.GetOrAdd(key, k => new Lazy<Task<Config>>(() => LoadAsync(k)));   // LoadAsync corre una vez
+      try { return await lazy.Value; }
+      catch { cache.TryRemove(KeyValuePair.Create(key, lazy)); throw; }                  // no cachear el fallo
+  }
+  ```
+
 - Búsquedas repetidas dentro de un loop (`First` / `Any` / `Contains` sobre otra lista): `Dictionary` / `HashSet` armado antes del loop, no O(n²) ([15](./15-data-access-ef-core.md) §15.8; vale sin EF).
 - Colecciones de entrada como `IEnumerable<T>` / `IReadOnlyList<T>`; salida materializada (`ToList()`), nunca `IEnumerable` diferido sobre una conexión abierta.
 - `DateTime`: guardar y comparar en UTC o con `DateTimeOffset`; serializar ISO 8601. Sin `DateTime.Now` en lógica (inyectar `TimeProvider` si hace falta testear tiempo).
@@ -18,7 +31,7 @@ Reglas de lenguaje C# 14 y diseño de clases. Leer al escribir cualquier código
 - **C# 13/14** (solo sobre `net10.0`; en repos `net8.0` no se usan):
   - `field` en propiedades con lógica en el setter, en vez de un campo de respaldo explícito: `public string Code { get; set => field = value.Trim(); }`.
   - Asignación null-condicional `customer?.Order = order;` en vez de `if (customer is not null)`.
-  - `System.Threading.Lock` en vez de `lock (new object())` para exclusión mutua.
+  - `System.Threading.Lock` en vez de `lock (new object())` para exclusión mutua. Protege solo estado de **este proceso**: con dos instancias de la API cada una tiene su lock, así que una regla de negocio (contador, cupo, intentos) se hace atómica en la base (`UPDATE ... WHERE` con filas afectadas, `SKILL.md` "Antes de entregar" 2).
   - `params ReadOnlySpan<T>` / `params IEnumerable<T>` en vez de `params T[]` en métodos nuevos.
   - Bloques `extension(...)` solo donde el repo ya usa métodos de extensión para ese tipo. No convertir los existentes.
 - Un tipo no se llama igual que un segmento de su namespace (`Infrastructure.Orders.Order`): dentro de

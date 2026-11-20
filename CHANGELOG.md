@@ -5,6 +5,50 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Corregido
+
+Revisión de concurrencia de toda la skill: ejemplos que fallaban con muchos requests a la vez o con varias instancias.
+
+- `11` §11.2 y `SKILL.md` ("Antes de entregar" 2): el límite de intentos de PIN / OTP se reserva de forma atómica en la
+  base (`UPDATE ... WHERE Intentos < @Max` y filas afectadas), no con un `lock` en proceso: con 2 instancias el `lock`
+  multiplica el límite. `lock` queda solo para una instancia, dicho como supuesto.
+- `15` §15.6 y `07`: `DbUpdateConcurrencyException` va a `ConflictException` (409); antes 15 decía 400 y 07 decía 409.
+- `15` §15.2, §15.3 y §15.5: la `RowVersion` viaja al cliente (`rowVersion` base64 en el Response) y vuelve en el PUT /
+  PATCH; el update fija `OriginalValue`. Sin eso EF compara contra la versión recién leída y el cambio del otro usuario
+  se pierde. Mismo contrato en la skill de frontend.
+- `04`: ejemplo de transacción async (`BeginTransactionAsync` / `CommitAsync` / `RollbackAsync`).
+- `09`: backoff con jitter y `Retry-After` con tope; timeout por intento, distinto de `HttpClient.Timeout`, que cuenta
+  todos los reintentos juntos. El handler estándar ignora `HttpClient.Timeout` y reintenta `POST` salvo
+  `DisableForUnsafeHttpMethods()`.
+- `18` §18.5: el SP abre transacción solo si `@@TRANCOUNT = 0` y hace `ROLLBACK` solo de la que abrió, con `XACT_STATE()`.
+- `05` §5.2: deadlock (1205) y timeout (-2) en el mapeo de errores; `commandTimeout:` explícito (también `18` §18.8).
+
+### Agregado
+
+- `06` §6.1 (nueva): ningún `string` de entrada acepta etiquetas ni código. Extensión `SinCodigo()` de FluentValidation
+  para texto libre (etiquetas, atributos sueltos como `" onerror=` o `" style=`, `javascript:` y `data:` al inicio de
+  un valor, entidades, caracteres de control, Unicode inválido y marcas combinantes apiladas, que cuelgan `Normalize`),
+  misma regla que `sinCodigo` del front. Se rechaza con 400, no se limpia ni se codifica al guardar. `11` §11.1 y
+  checklists lo suman. Texto de usuario en `nvarchar` (en `varchar` SQL Server convierte `〈` en `<`), `HtmlSanitizer`
+  con lista propia y `UriAttributes` para el editor enriquecido, y `\z` en vez de `$` en los patrones de formato.
+- `05` §5.5 (nueva): concurrencia con Dapper. `UPDATE ... WHERE RowVersion` con 409, contadores y stock con `UPDATE`
+  atómico, numeradores con `SEQUENCE`, upsert con `HOLDLOCK`, `UPDLOCK` / `sp_getapplock`, reintento de deadlock,
+  transacciones cortas y export sin buffer. `15` §15.5: lo mismo con `ExecuteUpdateAsync` y `AsAsyncEnumerable`.
+- `05` §5.1 y §5.3: sin I/O externo dentro de una transacción abierta, nota del pool de conexiones; `IMemoryCache` es
+  por instancia y lleva protección de stampede (`HybridCache` en net10, `SemaphoreSlim` en net8).
+- `03`: `Idempotency-Key` con reserva atómica (`UNIQUE (UserId, Key)`, `INSERT` primero), 409 si sigue en curso,
+  respuesta guardada si terminó, 400 si cambió el body, vencimiento. Mismo contrato en la skill de frontend.
+- `11` §11.7: refresh token con rotación atómica, ventana corta de gracia para dos pestañas a la vez y revocación de
+  la familia ante reuso fuera de la ventana. LDAP con timeouts y tope de conexiones simultáneas.
+- `11` §11.2: límite de concurrencia con cola (`AddConcurrencyLimiter`) para endpoints caros; subidas con límites de
+  tamaño por endpoint y copia en streaming.
+- `08`: trabajo en segundo plano y varias instancias. Scope por iteración, `Channel<T>` en vez de fire-and-forget,
+  `Parallel.ForEachAsync` con scope por ítem, jobs que toman su trabajo de forma atómica.
+- `02`: estado compartido en el proceso (`ConcurrentDictionary` con `Lazy`, `Random.Shared`); `Lock` protege un solo
+  proceso.
+- Notas: `16` §16.3 (outbox para eventos que no pueden perderse), `10` §10.1 (logging bajo carga), `15` §15.3 (total y
+  página sin snapshot).
+
 ## [1.33.4] - 2026-11-19
 
 ### Agregado

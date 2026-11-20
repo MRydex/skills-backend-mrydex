@@ -7,7 +7,7 @@ Revisión Red Team, reglas fijas, Blue Team y auditoría de dependencias. Leer e
 Preguntarse como atacante, para cada endpoint o cambio:
 
 1. **Autorización (API1/API5 BOLA/BFLA)**: ¿tiene `[RoleAuthorization]` (en hubs, `[Authorize(Roles)]`, §16.4) con el rol mínimo? ¿El usuario puede pedir datos de otra entidad o tenant cambiando un id? Filtrar siempre por la entidad del token, no por la del request. **Quién actúa sale solo del token**: nunca de un campo del body (`requestUser`), de la query (`?user=`) ni de la ruta (`/{username}`).
-2. **Inyección (A05)**: ¿algún input llega a SQL, a `ORDER BY`, a un path, a un header o a una URL saliente sin parametrizar / whitelist?
+2. **Inyección (A05)**: ¿algún input llega a SQL, a `ORDER BY`, a un path, a un header o a una URL saliente sin parametrizar / whitelist? ¿Cada `string` de texto libre tiene `MaximumLength` + `SinCodigo()` y los de formato conocido `Matches` (§6.1)? Sin eso, un `<img onerror=...>` guardado corre en el navegador de quien lo lea (XSS almacenado).
 3. **Mass assignment (API3)**: ¿el request expone campos que el usuario no debería setear (estado, auditoría, ids internos)?
 4. **Consumo de recursos (API4)**: ¿hay paginado con máximo, límites de tamaño en uploads/bulk, timeouts en HTTP saliente?
 5. **Exposición de datos (A01/API3)**: ¿la respuesta devuelve más campos de los necesarios? ¿Errores con stack trace, SQL o datos internos?
@@ -51,9 +51,62 @@ Preguntarse como atacante, para cada endpoint o cambio:
 - Rate limiting (`AddRateLimiter`, nativo) en endpoints públicos o costosos (bulk, reportes, listados): partición por
   usuario (`sub`) y por IP sin usuario, ventana deslizante, 429 con `ProblemDetails` y `Retry-After`, `UseRateLimiter`
   después de `UseAuthorization`. Con varias instancias, el contador en memoria se multiplica: gateway o Redis.
+- Endpoints caros (reportes, bulk, exportaciones): además de la ventana por usuario, un límite de **concurrencia** con cola
+  corta (`AddConcurrencyLimiter`, de `Microsoft.AspNetCore.RateLimiting`) para que no se ejecuten más de N a la vez y no
+  agoten el pool de conexiones. El límite es por instancia; lo que excede permisos y cola recibe `429` sin esperar:
+
+  ```csharp
+  builder.Services.AddRateLimiter(o =>
+  {
+      o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+      o.AddConcurrencyLimiter("reportes", c =>
+      {
+          c.PermitLimit = 4;                                   // ejecutándose a la vez
+          c.QueueLimit = 10;                                   // esperando; el resto, 429
+          c.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+      });
+  });
+  // en el action: [EnableRateLimiting("reportes")]
+  ```
 - Límite de intentos de un secreto (PIN, contraseña, OTP): la clave es lo que guarda el secreto (cuenta, token), no algo
-  derivado (un certificado del token); el intento se reserva bajo lock **antes** de probarlo y se libera si fue correcto,
-  así N pedidos concurrentes no pasan juntos el chequeo; test con pedidos en paralelo.
+  derivado (un certificado del token); el intento se reserva **antes** de probarlo, de forma atómica **en la base**, y se
+  libera si fue correcto, así N pedidos concurrentes no pasan juntos el chequeo. Un `lock` en el proceso no sirve: con
+  dos instancias cada una cuenta aparte y el límite se multiplica. Un solo `UPDATE` hace el chequeo y la reserva; las
+  filas afectadas dicen si hubo lugar (`0` ⇒ bloqueado: `429` o el error de login genérico). Test con pedidos en paralelo
+  (50 pedidos con `Max = 5`: pasan exactamente 5; con "leer y después escribir" pasaron 23):
+
+  ```sql
+  UPDATE dbo.IntentosPin
+  SET Intentos = CASE WHEN UltimoIntento < DATEADD(MINUTE, -@VentanaMin, SYSUTCDATETIME()) THEN 1 ELSE Intentos + 1 END,
+      UltimoIntento = SYSUTCDATETIME()
+  WHERE CuentaId = @CuentaId
+    AND (Intentos < @Max OR UltimoIntento < DATEADD(MINUTE, -@VentanaMin, SYSUTCDATETIME()));
+  -- filas afectadas = 1: intento reservado, probar el PIN. = 0: bloqueado, no se prueba.
+  -- PIN correcto: UPDATE ... SET Intentos = 0 WHERE CuentaId = @CuentaId
+  ```
+
+  La fila de `IntentosPin` se crea junto con la cuenta (con `Intentos = 0`); `Max` y `VentanaMin` salen de Options (§8).
+- Subidas de archivos, tres límites, cada uno donde corresponde. (1) `Limits.MaxRequestBodySize` de Kestrel bajo para
+  toda la API (el default es ~30 MB) y `[RequestSizeLimit(n)]` solo en el endpoint que de verdad recibe más;
+  `[DisableRequestSizeLimit]` no se usa. (2) `[RequestFormLimits(MultipartBodyLengthLimit = n)]` en el endpoint multipart
+  (con ese límite menor al del body, el pedido llega y responde `400`). (3) El archivo se copia con `CopyToAsync` a disco o
+  storage; nunca `MemoryStream`, `ReadAllBytes` ni `ToArray()` del archivo entero: con 20 subidas a la vez la memoria se
+  multiplica. En IIS, `maxAllowedContentLength` (`requestFiltering`) corta antes que Kestrel (también 30 MB por defecto).
+  Tipo por el contenido, no por la extensión, y nombre propio en disco (nunca el del cliente): `offensive-file-upload`.
+
+  ```csharp
+  builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 1_000_000);      // toda la API: 1 MB
+
+  [HttpPost]
+  [RequestSizeLimit(10_000_000)]                                                       // este endpoint: 10 MB
+  [RequestFormLimits(MultipartBodyLengthLimit = 10_000_000)]
+  public async Task<ActionResult> UploadDocument(IFormFile archivo, CancellationToken cancellationToken)
+  {
+      await using var destino = File.Create(Path.Combine(carpeta, $"{Guid.NewGuid():N}.bin"));
+      await archivo.CopyToAsync(destino, cancellationToken);                           // sin cargarlo entero en memoria
+      return Created();
+  }
+  ```
 - 401 y 403 con `ProblemDetails`, mensajes genéricos (no revelar si el usuario existe).
 - Dependencias: dependency-check y SonarCloud del pipeline en verde. Hallazgo crítico/alto ⇒ se resuelve o se documenta excepción en el PR.
 - **El agente no lee secretos.** En Claude Code el instalador suma a `permissions.deny`, sin quitar las
@@ -281,6 +334,47 @@ builder.Services.AddAuthorizationBuilder()
 - **Redirect URIs exactas** registradas por cliente (sin comodines ni coincidencia por prefijo); `post_logout_redirect_uris` también.
 - Clientes públicos sin `client_secret`; clientes confidenciales (M2M) con el secreto en Key Vault (§8).
 - Scopes mínimos por cliente; tokens de acceso de vida corta, refresh con rotación. Claves de firma y cifrado en Key Vault o certificado, no efímeras en producción.
+- **Refresh token con rotación y varias pestañas.** Contrato con el front: el refresh token rota en cada uso. Dos
+  pestañas que refrescan a la vez mandan el mismo token: una gana y la otra llega con un token ya rotado, que no es
+  un robo. Reglas:
+  - La revocación vive en **una fila por familia** (`FamiliaToken.RevocadaEn`) y cada uso de un token la consulta en el
+    mismo `UPDATE`. Así revocar es una sola escritura atómica, y un token insertado justo mientras se revoca (logout o
+    reuso cruzado con una rotación) nace muerto: no hay orden de llegada que deje un token vivo en una familia revocada.
+  - La rotación es atómica: el `UPDATE` de abajo con `OUTPUT` (1 fila: ganó; 0 filas: ya estaba usado, vencido o
+    revocado). Nunca "leer y después marcar". El token nuevo se inserta en la misma transacción.
+  - Ventana de gracia corta (segundos) para el token recién usado: se emite otro token **de la misma familia** (se guardan
+    solo hashes, no se puede devolver "el mismo" par). Lleva **tope de reemisiones por token**, contado en la base con
+    otro `UPDATE` atómico; sin tope, cada pedido dentro de la ventana fabrica un token vivo más. Pasado el tope dentro
+    de la ventana: `401` sin revocar (no es prueba de robo).
+  - Fuera de la ventana, un token ya usado es **reuso**: se revoca la familia, se loguea `LogWarning` con usuario y
+    familia, y la respuesta es `401`. La ventana no se alarga para "tolerar" más: debilita la detección de robo.
+  - El logout revoca la familia con el mismo `UPDATE`. `auth/refresh` y `auth/logout` se autentican solo con la cookie:
+    validan el header `Origin` contra los orígenes permitidos (otro sitio no lee la respuesta, pero puede forzar
+    rotaciones o cerrar la sesión) y la cookie va con `SameSite=Strict`.
+  - Con OpenIddict la gracia ya viene como `SetRefreshTokenReuseLeeway(TimeSpan)`: no se reimplementa.
+  - Tests: N refrescos en paralelo del mismo token (uno rota, `@Tope` caen en gracia, el resto `401`, la familia sigue
+    viva); reuso fuera de la ventana (familia revocada y el token nuevo deja de servir); logout cruzado con rotaciones
+    (ningún token queda usable).
+
+  ```sql
+  -- 1. Rotar. 1 fila: insertar el token nuevo de esa familia en la misma transacción.
+  UPDATE t SET UsadoEn = SYSUTCDATETIME()
+  OUTPUT inserted.FamiliaId
+  FROM dbo.RefreshToken t
+  JOIN dbo.FamiliaToken f ON f.Id = t.FamiliaId AND f.RevocadaEn IS NULL
+  WHERE t.TokenHash = @Hash AND t.UsadoEn IS NULL AND t.ExpiraEn > SYSUTCDATETIME();
+
+  -- 2. Si rotar dio 0 filas: gracia. 1 fila: insertar otro token de la familia.
+  UPDATE t SET Reemisiones = Reemisiones + 1
+  OUTPUT inserted.FamiliaId
+  FROM dbo.RefreshToken t
+  JOIN dbo.FamiliaToken f ON f.Id = t.FamiliaId AND f.RevocadaEn IS NULL
+  WHERE t.TokenHash = @Hash AND t.Reemisiones < @Tope
+    AND t.UsadoEn >= DATEADD(SECOND, -@GraciaSeg, SYSUTCDATETIME());
+
+  -- 3. Si también dio 0 filas: leer el token. Usado hace más de @GraciaSeg => reuso: revocar. Si no => 401.
+  UPDATE dbo.FamiliaToken SET RevocadaEn = SYSUTCDATETIME() WHERE Id = @Familia AND RevocadaEn IS NULL;
+  ```
 
 **Cuándo aplica — LDAP / Active Directory**: solo si el proyecto ya autentica o consulta contra LDAP / AD.
 
@@ -289,6 +383,22 @@ builder.Services.AddAuthorizationBuilder()
 - **Cuenta de bind**: usuario de solo lectura con el mínimo permiso; su contraseña en Key Vault (§8), jamás en `appsettings` ni en el código ni en logs.
 - Mensajes de login genéricos (no revelar si el usuario existe) y límite de intentos (§11.2, rate limiting).
 - Preferir bind del usuario (validar su contraseña con su propio bind) a comparar hashes.
+- **Consulta LDAP por request, bajo carga**: timeout explícito (`LdapConnection.Timeout`, `LdapSessionOptions.SendTimeout`
+  y `SearchRequest.TimeLimit`) y tope de conexiones simultáneas con un `SemaphoreSlim` singleton: sin tope, 500 logins a la vez
+  abren 500 conexiones y bloquean 500 hilos (`SendRequest` es sincrónico). Si no hay lugar en pocos segundos, `503` rápido con
+  `ExternalApiException` en vez de encolar sin fin. La conexión se abre y se cierra con `using`; nunca queda en un campo compartido.
+
+  ```csharp
+  // singleton: private readonly SemaphoreSlim slots = new(10);
+  if (!await slots.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken))
+      throw new ExternalApiException(/* LDAP, 503 */);
+  try
+  {
+      using var connection = new LdapConnection(identifier) { Timeout = TimeSpan.FromSeconds(5) };
+      // LDAPS + bind del usuario + búsqueda con TimeLimit
+  }
+  finally { slots.Release(); }
+  ```
 
 **Migrar auth legada a OIDC** (de un token propio, `ValidateTokenFilter` o cookies a un IdP OIDC): solo con pedido, y es riesgo alto (§13.3).
 

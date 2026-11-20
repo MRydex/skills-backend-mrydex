@@ -108,18 +108,21 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    -- Abre transacción solo si no hay una: si el SP corre dentro de la del IUnitOfWork, esa la maneja la app
+    DECLARE @OwnsTransaction BIT = IIF(@@TRANCOUNT = 0, 1, 0);
+
     BEGIN TRY
-        BEGIN TRANSACTION;
+        IF @OwnsTransaction = 1 BEGIN TRANSACTION;
 
         INSERT INTO dbo.[Order] (Code, Amount, CreatedAt)
         VALUES (@Code, @Amount, SYSUTCDATETIME());
 
         SET @NewId = SCOPE_IDENTITY();
 
-        COMMIT TRANSACTION;
+        IF @OwnsTransaction = 1 COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF @OwnsTransaction = 1 AND XACT_STATE() <> 0 ROLLBACK TRANSACTION;
         THROW;   -- relanza el error original, con su número
     END CATCH
 END;
@@ -127,8 +130,9 @@ END;
 
 - `SET NOCOUNT ON`: sin el mensaje de filas afectadas por cada sentencia.
 - `SET XACT_ABORT ON`: un error de runtime aborta y revierte la transacción; imprescindible si el SP abre una.
-- `TRY / CATCH` con `ROLLBACK` condicionado a `@@TRANCOUNT > 0` y **`THROW`** (no `RAISERROR`, no tragarse el error). Así los números 2627/2601 llegan al repositorio (§5.2).
-- Si el SP corre dentro de la transacción del `IUnitOfWork` (§5.1), no abre la suya: chequear `@@TRANCOUNT` o dejar que la maneje la capa de aplicación, pero no mezclar los dos modelos sin decidirlo.
+- `TRY / CATCH` con **`THROW`** (no `RAISERROR`, no tragarse el error). Así los números 2627/2601 llegan al repositorio (§5.2). El `ROLLBACK` solo si el SP abrió la transacción (`@OwnsTransaction`) y `XACT_STATE() <> 0`. Un `ROLLBACK` incondicional dentro de la transacción del `IUnitOfWork` la revierte entera: el resto de lo que el handler ya hizo se pierde sin aviso y lo que sigue corre fuera de transacción (probado con `XACT_ABORT OFF` y el error atrapado por quien llama: la fila previa desapareció y la posterior se guardó sola).
+- Si el SP corre dentro de la transacción del `IUnitOfWork` (§5.1), no abre la suya (el ejemplo lo resuelve con `@@TRANCOUNT`). Con `XACT_ABORT ON`, un error dentro de una transacción ajena la aborta: el rollback y el reintento los decide la capa de aplicación.
+- Contadores, numeradores, upsert y locks dentro del SP: mismas reglas de §5.5 (`UPDATE ... SET x = x - @n WHERE ... AND x >= @n`, `SEQUENCE`, `MERGE ... WITH (HOLDLOCK)`, `UPDLOCK, HOLDLOCK` o `sp_getapplock`). Nunca leer a una variable, calcular y escribir.
 - Esquema y columnas explícitos, sin `SELECT *`. Fechas en UTC (`SYSUTCDATETIME()`).
 - Autorización a nivel objeto: el SP filtra por la entidad / usuario que recibe del token (§11.1 punto 1), no confía en un id que llega solo del request.
 
@@ -172,7 +176,7 @@ parameters.Add("@Lines", table.AsTableValuedParameter("dbo.OrderLineType"));
 
 ### 18.8 Timeouts, transacciones y permisos
 
-- **`commandTimeout`** explícito en SPs largos (reportes, procesos) y definido en config, no mágico. El default de 30 s no se sube "para que ande": primero se mira el plan de ejecución.
+- **`commandTimeout`** explícito en SPs largos (reportes, procesos) y definido en config, no mágico (`CommandDefinition(..., commandTimeout: seconds)` en Dapper; `CommandTimeout` del `SqlCommand` en ADO.NET). El default de 30 s no se sube "para que ande": primero se mira el plan de ejecución.
 - Varios SP en una misma operación de negocio: una sola transacción vía `IUnitOfWork` (§5.1); cada SP recibe `transaction: dbSession.Transaction`. Un SP que abre su propia transacción y hace `ROLLBACK` revierte también la del `IUnitOfWork`.
 - **Mínimo privilegio**: el usuario de la app con `GRANT EXECUTE ON dbo.Order_Create TO [AppRole]` por SP, o por esquema (`GRANT EXECUTE ON SCHEMA::app`). Sin `db_owner`, sin `db_datareader` / `db_datawriter` globales si todo pasa por SPs. Los grants van en el mismo script que el SP.
 - Sin `EXECUTE AS OWNER` salvo necesidad documentada en el PR (es escalada de privilegios, §11.6).

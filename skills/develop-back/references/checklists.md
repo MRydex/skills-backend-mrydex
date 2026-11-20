@@ -56,6 +56,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 ### Controller ([03](./03-controllers.md))
 
 - [ ] `[RoleAuthorization]` con el rol mínimo en cada action.
+- [ ] Alta con riesgo de duplicado (pago, pedido): acepta `Idempotency-Key` con reserva atómica (`UNIQUE (UserId, Key)`), 409 si sigue en curso.
 - [ ] `[ProducesResponseType]` con los tipos reales.
 - [ ] `CancellationToken` recibido y pasado a `mediator.Send`.
 - [ ] Sin lógica, SQL, `try/catch` ni validación.
@@ -68,6 +69,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Handler `internal`; primera línea `Guard.AgainstInvalidSpecification`.
 - [ ] No llama a otro handler ni a `mediator.Send`.
 - [ ] Paginado con `PageSize` máximo; rangos de fechas validados.
+- [ ] Cada `string` de entrada: `Matches` (formato conocido) o `MaximumLength` + `SinCodigo()` (texto libre). Se rechaza con 400, no se limpia ni se codifica al guardar (§6.1).
+- [ ] Patrones de formato con `\z` (no `$`) y `Regex` con timeout. Texto de usuario en columnas y parámetros `nvarchar`. Editor enriquecido: `HtmlSanitizer` con lista propia y `UriAttributes` (§6.1).
 
 ### Datos y cache ([05](./05-data-access-dapper.md))
 
@@ -76,6 +79,10 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Escrituras multi-sentencia vía `IUnitOfWork` con `Rollback` garantizado.
 - [ ] `SqlException` 2627/2601 → `SystemValidationException`; resto → `CommandException` / `QueryException` sin datos sensibles.
 - [ ] Cache: decorator + clave en `CacheKey` + invalidación en la escritura.
+- [ ] Cache en memoria con varias instancias: TTL corto o caché distribuida, y protección de stampede.
+- [ ] Stock, saldo o contador: un `UPDATE` atómico con la condición en el `WHERE` y filas afectadas; nunca leer, calcular y guardar. Sin `MAX()+1` ni `MERGE` sin `HOLDLOCK`.
+- [ ] Tabla editable por varios usuarios: `rowVersion` en el Response, vuelve en el PUT / PATCH, 409 si no coincide (§5.5, §15.5).
+- [ ] Sin llamadas HTTP ni esperas con una transacción abierta; SP dentro del `IUnitOfWork` hace `ROLLBACK` solo si abrió la transacción.
 - [ ] Script SQL idempotente y con rollback si cambia la base.
 
 ### EF Core / LINQ ([15](./15-data-access-ef-core.md))
@@ -91,6 +98,9 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 ### Errores, config e integraciones ([07](./07-errors-responses.md), [08](./08-configuration-di-secrets.md), [09](./09-http-integrations.md))
 
 - [ ] Errores solo por excepción tipada → `ProblemDetails`; excepción nueva con handler y entrada `.resx`.
+- [ ] Retry con jitter, `Retry-After` y timeout por intento; sin reintentar `POST` sin idempotency key.
+- [ ] Workers con un scope por iteración o por mensaje; sin fire-and-forget en requests; jobs que toman su trabajo de forma atómica (2 instancias no lo duplican).
+- [ ] Singletons y `static` con estructuras concurrentes (`GetOrAdd` con `Lazy`); sin `Dictionary` / `List` mutables compartidos.
 - [ ] Config por Options con `ValidateOnStart`; secretos solo en Key Vault (o variables de entorno en un ambiente sin Key Vault, §8).
 - [ ] Lifetimes correctos; nada `Scoped` dentro de un `Singleton`.
 - [ ] HTTP saliente por typed client, con timeout y retry solo en transitorios idempotentes.
@@ -109,6 +119,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 ### Seguridad ([11](./11-security.md), [12](./12-tech-debt.md))
 
 - [ ] Revisión Red Team §11.1 hecha sobre cada endpoint o cambio.
+- [ ] "Chequear y después escribir" sobre estado compartido: atómico en la base, no con `lock`; el límite de intentos de un secreto se reserva en la base antes de probarlo.
+- [ ] Refresh token: rotación atómica, gracia corta y revocación de la familia ante reuso. Subidas con límite de body y streaming.
 - [ ] Si aplica §11.5, cambio revisado con `security-audit` en modo guía, o avisado que no está instalada.
 - [ ] Auditoría de dependencias §11.4 corrida después del último cambio de paquetes; hallazgos reportados.
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).

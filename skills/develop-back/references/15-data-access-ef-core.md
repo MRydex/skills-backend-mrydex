@@ -70,6 +70,7 @@ internal class ItemConfiguration : IEntityTypeConfiguration<Item>
 }
 ```
 
+- `RowVersion` es lo que detecta el lost update, pero solo si el cliente la devuelve: ver §15.5 (el `Response` la lleva, el `PUT` la manda de vuelta). Una `RowVersion` releída en el handler siempre coincide.
 - Entidades en `Domain/Entities/` sin atributos de EF ni referencias a EF. El mapeo vive en
   `Infrastructure/Persistence/Configurations/`, una `IEntityTypeConfiguration<T>` por entidad,
   cargadas con `modelBuilder.ApplyConfigurationsFromAssembly(...)`.
@@ -110,6 +111,8 @@ internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepositor
 }
 ```
 
+- `CountAsync` y `ToListAsync` del paginado son dos lecturas sin snapshot: con datos que cambian, el total y la página pueden no coincidir (aceptable en un listado; no usarlo para cuadrar cuentas).
+- Entidad con `RowVersion` que se edita después: el `Response` la devuelve como `rowVersion` (`Convert.ToBase64String(x.RowVersion)` dentro del `Select`; se evalúa en el cliente sin problema porque va en la proyección final).
 - Lecturas **siempre** con `AsNoTracking()` y proyección con `Select` al `Response`. Nunca traer la entidad
   entera para usar dos columnas.
 - Siempre la variante async con `CancellationToken` (`ToListAsync`, `FirstOrDefaultAsync`,
@@ -135,6 +138,7 @@ internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepositor
   No permite saltar a la página N ni devuelve total: no reemplaza a `PagedResponse<T>` en listados con
   paginador (§17.7). El response lleva los ítems y la clave de la última fila (`CreatedAt` + `Id`), que el
   cliente manda en el pedido siguiente.
+- Export o listado grande: no `ToListAsync` de todo. `AsAsyncEnumerable()` (con `AsNoTracking()` y orden estable) entrega fila a fila a la respuesta; mantiene la conexión abierta mientras el cliente lee, así que sin transacción alrededor y con un tope de filas acordado.
 - Existencia con `AnyAsync`, no `CountAsync() > 0` ni `FirstOrDefaultAsync() != null`.
 - **N+1 prohibido**: nada de consultas dentro de un `foreach`. Usar `Select` con navegaciones
   (EF arma el join), `Include` solo cuando se necesita la entidad para modificarla, y `Contains`
@@ -275,11 +279,35 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
 - Updates y deletes masivos con `ExecuteUpdateAsync` / `ExecuteDeleteAsync` (una sentencia, sin
   cargar entidades). Nunca un loop que carga, modifica y guarda fila por fila. Ojo: no pasan por el
   change tracker ni disparan la invalidación de cache: invalidar a mano.
+- Contadores, stock y saldos: nunca cargar, calcular en C# y `SaveChangesAsync` (dos requests leen el mismo valor y uno pisa al otro). Una sentencia atómica con la condición en el `WHERE`, mirando las filas afectadas:
+
+  ```csharp
+  var rows = await dbContext.Stocks
+      .Where(x => x.Id == id && x.Qty >= quantity)
+      .ExecuteUpdateAsync(s => s.SetProperty(x => x.Qty, x => x.Qty - quantity), cancellationToken);
+  if (rows == 0) throw new SystemValidationException(ErrorMessage.InsufficientStock);
+  ```
+
+  Numeradores con `SEQUENCE` o `IDENTITY` (nunca `Max() + 1`); upsert, locks de "verifico y escribo" y exports: [05](./05-data-access-dapper.md) §5.5 (con `ExecuteSql`, mismo SQL).
 - Altas masivas grandes (miles de filas): `AddRange` + un `SaveChangesAsync`; más que eso,
   `SqlBulkCopy` como en Dapper ([05](./05-data-access-dapper.md)).
 - Update de una entidad: cargarla con tracking (sin `AsNoTracking`), modificar con métodos de la
   entidad, `SaveChangesAsync`. Nunca `dbContext.Update(entidadDelRequest)`: es mass assignment
   (API3, §11.1).
+- **Concurrencia optimista (`RowVersion`)**: contrato con el front: el `Response` lleva `rowVersion` (base64 de la columna), el `Request` de `PUT` / `PATCH` la devuelve en el body y, si no coincide, la API responde **409** (`ConflictException`, §15.6). Con la entidad recién cargada EF compara contra la `RowVersion` que acaba de leer, que siempre coincide: el cliente que editó sobre una versión vieja pisa el cambio ajeno sin enterarse. Hay que pisar el valor **original** con el del request antes de guardar (el validador rechaza un base64 inválido, 400):
+
+  ```csharp
+  // repositorio de comando
+  public void SetRowVersion(Item item, string rowVersion) =>
+      dbContext.Entry(item).Property(x => x.RowVersion).OriginalValue = Convert.FromBase64String(rowVersion);
+
+  // handler: existe (404) -> versión del request -> modificar -> guardar (el UnitOfWork mapea a ConflictException)
+  var item = await unitOfWork.ItemCommandRepository.GetByCodeAsync(request.Code, cancellationToken)
+      ?? throw new NotFoundException(ErrorMessage.ItemNotFound);
+  unitOfWork.ItemCommandRepository.SetRowVersion(item, request.RowVersion);
+  item.Rename(request.Name);
+  await unitOfWork.SaveChangesAsync(cancellationToken);
+  ```
 - Auditoría (`CreatedAt`, `UpdatedBy`): en `SaveChangesAsync` del contexto o un interceptor, con
   `TimeProvider`. No en cada handler.
 - Identidad del usuario hacia SQL (`sp_set_session_context` para SPs o triggers que auditan): un
@@ -296,13 +324,14 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
 ### 15.6 Errores y concurrencia
 
 - `DbUpdateException` con `SqlException` 2627/2601 interna (duplicado) ⇒ `SystemValidationException`. La unicidad la garantiza `HasIndex(...).IsUnique()`, no un `AnyAsync` previo: dos requests simultáneos lo pasan los dos (§5.2).
-- `DbUpdateConcurrencyException` (columna `RowVersion`) ⇒ `SystemValidationException` con mensaje de
-  "el registro fue modificado por otro usuario". Tablas editables por varios usuarios llevan
-  `RowVersion`.
+- `DbUpdateConcurrencyException` (columna `RowVersion`, o la fila ya no existe) ⇒ `ConflictException` (409) con mensaje de
+  "el registro fue modificado por otro usuario" ([07](./07-errors-responses.md)). Tablas editables por varios usuarios llevan
+  `RowVersion` y el cliente la devuelve en el `PUT` (§15.5): sin eso, la excepción nunca se dispara.
 - Deadlock (`SqlException` 1205) o error transitorio de conexión: reintentar la operación completa
   con `CreateExecutionStrategy()` (la misma de las transacciones explícitas de este archivo), 2 o 3
   veces con espera corta; nunca reintentar un comando suelto dentro de una transacción ya abierta.
-  Con Dapper, mismo criterio a mano (§5.1).
+  Agotados los intentos, `ConflictException` (409). Con Dapper, mismo criterio a mano: ejemplo en
+  [05](./05-data-access-dapper.md) §5.5.
 - `OperationCanceledException` ⇒ relanzar. Resto ⇒ `CommandException` / `QueryException` con
   parámetros **sin datos sensibles** ([07](./07-errors-responses.md)).
 - El mapeo de excepciones de EF vive en el repositorio o en el `UnitOfWork`, nunca en el handler ni
