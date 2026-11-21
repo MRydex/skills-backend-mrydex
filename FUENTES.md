@@ -25,4 +25,5 @@ Al terminar, decir qué filas se repasaron y cuáles no, con el motivo. Si apare
 | Herramientas: graphify (PyPI `graphifyy`), context7 (MCP), uv | Comandos de instalación, flags, cambios que rompen | `bin/cli.js`, `14`, `templates/` | sin fecha |
 | Docs de agentes: Claude Code (sub-agents, advisor), platform.claude.com (advisor tool, multiagent), guía de modelos de claude.dev, Codex, Cursor, OpenCode, Gemini CLI, Antigravity, Copilot | Formato de subagentes y de instrucciones por agente, modelos vigentes | `14`, `templates/`, `bin/cli.js` | sin fecha |
 | Pipelines y publicación: Azure DevOps YAML, Docker, NuGet | Tareas y versiones de imagen vigentes | `20` | sin fecha |
+| [drona23/claude-token-efficient](https://github.com/drona23/claude-token-efficient) | Reglas nuevas en `CLAUDE.md` y `profiles/`, resultados de `benchmark/`. Solo sirve lo que el benchmark mide con efecto; descartados: hook `PreCompact`, presupuesto de tool calls, reglas de formato | `11` (§11.4), `14` | 2026-11-21 |
 | Repo hermano `skills-frontend-mrydex` | Lo común (instalador, `14`, `templates/`, bloque global) igual en los dos | `bin/cli.js`, `14`, `templates/` | sin fecha |

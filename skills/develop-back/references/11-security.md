@@ -125,6 +125,8 @@ Preguntarse como atacante, para cada endpoint o cambio:
 
 El agente audita los paquetes NuGet por su cuenta. No espera al dependency-check del pipeline ni a que se lo pidan.
 
+**El nombre de un paquete no se escribe de memoria.** Antes de un `dotnet add package <paquete>` propuesto por el agente: `dotnet package search <paquete> --exact-match --verbosity detailed` (o su página en nuget.org) y confirmar que es el paquete buscado (owner y repo esperados). Un nombre inventado por el modelo puede no existir o estar registrado por un atacante. Lo mismo vale para versiones y flags: se leen del `*.csproj`, `Directory.Packages.props` o la doc, no se suponen.
+
 **Cuándo:**
 - Al empezar a trabajar en un proyecto.
 - Después de cualquier cambio en un `*.csproj`, `Directory.Packages.props` o `packages.lock.json`: paquete nuevo, actualización o borrado.

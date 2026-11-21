@@ -5,6 +5,13 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
+### Agregado
+
+- `11` §11.4: el nombre de un paquete NuGet no se escribe de memoria. Antes de un `dotnet add package <paquete>`
+  propuesto por el agente se corre `dotnet package search <paquete> --exact-match` y se confirma owner y repo.
+  Versiones y flags se leen del proyecto o de la doc. Sale del repaso de drona23/claude-token-efficient (fila nueva
+  en `FUENTES.md`); el resto de ese repo ya estaba cubierto o no aplica.
+
 ### Cambiado
 
 - `11` §11.4 y templates: con vulnerabilidades de `dotnet list package --vulnerable` se corrige siempre, no solo
