@@ -143,7 +143,7 @@ entradas generadas):
 - Se rechazan aunque no sean un ataque: `a <b` y `<sin datos>` (`<` pegado a una letra), `online=si` al inicio o
   después de un espacio, `precio&nbsp;final`, y texto con marcas de dirección (hebreo o árabe pegado con U+202A a
   U+202E).
-- No lo cubre, a propósito: texto codificado (`%3Cscript%3E`, `<`), inerte salvo que otra capa lo decodifique dos
+- No lo cubre, a propósito: texto codificado (`%3Cscript%3E`, `\u003cscript\u003e`), inerte salvo que otra capa lo decodifique dos
   veces. Por eso nunca `WebUtility.HtmlDecode` / `UrlDecode` sobre un dato ya validado.
 - Un campo donde el usuario escribe código a propósito (un snippet, una fórmula) no lleva `SinCodigo()`: lleva
   `MaximumLength` y se devuelve solo como JSON.

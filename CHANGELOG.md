@@ -10,6 +10,7 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - `11` §11.4 y templates: con vulnerabilidades de `dotnet list package --vulnerable` se corrige siempre, no solo
   cuando la tarea toca dependencias: subir a la versión con fix dentro de la misma mayor y fijar el transitivo
   vulnerable como referencia directa o en `Directory.Packages.props`. Versión mayor se sigue preguntando antes.
+- `06` §6.1: el ejemplo de texto codificado que `SinCodigo()` no cubre decía `<`; ahora `\u003cscript\u003e`.
 
 ### Corregido
 
