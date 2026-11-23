@@ -7,6 +7,8 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `03`: si el pedido fija una ruta literal distinta de la convención versionada, gana el pedido y se avisa en el
+  reporte.
 - `07`: los errores de binding (`?page=abc`) salen con el mismo `ProblemDetails` que una validación propia, con
   `InvalidModelStateResponseFactory`. Probado en una API .NET 10.
 - `11` §11.2: qué hacer en un repo sin autenticación configurada: `[AllowAnonymous]` explícito y pendiente

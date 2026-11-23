@@ -42,7 +42,7 @@ public class ItemController(IMediator mediator) : ControllerBase
 
 - Base `ControllerBase`. Atributos de clase: `[ApiController]`, `[Route(...)]`, `[ApiVersion]`, `[ProducesResponseType]` de 401/403/400/500.
 - Ruta por `[action]`: el nombre del action = nombre del request sin `Request` (`CreateItem` ↔ `CreateItemRequest`).
-- Prefijo de ruta: el que ya usa la API (`api/v{version:apiVersion}/...` o `v{version:apiVersion}/...`). No cambiarlo en una API existente: rompe al frontend.
+- Prefijo de ruta: el que ya usa la API (`api/v{version:apiVersion}/...` o `v{version:apiVersion}/...`). No cambiarlo en una API existente: rompe al frontend. Si el pedido fija una ruta literal (`/api/usuarios`) que difiere de la convención versionada, gana el pedido y el reporte lo dice.
 - Versión nueva de un endpoint: carpeta `Controllers/V2/`, request y handler con sufijo `V2` (`GetItemsRequestV2`, `GetItemsV2Handler`). La V1 queda intacta.
 - **Todo action lleva `[RoleAuthorization(...)]`** con roles de `Domain/Structs/Roles.cs`. Endpoint anónimo = decisión explícita, documentada en el PR (único caso hoy: health check). Sin la librería Corp: `[Authorize(Roles = Roles.X)]` (§11.2). Si el repo usa otro esquema de auth, el del repo, y el endpoint nuevo nunca queda menos protegido que sus vecinos.
 - Retorno `Task<ActionResult<T>>` / `Task<ActionResult>`. Códigos: `200 Ok`, `201 CreatedAtAction` (apuntando al GET del recurso creado: `CreatedAtAction(nameof(GetItem), ...)`; con `null` el `Location` queda apuntando al mismo POST), `204 NoContent` en listados vacíos, `404` por `NotFoundException` en un recurso puntual (§4). Errores **solo** por excepción → `ProblemDetails`.
