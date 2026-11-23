@@ -7,6 +7,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `bin/check.js`, igual en los dos paquetes: revisa links y anclas de los `.md`, referencias `§N.M`, índice y
+  versión de `SKILL.md` y subagentes citados. `npm test` lo corre. `npm run check` suma GitHub: cada skill externa
+  existe en su repo y no delega en otra que no se instala (así se rompió `grill-me`).
 - `03`: si el pedido fija una ruta literal distinta de la convención versionada, gana el pedido y se avisa en el
   reporte.
 - `07`: los errores de binding (`?page=abc`) salen con el mismo `ProblemDetails` que una validación propia, con

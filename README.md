@@ -221,6 +221,17 @@ del equipo:
 3. Lo prendés para esa tarea y lo apagás al terminar. Si el modelo no lo consulta (`/usage` sin gasto de
    Fable), no sirvió tenerlo.
 
+## Chequeo del paquete
+
+Antes de publicar una versión:
+
+```bash
+npm test        # ayuda del instalador + links, anclas, referencias §N.M, versión y subagentes citados
+npm run check   # lo anterior + GitHub: cada skill externa existe y no delega en otra que no se instala
+```
+
+Sale con 1 y lista cada falla. `npm run check` usa la API pública de GitHub (60 pedidos por hora sin token).
+
 ## Licencia
 
 MIT © [MRydex](https://github.com/MRydex)
