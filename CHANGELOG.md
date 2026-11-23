@@ -33,6 +33,16 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Corregido
 
+- `07`: el ejemplo de `InvalidModelStateResponseFactory` devolvía el mensaje de MVC, que ante un JSON mal formado
+  trae el nombre completo del tipo C#, y usaba un constructor de `SystemValidationException` con dos argumentos que
+  la convención no define. Ahora lanza un mensaje fijo (`ErrorMessage.RequestInvalid`). Probado con curl en .NET 10.
+- `16`: repo sin autenticación configurada (remite a §11.2), cuándo vale `Clients.All`, y qué mockear para un
+  publicador con `IHubContext` tipado (`IHubClients<TClient>`, más `InternalsVisibleTo` en Api).
+- `03`: alta sin GET del recurso todavía: `StatusCode(201, body)` sin `Location`.
+- `15`: proveedor distinto de SQL Server (SQLite no genera script idempotente; código de duplicado en SQLite y
+  PostgreSQL).
+- Los cuatro salieron de dos pruebas de punta a punta nuevas (EF Core con SQLite y hub de SignalR): compilan sin
+  warnings y pasan 39 y 35 tests.
 - `14`: el índice enlazaba §14.5 con un ancla vieja.
 
 Revisión de concurrencia de toda la skill: ejemplos que fallaban con muchos requests a la vez o con varias instancias.

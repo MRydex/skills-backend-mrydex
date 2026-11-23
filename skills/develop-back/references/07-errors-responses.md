@@ -11,12 +11,11 @@ Excepciones tipadas, `IExceptionHandler` y `ProblemDetails`. Leer al manejar err
 
   ```csharp
   builder.Services.AddControllers()
-      .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = context =>
-      {
-          var (field, entry) = context.ModelState.First(e => e.Value?.Errors.Count > 0);
-          throw new SystemValidationException(entry!.Errors[0].ErrorMessage, field);
-      });
+      .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory =
+          _ => throw new SystemValidationException(ErrorMessage.RequestInvalid));
   ```
+
+  El mensaje es fijo: el de MVC no se devuelve, porque ante un JSON mal formado trae el nombre completo del tipo C#.
 
   Si la API ya responde errores de binding con el formato de MVC y el front los consume, no se cambia sin pedido: es contrato.
 - Nunca usar excepciones para flujo normal (ej. "no hay datos" en una búsqueda ⇒ lista vacía / `204`, no excepción).

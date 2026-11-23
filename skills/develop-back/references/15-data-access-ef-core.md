@@ -343,6 +343,11 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
   (`AddItemRowVersion`). Una migración por cambio lógico.
 - **Nunca** `Database.Migrate()` / `EnsureCreated()` al arrancar la app. Se despliegan como script:
   `dotnet ef migrations script --idempotent` adjunto al PR, igual que los `.sql` de Dapper.
+- Otro proveedor que SQL Server: lo de este archivo que es propio de SQL Server (esquema `dbo`, `IsUnicode`,
+  `EnableRetryOnFailure`, números de `SqlException`) se traduce al proveedor. SQLite no genera script idempotente
+  (`NotSupportedException`): `dotnet ef database update`. El duplicado se reconoce por el código del proveedor
+  dentro de la `DbUpdateException`: SQLite `SqliteException.SqliteExtendedErrorCode == 2067`, PostgreSQL
+  `PostgresException.SqlState == "23505"`.
 - Revisar el SQL generado antes de commitear: renombres que EF interpreta como drop + add pierden
   datos. Migración destructiva (drop de columna o tabla) ⇒ preguntar antes (§13.6).
 - Rollback: `Down()` implementado y probado, o script de vuelta en el PR.

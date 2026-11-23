@@ -70,8 +70,9 @@ internal sealed class SignalRNotificador(IHubContext<NotificacionesHub, INotific
 - Publicar **después** de confirmar la transacción (`UnitOfWork` §5): si se publica antes y falla el
   commit, el cliente ve un cambio que no existe.
 - Si el proceso cae entre el commit y la publicación, el evento se pierde. Si el cliente lo recupera solo (vuelve a pedir el estado al reconectar), alcanza. Si no puede perderse, **outbox**: el handler inserta una fila de evento en la misma transacción que el cambio y un `BackgroundService` la lee, publica por el hub y la marca como enviada (tomar las filas de forma atómica con dos instancias: [08](./08-configuration-di-secrets.md)). Los eventos pueden llegar duplicados: el cliente los trata como idempotentes.
-- `Clients.User(id)` para un usuario (todas sus pestañas), `Clients.Group(...)` para una sala. Nunca
-  `Clients.All` con datos de un usuario.
+- `Clients.User(id)` para un usuario (todas sus pestañas), `Clients.Group(...)` para una sala. `Clients.All`
+  solo si el evento es para todos los conectados y cualquiera de ellos puede ver el payload completo; nunca
+  con datos de un usuario.
 
 ### 16.4 Autenticación e identidad
 
@@ -90,6 +91,8 @@ options.Events = new JwtBearerEvents
 app.MapHub<NotificacionesHub>("/api/hubs/notificaciones", o => o.CloseOnAuthenticationExpiration = true);
 ```
 
+- Repo sin autenticación configurada: el hub sigue la regla de §11.2 (`[AllowAnonymous]` explícito y pendiente
+  bloqueante en el reporte), no un `[Authorize]` sin esquema.
 - **`[Authorize]` en todo hub.** El navegador no manda headers en WebSocket: el token llega en
   `?access_token=` y se lee solo para la ruta de hubs.
 - El esquema valida issuer, audiencia y vencimiento (§11.2). Hub que usa un microfrontend embebido:
@@ -151,6 +154,8 @@ services.AddSignalR(o =>
 
 - Métodos del hub con xUnit + Moq: mockear `IHubCallerClients<TClient>`, `IGroupManager` y
   `HubCallerContext`; verificar `AddToGroupAsync` y que el no autorizado lanza `HubException`.
+- Publicador con `IHubContext<THub, TClient>`: mockear `IHubClients<TClient>` (`.All`, `.User(...)`, `.Group(...)`).
+  Si la clase es `internal`, `<InternalsVisibleTo Include="<X>.UnitTest" />` también en el `.csproj` de Api.
 - `INotificador` mockeado en los tests de handlers: verificar que se publica solo después del commit.
 - Verificación manual con el front (skill frontend §16.11): reconexión, logout, dos usuarios.
 
