@@ -14,7 +14,7 @@ Al terminar, decir qué filas se repasaron y cuáles no, con el motivo. Si apare
 
 | Fuente | Qué mirar | Dónde impacta | Último repaso |
 |---|---|---|---|
-| .NET, ASP.NET Core y C#: releases y docs de Microsoft | Versión objetivo (hoy .NET 10), APIs nuevas o deprecadas, cambios que rompen entre versiones | `SKILL.md`, `01` a `04`, `06` a `10`, `16`, `17`, `19`, `checklists.md` | sin fecha |
+| .NET, ASP.NET Core y C#: releases y docs de Microsoft | Versión objetivo (hoy .NET 10), APIs nuevas o deprecadas, cambios que rompen entre versiones | `SKILL.md`, `01` a `04`, `06` a `10`, `16`, `17`, `19`, `checklists.md` | 2026-11-21 |
 | EF Core, Dapper y acceso a datos SQL | Versión objetivo (hoy EF Core 10), APIs nuevas, cambios que rompen | `05`, `15`, `18` | sin fecha |
 | Paquetes NuGet nombrados en las referencias (mediator, validación, logging, tests, OpenAPI) | Versiones, licencias, reemplazos, deprecados | `04`, `06`, `10`, `17`, `20` | sin fecha |
 | Avisos de seguridad de .NET y de los paquetes NuGet nombrados (GHSA, CVE) | Versiones mínimas con parche | `11`, `20` | sin fecha |

@@ -7,6 +7,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `SKILL.md` §0 y `11` §11.4: `net8.0` y `net9.0` quedaron fuera de soporte el 10/11/2026. Un repo en ese
+  `TargetFramework` se reporta como hallazgo de seguridad y se propone migrar a `net10.0`, sin migrar sin pedido.
+  .NET 11 salió ese día como STS: el objetivo de la skill sigue siendo .NET 10 LTS.
 - `11` §11.4: el nombre de un paquete NuGet no se escribe de memoria. Antes de un `dotnet add package <paquete>`
   propuesto por el agente se corre `dotnet package search <paquete> --exact-match` y se confirma owner y repo.
   Versiones y flags se leen del proyecto o de la doc. Sale del repaso de drona23/claude-token-efficient (fila nueva
@@ -20,6 +23,8 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - `06` §6.1: el ejemplo de texto codificado que `SinCodigo()` no cubre decía `<`; ahora `\u003cscript\u003e`.
 
 ### Corregido
+
+- `14`: el índice enlazaba §14.5 con un ancla vieja.
 
 Revisión de concurrencia de toda la skill: ejemplos que fallaban con muchos requests a la vez o con varias instancias.
 

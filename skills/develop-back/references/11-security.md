@@ -147,6 +147,7 @@ dotnet list package --outdated                          # informativo: no actual
 - **Nunca subir una versión mayor sin preguntar** (ni `Microsoft.Extensions.*` por encima del TFM, `SKILL.md` §0): trae cambios que rompen.
 - **Transitivo vulnerable**: fijar la versión segura como referencia directa (o en `Directory.Packages.props`). Se anota en el reporte con el motivo (CVE o aviso) y se quita cuando el paquete padre ya trae la versión corregida.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
+- **Runtime fuera de soporte**: `dotnet list package` no lo avisa. Un `TargetFramework` `net8.0` o `net9.0` (fin de soporte: 10/11/2026) o anterior no recibe parches de seguridad: reportarlo como hallazgo `High` y proponer migrar a `net10.0` ([19](./19-migracion-dotnet.md)), sin migrar sin pedido.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
 **Lo que `dotnet list package` no ve: Zero Wire (Cloudflare Radar).** Feed público y gratis de avisos sobre

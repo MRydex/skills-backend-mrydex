@@ -9,7 +9,7 @@ ejemplos: traducirlos al agente y a los modelos en uso (§14.7).
 [14.2](#142-consultar-librerías-primero-preguntar-a-otro-agente-abierto) Consultar librerías ·
 [14.3](#143-orquestador--subagentes-baratos-estrategia-advisor) Orquestador + subagentes (advisor) ·
 [14.4](#144-autocompactación-del-contexto) Autocompactación del contexto ·
-[14.5](#145-graphify-consultar-el-grafo-antes-de-leer-archivos) Graphify · [14.6](#146-regla-de-oro) Regla de oro ·
+[14.5](#145-graphify-grafo-por-hook-git-consulta-solo-sin-nombre-conocido) Graphify · [14.6](#146-regla-de-oro) Regla de oro ·
 [14.7](#147-adaptación-al-agente-y-al-modelo-en-uso) Adaptación al agente y al modelo en uso ·
 [14.8](#148-herramientas-del-agente-instalar-y-usar-siempre) Herramientas del agente · [14.9](#149-skills-externas-por-área) Skills externas por área.
 

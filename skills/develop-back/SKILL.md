@@ -109,6 +109,7 @@ Rige toda la sesión desde que la skill se carga. Para sesiones que no tocan .NE
 
 - **.NET 10 LTS** (`net10.0`), C# 14, `Nullable` e `ImplicitUsings` habilitados en todos los proyectos. Paquetes `Microsoft.*` (`Extensions`, `AspNetCore`, `EntityFrameworkCore`) en 10.x, alineados con el TFM.
   - Repo en `net8.0`: seguir su TFM y paquetes 8.x. Migrar de TFM solo con pedido explícito (cambio de proyecto, no de feature). Sin features de C# 13/14 sobre `net8.0`.
+  - `net8.0` y `net9.0` están fuera de soporte desde el 10/11/2026 (sin parches de seguridad): se reporta como hallazgo de seguridad y se propone migrar a `net10.0` ([19](./references/19-migracion-dotnet.md)), sin migrar sin pedido (§11.4).
 - **ASP.NET Core Web API** con controllers (`ControllerBase` + `[ApiController]`). No introducir Minimal APIs en un repo con controllers; si el repo ya usa Minimal APIs, seguir su forma ("El repo manda sobre la forma").
 - **Versionado por URL**: `Asp.Versioning.Mvc` (+ `.ApiExplorer` con `SubstituteApiVersionInUrl = true` para que el OpenAPI muestre `v1`; con la versión en la URL, `AssumeDefaultVersionWhenUnspecified` no aplica; con `Microsoft.AspNetCore.OpenApi`, `Asp.Versioning.OpenApi` + `MapOpenApi().WithDocumentPerVersion()`) → `api/v{version:apiVersion}/[controller]/[action]`, default `1.0`.
 - **Mediator propio** (`Application/Mediator`: `IMediator`, `IRequest<T>`, `IRequestHandler<TRequest,T>`). **No** MediatR.
