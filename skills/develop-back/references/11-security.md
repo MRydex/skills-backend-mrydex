@@ -325,6 +325,7 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("items:write", p => p.RequireRole("ItemWriter"));
 ```
 
+- **Repo sin autenticación configurada** (sin IdP, authority ni audience): no inventar un esquema JWT ni dejar `[Authorize]` sin esquema (responde 500). El endpoint va con `[AllowAnonymous]` explícito y se reporta como pendiente bloqueante antes de cualquier entorno real, más si expone datos personales.
 - **`FallbackPolicy` deny-by-default** (§11.2): un endpoint sin atributo exige usuario autenticado con el rol de la app (repo nuevo sin rol de app definido: solo autenticado); el anónimo es `[AllowAnonymous]` explícito.
 - **`[Authorize(Policy = ...)]` por endpoint solo en repos que ya autorizan por policies.** Si el repo usa `[RoleAuthorization]` (con `ValidateTokenFilter` o con `AddJwtBearer` + `AddAuthorization`), el control por action sigue como en §3 y §11.2; no agregues policies por endpoint encima. En un repo por policies: una por scope o rol en cada endpoint (`[Authorize(Policy = "items:read")]`), con el mínimo necesario. Los nombres de scopes y roles, en `Domain/Structs/Roles.cs` o constantes, no literales sueltos (§3).
 - Scope (`scope` / `scp`; con el mapeo por defecto, `scp` llega como `http://schemas.microsoft.com/identity/claims/scope`, por eso la assertion lee los tres) viene como string separado por espacios: se parte (`RequireAssertion` como arriba o un `AuthorizationHandler`); `RequireClaim("scope", "x")` falla con más de un scope.

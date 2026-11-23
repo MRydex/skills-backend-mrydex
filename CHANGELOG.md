@@ -7,6 +7,10 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Agregado
 
+- `07`: los errores de binding (`?page=abc`) salen con el mismo `ProblemDetails` que una validación propia, con
+  `InvalidModelStateResponseFactory`. Probado en una API .NET 10.
+- `11` §11.2: qué hacer en un repo sin autenticación configurada: `[AllowAnonymous]` explícito y pendiente
+  bloqueante, sin inventar un esquema JWT. Los dos puntos salen de una prueba de punta a punta de la skill.
 - `SKILL.md` §0 y `11` §11.4: `net8.0` y `net9.0` quedaron fuera de soporte el 10/11/2026. Un repo en ese
   `TargetFramework` se reporta como hallazgo de seguridad y se propone migrar a `net10.0`, sin migrar sin pedido.
   .NET 11 salió ese día como STS: el objetivo de la skill sigue siendo .NET 10 LTS.

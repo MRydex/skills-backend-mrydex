@@ -7,4 +7,16 @@ Excepciones tipadas, `IExceptionHandler` y `ProblemDetails`. Leer al manejar err
 - Respuesta de error: `ProblemDetails` (`type` RFC 9110, `title`/`detail` desde `ExceptionMessages.resx` si el repo lo tiene (repo nuevo: `Domain/Structs/ErrorMessage.cs`), `status`, `traceId`). Mismo formato siempre: el frontend depende de él.
 - Excepción nueva ⇒ clase + handler + mensaje (entrada `.resx` o `ErrorMessage.cs`, según el repo). Un `code` o campo nuevo en el error es contrato: se documenta donde el repo documenta la integración y se avisa al front (§17.8). No agregar `catch` en controllers ni filtros para mapear errores.
 - Éxito: endpoint nuevo devuelve el `Response` directo (`ItemResponse`, §1.2), sin envelope `{ success, data }`. Listas paginadas: `PagedResponse<T>`. Una API que ya responde con envelope lo mantiene en sus endpoints, nuevos incluidos: cambiarlo rompe a los clientes. El front soporta las dos formas (skill de frontend §2.11).
+- Error de binding (`?page=abc`, JSON mal formado): MVC responde con su propio `ValidationProblemDetails`, otro formato. Para que salga igual que una validación propia, en `Program.cs`:
+
+  ```csharp
+  builder.Services.AddControllers()
+      .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = context =>
+      {
+          var (field, entry) = context.ModelState.First(e => e.Value?.Errors.Count > 0);
+          throw new SystemValidationException(entry!.Errors[0].ErrorMessage, field);
+      });
+  ```
+
+  Si la API ya responde errores de binding con el formato de MVC y el front los consume, no se cambia sin pedido: es contrato.
 - Nunca usar excepciones para flujo normal (ej. "no hay datos" en una búsqueda ⇒ lista vacía / `204`, no excepción).
