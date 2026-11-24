@@ -154,6 +154,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Eventos publicados con `IHubContext` tipado detrás de una interfaz de Application, después del commit. (§16.3)
 - [ ] `KeepAliveInterval` / `ClientTimeoutInterval` desde Options y coordinados con el front; `EnableDetailedErrors` solo en Development. (§16.5)
 - [ ] Gateway y middleware sin loguear `QueryString`; hubs excluidos de middleware que toca el body. (§16.6)
+- [ ] IIS con hubs: `maxQueryString` subido en `requestFiltering` para el `access_token`. (§16.6)
 
 ### Proceso del agente ([13](./13-workflow-orchestration.md), [14](./14-agent-efficiency.md))
 

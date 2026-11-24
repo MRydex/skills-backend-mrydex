@@ -23,6 +23,12 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   propuesto por el agente se corre `dotnet package search <paquete> --exact-match` y se confirma owner y repo.
   Versiones y flags se leen del proyecto o de la doc. Sale del repaso de drona23/claude-token-efficient (fila nueva
   en `FUENTES.md`); el resto de ese repo ya estaba cubierto o no aplica.
+- `13` §13.4.1: convención de nombre de ramas, igual en front y back: `features/`, `bugs/` y `hotfix/` +
+  `nombre-tarea` en minúsculas con guiones. La lista no es cerrada: otro tipo sigue el mismo formato, mirando
+  antes los que ya usa el repo. Gana la convención del repo si ya tiene otra.
+- `16` §16.6 y `checklists.md`: en IIS, subir `maxQueryString` y `maxUrl` en `requestFiltering` para que el
+  `access_token` de SignalR en la query no corte la conexión con `404.15`. Las dos entradas salen de comparar la
+  skill con el doc "Desarrollo - Buenas Practicas" (24/11/2026).
 
 ### Cambiado
 

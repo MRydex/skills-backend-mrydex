@@ -145,6 +145,20 @@ services.AddSignalR(o =>
 - Middleware que lee o reemplaza el body de la respuesta: excluir `/api/hubs` (rompe el streaming).
 - IIS: feature **WebSocket Protocol** instalada en el servidor. Sin ella, cae a long polling o falla si
   el cliente usa `skipNegotiation`.
+- IIS: el `access_token` va en la query y un JWT con muchos claims pasa el límite por defecto de
+  `maxQueryString` (2048 bytes): IIS corta la conexión con `404.15`. Subirlo en el `web.config` del sitio:
+
+  ```xml
+  <system.webServer>
+    <security>
+      <requestFiltering>
+        <requestLimits maxQueryString="32768" maxUrl="32768" />
+      </requestFiltering>
+    </security>
+  </system.webServer>
+  ```
+
+  Sube solo el tamaño permitido: el log sigue sin `cs-uri-query`.
 - Más de una instancia del backend: `IConnectionTracker` en memoria deja de servir. Usar backplane
   (Redis) o Azure SignalR Service (exige `/negotiate`: el front quita `skipNegotiation`), y sticky sessions si el cliente negocia. Decidir antes de escalar.
 - `MaximumParallelInvocationsPerClient` en 1 (default) y rate limiting en `UnirseA...` si se puede

@@ -142,6 +142,20 @@ revisarlo: la revisión no agrega features.
   hayan hecho en la misma sesión de trabajo.
 - Scripts de base de datos (`.sql` idempotentes) en el mismo PR que el código que los necesita.
 
+#### 13.4.1 Nombre de ramas (igual en front y back)
+
+Formato: `tipo/nombre-tarea`.
+
+- `features/nombre-tarea`: funcionalidad nueva.
+- `bugs/nombre-tarea`: corrección de un error encontrado en desarrollo o pruebas.
+- `hotfix/nombre-tarea`: corrección urgente sobre producción.
+- Puede haber otros tipos: siguen el mismo formato `tipo/nombre-tarea`. Antes de inventar uno, mirar los
+  que ya usa el repo (`git branch -r`).
+
+Reglas: minúsculas, palabras separadas por guiones, sin espacios ni tildes, corto y descriptivo
+(ejemplo: `features/login-con-pin`). Si el repo ya tiene otra convención, se sigue la del repo. Si la skill
+externa `git-workflow-and-versioning` propone otro formato, gana este (§14.9).
+
 ### 13.5 No ampliar el alcance
 
 - Resolver exactamente lo pedido, aunque la skill prefiera otro enfoque: hacerlo y proponer la
