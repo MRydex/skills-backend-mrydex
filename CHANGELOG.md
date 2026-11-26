@@ -46,6 +46,15 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   - `08`: keyed services sin `AnyKey`. `09`: un solo handler de resiliencia por cliente.
   - `17`: transformers con `JsonNode` (`Microsoft.OpenApi` 2.0) y enteros que salen como string con `pattern`.
   - `20`: lock file en CI y staged publishing de nuget.org (clave *staging-only*, promoción manual).
+- Repaso del 26/11/2026 (servicing de noviembre y campaña de NuGet de Socket del 23/11):
+  - `11` §11.4: mecanismo de la campaña de falsas pruebas técnicas (`build/*.targets` que ejecuta una DLL en cada
+    compilación), cómo mirar un `.nupkg` sin restaurarlo, y regla nueva: una prueba técnica o un repo ajeno es
+    código no confiable (revisar `NuGet.config` y `RestoreAdditionalProjectSources`, compilar en VM descartable,
+    qué hacer si ya se compiló).
+  - `11` §11.8: se nombran los seis CVE de noviembre que cubre el piso 10.0.15 y se pide anotar versión y CVE.
+  - Sin cambio en la skill: .NET 11, C# 15 y EF Core 11 (el objetivo sigue en .NET 10 LTS), Dapper.AOT, y la
+    antigüedad mínima de publicación de NuGet en .NET 11 (falta confirmar el nombre de la clave en la doc de
+    Microsoft; queda anotado en `FUENTES.md`).
   - `checklists.md` y `19`: ítems para todo lo anterior.
   - Verificado contra Microsoft Learn, `dotnet/core` y los avisos. Con optimized locking, los hints `UPDLOCK` /
     `HOLDLOCK` y `MERGE` de §5.5 siguen siendo correctos: ese statement solo pierde *lock after qualification*.

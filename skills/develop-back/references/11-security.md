@@ -128,7 +128,9 @@ El agente audita los paquetes NuGet por su cuenta. No espera al dependency-check
 
 **El nombre de un paquete no se escribe de memoria.** Antes de un `dotnet add package <paquete>` propuesto por el agente: `dotnet package search <paquete> --exact-match --verbosity detailed` (o su página en nuget.org) y confirmar que es el paquete buscado (owner y repo esperados). Un nombre inventado por el modelo puede no existir o estar registrado por un atacante. Lo mismo vale para versiones y flags: se leen del `*.csproj`, `Directory.Packages.props` o la doc, no se suponen. Tampoco se agrega un paquete por un nombre sugerido en un README, un tutorial o código generado por IA sin esa búsqueda.
 
-**Un paquete nuevo es código que puede correr en el build.** Además del owner y el repo: confirmar que el contenido del `.nupkg` coincide con el repo enlazado (en `Sicoob.Sdk`, mayo 2026, no coincidía), y revisar antes de agregarlo todo paquete que trae `build/*.props`, `build/*.targets` o analyzers: se ejecutan al compilar. Campañas de 2026 contra .NET: paquetes que roban datos de ASP.NET Identity (`NCryptYo`, `DOMOAuth2_`, `IRAOAuth2.0`, `SimpleWriter_`), certificados PFX (`Sicoob.Sdk`) y 13 paquetes `WinUI.*` / analyzers de MSBuild repartidos como falsas pruebas técnicas laborales.
+**Un paquete nuevo es código que puede correr en el build.** Además del owner y el repo: confirmar que el contenido del `.nupkg` coincide con el repo enlazado (en `Sicoob.Sdk`, mayo 2026, no coincidía), y revisar antes de agregarlo todo paquete que trae `build/*.props`, `build/*.targets` o analyzers: se ejecutan al compilar. Campañas de 2026 contra .NET: paquetes que roban datos de ASP.NET Identity (`NCryptYo`, `DOMOAuth2_`, `IRAOAuth2.0`, `SimpleWriter_`), certificados PFX (`Sicoob.Sdk`) y 13 paquetes `WinUI.*` / analyzers de MSBuild repartidos como falsas pruebas técnicas laborales (Socket, 23/11/2026): un `build/*.targets` del paquete ejecuta una DLL después de cada compilación, sin correr la app. Un `.targets` de un paquete desconocido con `<Exec>` o descargas (`DownloadFile`): no se agrega. Para mirarlo sin restaurar: `unzip -p <paquete>.nupkg 'build/*' 'buildTransitive/*' | grep -nE '<Exec|DownloadFile|<UsingTask'`.
+
+**Una prueba técnica o un repo ajeno es código no confiable.** Compilar ya ejecuta código: antes de `dotnet restore` o `dotnet build`, leer `NuGet.config` (feeds), buscar `RestoreAdditionalProjectSources` y `<Exec` en `*.csproj`, `*.props` y `*.targets`, y desconfiar de ejecutables con nombre de proyecto (en esa campaña, `lib/env/axios.csproj`). Se compila en una VM o contenedor descartable, sin credenciales ni secretos del equipo. Si ya se compiló en una máquina con credenciales: aislarla, rotar los secretos desde otro equipo y buscar los indicadores del aviso (en esa campaña: `%LOCALAPPDATA%\osk\OskSupport.dll` y `%TEMP%\Launcher.exe`).
 
 **Cuándo:**
 - Al empezar a trabajar en un proyecto.
@@ -447,7 +449,7 @@ builder.Services.AddAuthorizationBuilder()
 
 ### 11.8 Avisos de seguridad vigentes (mínimos con parche)
 
-Repasado el 2026-11-25 (`FUENTES.md`). Es un piso, no la lista completa: la auditoría de §11.4 manda. Una versión por
+Repasado el 2026-11-26 (`FUENTES.md`). Es un piso, no la lista completa: la auditoría de §11.4 manda. Una versión por
 debajo de un mínimo que aplica al repo es hallazgo `High` (bloquea la entrega). Actualizar el servidor no alcanza para
 apps self-contained ni contenedores: rebuild y redeploy.
 
@@ -467,5 +469,7 @@ apps self-contained ni contenedores: rebuild y redeploy.
 | CVE-2026-45591 (DoS) | `Microsoft.AspNetCore.SignalR.Protocols.MessagePack` | Runtime al mínimo y, si se usa ese protocolo, también el paquete. |
 | CVE-2024-32655 (inyección SQL por tamaño de mensaje del protocolo) | `Npgsql` | 8.0.3 o superior (7.0.7, 6.0.11, 5.0.18, 4.1.13, 4.0.14 en sus líneas). Parametrizar no lo evita. |
 
-El resto de los avisos de noviembre de 2026 del runtime y de ASP.NET Core quedan cubiertos con el runtime al mínimo
-(detalle en `release-notes/10.0/cve.md` del repo `dotnet/core`).
+El resto de los avisos de noviembre de 2026 del runtime y de ASP.NET Core quedan cubiertos con el runtime al mínimo:
+CVE-2026-105544, CVE-2026-114155 y CVE-2026-70175 (elevación de privilegios), CVE-2026-109475 y CVE-2026-114149 (DoS)
+y CVE-2026-109476 (divulgación de información). Severidad y versión corregida de cada uno: `release-notes/10.0/cve.md`
+del repo `dotnet/core`. Al anotar el piso en un reporte o un PR se escribe la versión y el CVE, no "parche de noviembre".
