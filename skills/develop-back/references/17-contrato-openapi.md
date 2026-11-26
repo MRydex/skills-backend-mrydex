@@ -22,6 +22,9 @@ if (!app.Environment.IsProduction())      // la condición que el repo ya usa (�
 
 - Con Swashbuckle ya instalado: `AddSwaggerGen` / `UseSwagger` / `UseSwaggerUI` igual, con la misma condición de ambiente (documento en `/swagger/v1/swagger.json`). No migrar.
 - Con versionado por URL (§0, `Asp.Versioning.Mvc`): un documento por versión (`AddOpenApi("v1")`, `AddOpenApi("v2")`), no uno mezclado.
+- Transformers en .NET 10 (`Microsoft.OpenApi` 2.0): los valores son `JsonNode`, no `OpenApiAny`
+  (`schema.Example = new JsonObject { ["total"] = 0 };`), y `Nullable` salió de `OpenApiSchema`: la nulabilidad es
+  `JsonSchemaType.Null` dentro de `schema.Type`. Un transformer escrito para .NET 9 no compila sin ese cambio.
 - Un endpoint que debe quedar fuera del documento: `[ApiExplorerSettings(IgnoreApi = true)]` (controllers) o `.ExcludeFromDescription()` (minimal API).
 
 ### 17.2 Respuestas declaradas
@@ -70,6 +73,10 @@ app.MapGet("/items/{id}", GetItem).WithName("GetItem");   // minimal API
 - **Nullable reference types** (`Nullable` habilitado, §0): `string?` sale como `nullable` en el schema. La nulabilidad **no** marca un campo como requerido: el schema lo marca requerido solo con `required` (C# 11), `[Required]` o `[JsonRequired]`. Qué es obligatorio lo define el validador (§6) y el tipo (records posicionales, §4); si el front necesita `required` en el schema, usá uno de esos tres, solo si el repo ya los usa. Con Swashbuckle, tratar el `string` no nullable como requerido exige `NonNullableReferenceTypesAsRequired()`.
 - Un campo que pasa de nullable a no nullable (o al revés) es cambio de contrato (§17.8).
 - `decimal` para importes (§2): el schema lo muestra como `number`; si el front necesita escala o moneda, dejala en el comentario XML.
+- `int` / `long` en OpenAPI 3.1: con el default web (`NumberHandling = AllowReadingFromString`) pueden salir como
+  string con `pattern` en vez de `type: integer`. Avisar al front si genera su cliente. No poner
+  `NumberHandling = Strict` para "arreglar" el schema sin acordarlo: rechaza a los clientes que hoy mandan números
+  como string (§17.8).
 - Sin tipos anónimos, `object` ni `dynamic` en respuestas: el schema queda vacío.
 
 ### 17.6 Fechas

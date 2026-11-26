@@ -21,6 +21,15 @@ public class CreateItemValidator : AbstractValidator<CreateItemRequest>
 ```
 
 - Todo request con input de usuario tiene validador. Sin data annotations en requests (en Options se permiten, §8).
+- Una sola fuente de validación. `AddValidation()` de .NET 10 (`Microsoft.Extensions.Validation`, DataAnnotations por source generator) aplica a Minimal APIs, no a MVC: con controllers + FluentValidation no cambia nada. Repo con Minimal APIs que ya valida con DataAnnotations: `builder.Services.AddValidation()`, llamado en cada ensamblado que define endpoints (el generador solo ve los tipos del suyo). No mezclarlo con FluentValidation en el mismo endpoint ni reemplazar uno por otro sin pedido.
+- Campos desconocidos en el JSON: ni FluentValidation ni `AddValidation()` los detectan (`System.Text.Json` los ignora). En una API nueva, `UnmappedMemberHandling = Disallow` para que un campo inesperado dé 400; en una API existente cambia el contrato: coordinar antes con el front (§17.8).
+
+  ```csharp
+  builder.Services.AddControllers().AddJsonOptions(o =>
+      o.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
+  builder.Services.ConfigureHttpJsonOptions(o =>      // solo si el repo tiene Minimal APIs
+      o.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
+  ```
 - Validar forma (requerido, largo, formato, rango, enum válido) en el validador; reglas que necesitan la base, en el handler con `SystemValidationException`.
 - CBU/CVU, CUIT, montos y fechas: validadores reutilizables en `Domain/Validators/`.
 - Paginado: `PageSize` con máximo (ej. 100) siempre. Nunca listados sin límite.

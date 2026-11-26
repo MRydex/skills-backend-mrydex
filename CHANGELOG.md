@@ -26,12 +26,51 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 - `13` §13.4.1: convención de nombre de ramas, igual en front y back: `features/`, `bugs/` y `hotfix/` +
   `nombre-tarea` en minúsculas con guiones. La lista no es cerrada: otro tipo sigue el mismo formato, mirando
   antes los que ya usa el repo. Gana la convención del repo si ya tiene otra.
+- Repaso de backend .NET, datos y seguridad del 25/11/2026 (.NET 10 y 11, EF Core 10, NuGet, avisos de noviembre).
+  Tres filas nuevas en `FUENTES.md`: PostgreSQL y SQL Server, NuGet.org y OWASP API Security Top 10.
+  - `11` §11.8 (nueva): avisos vigentes y versiones mínimas con parche. Runtime 10.0.15, `Microsoft.Data.SqlClient`
+    6.1.7 / 7.0.3 (CVE-2026-62903), `Npgsql` 8.0.3, `Http.Connections`, `System.Formats.Cbor`, HttpSys y los paquetes
+    de SignalR. `SKILL.md` §0, `16` y `19` remiten ahí.
+  - `11` §11.4: un paquete nuevo es código que corre en el build (contenido del `.nupkg` contra su repo,
+    `build/*.targets`, analyzers); NuGet Audit con lock file y avisos altos y críticos como error;
+    `Microsoft.Data.SqlClient` con versión explícita; runtime sin parche; `dotnet nuget why`. §11.6: barrido de
+    inyección SQL con `rg`. §11.2 y §11.3: 401/403 sin redirección con cookies y métricas de auth de .NET 10.
+  - `15`: cambios de EF Core 10. `Application Name` explícito con EF + Dapper, recompilación de planes por los
+    nombres de parámetro nuevos, modos de `Contains` por consulta, complex types para JSON, analyzer de `FromSqlRaw`,
+    y qué trae la primera migración (renombres, tipo `json`, default constraints, sin transacción única).
+  - `05`: `HybridCache` con tags y expiración L1 / L2; columnas de `INCLUDE` y ejemplo en SQL Server y PostgreSQL;
+    PostgreSQL 18 (skip scan, `uuidv7()`, SCRAM); optimized locking de SQL Server 2025 (se propone, no se activa);
+    Dapper.AOT solo con motivo.
+  - `06`: `AddValidation()` no aplica a MVC y no se mezcla con FluentValidation; `UnmappedMemberHandling.Disallow`
+    en APIs nuevas. `07` y `10`: en .NET 10 cada `IExceptionHandler` loguea, el middleware ya no lo hace.
+  - `08`: keyed services sin `AnyKey`. `09`: un solo handler de resiliencia por cliente.
+  - `17`: transformers con `JsonNode` (`Microsoft.OpenApi` 2.0) y enteros que salen como string con `pattern`.
+  - `20`: lock file en CI y staged publishing de nuget.org (clave *staging-only*, promoción manual).
+  - `checklists.md` y `19`: ítems para todo lo anterior.
+  - Verificado contra Microsoft Learn, `dotnet/core` y los avisos. Con optimized locking, los hints `UPDLOCK` /
+    `HOLDLOCK` y `MERGE` de §5.5 siguen siendo correctos: ese statement solo pierde *lock after qualification*.
+- Repaso del resto de `FUENTES.md` (25/11/2026), todas las filas con fecha:
+  - `09` y `SKILL.md` §0: `Microsoft.Extensions.Http.Polly` está deprecado en nuget.org; el repo que lo usa lo
+    mantiene, se reporta y se propone `Microsoft.Extensions.Http.Resilience`.
+  - `12`: MediatR y AutoMapper piden license key comercial y AutoMapper tiene versiones con advisory alto.
+  - `20` §20.3: tareas de SonarCloud `@4` (`@3` deprecada, `@1` y `@2` eliminadas), `JAVA_HOME_21_X64`.
+  - `11` §11.2: CORS no cubre el handshake de WebSocket (modern-web-guidance v1.0.2).
+  - `14` §14.3.2: el instalador agrega `graphify` a `permissions.allow` (ya estaba en el front).
+  - `14`, alineado con el repo hermano: Codex lista los hilos con `/subagents` y su `sandbox_mode` por archivo no
+    pisa el del padre; advisor nativo también en Claude Platform on AWS y Claude Models on Google Cloud (Claude Code
+    2.1.300), consentimiento de Fable con usage credits y matriz de niveles por modelo; Antigravity CLI reemplaza a
+    Gemini CLI en el tier gratuito; código en el chat solo como diff.
+    El nivel "Fuerte" pasa a "Orquestador": es el modelo de la sesión, no uno fijo.
+  - `02`: ejemplo de `BannedApiAnalyzers` en 5.6.0 (probado: `RS0030` como error en un proyecto `net10.0`).
 - `16` §16.6 y `checklists.md`: en IIS, subir `maxQueryString` y `maxUrl` en `requestFiltering` para que el
   `access_token` de SignalR en la query no corte la conexión con `404.15`. Las dos entradas salen de comparar la
   skill con el doc "Desarrollo - Buenas Practicas" (24/11/2026).
 
 ### Cambiado
 
+- Exploración en Claude Code: `Explore` (Haiku) por defecto, también para "cómo funciona X"; `investigador` queda para
+  docs web, auth o seguridad y respuestas incompletas. Regla nueva: no releer lo que cubrió el subagente. `14` §14.3.4,
+  medición real 3: flujo entre servicios $0.98 → $0.42, acierto 23.7/24 → 23.3/24.
 - `11` §11.4 y templates: con vulnerabilidades de `dotnet list package --vulnerable` se corrige siempre, no solo
   cuando la tarea toca dependencias: subir a la versión con fix dentro de la misma mayor y fijar el transitivo
   vulnerable como referencia directa o en `Directory.Packages.props`. Versión mayor se sigue preguntando antes.
@@ -39,6 +78,9 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
 
 ### Corregido
 
+- graphify exige Python 3.11.5 a 3.14 (PyPI `graphifyy` 0.9.120): `README.md`, el aviso de `bin/cli.js` y `14` decían
+  "3.10+".
+- `11` §11.4: el feed Zero Wire pesa unos 130 KB, no 68.
 - `07`: el ejemplo de `InvalidModelStateResponseFactory` devolvía el mensaje de MVC, que ante un JSON mal formado
   trae el nombre completo del tipo C#, y usaba un constructor de `SystemValidationException` con dos argumentos que
   la convención no define. Ahora lanza un mensaje fijo (`ErrorMessage.RequestInvalid`). Probado con curl en .NET 10.

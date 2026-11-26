@@ -350,7 +350,7 @@ function extractZip(archivePath, destDir) {
 function bootstrapUv() {
   const target = UV_TARGETS[`${process.platform}-${process.arch}`];
   if (!target) {
-    console.log(`  ${colors.yellow}⚠${colors.reset} uv no publica binario para ${process.platform}-${process.arch}: instalar Python 3.10+ con pip`);
+    console.log(`  ${colors.yellow}⚠${colors.reset} uv no publica binario para ${process.platform}-${process.arch}: instalar Python 3.11.5 a 3.14 con pip`);
     return false;
   }
   const isWindows = process.platform === 'win32';

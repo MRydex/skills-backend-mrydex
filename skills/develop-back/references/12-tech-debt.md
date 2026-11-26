@@ -20,7 +20,7 @@ con el mismo defecto; arreglarlos solo si el usuario lo pide o si la tarea ya to
 - Constantes en `struct` en vez de `static class`; typos en nombres de métodos, clases y carpetas.
 - `ConfigureAwait(false)` aislado en algunos clientes; `async/await` innecesario en passthrough de decorators.
 - Claves de `appsettings` con espacios o typos.
-- MediatR / AutoMapper / Mapster: donde ya están se respetan (el código nuevo de esa feature los usa igual) y no se agregan a un repo que no los usa. Sin migrar perfiles existentes; en un repo sin mapper, proyección directa al `Response` (§1.2).
+- MediatR / AutoMapper / Mapster: donde ya están se respetan (el código nuevo de esa feature los usa igual) y no se agregan a un repo que no los usa. Sin migrar perfiles existentes; en un repo sin mapper, proyección directa al `Response` (§1.2). Las versiones actuales de MediatR y AutoMapper piden license key comercial, y varias versiones de AutoMapper tienen un advisory de severidad alta: en un repo que los usa, la auditoría de dependencias (§11.4) lo reporta; subir de versión mayor puede cambiar la licencia, se pregunta antes.
 - Validación con `new XValidator().Validate(request)` dentro del handler en vez de `IValidator<T>` inyectado + `Guard`.
 - Constructores clásicos con campos `_x` mezclados con primary constructors; requests `class` con `init` en vez de `record`.
 - `ProblemDetails` propio que duplica el de ASP.NET; `WebExceptionPresenter` por reflexión en vez de `IExceptionHandler`.

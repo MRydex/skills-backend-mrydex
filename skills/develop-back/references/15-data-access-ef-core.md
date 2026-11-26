@@ -30,6 +30,16 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
   `GroupJoin` + `SelectMany` + `DefaultIfEmpty`; `ExecuteUpdateAsync` acepta un lambda común (setters
   condicionales sin armar expresiones); filtros de consulta con nombre (`HasQueryFilter("Nombre", ...)`)
   para desactivar uno solo con `IgnoreQueryFilters(["Nombre"])`.
+- EF Core 10 cambia SQL y conexión respecto de 8 y 9. Al subir de versión (solo con pedido, [19](./19-migracion-dotnet.md)):
+  - **`Application Name` explícito** en la connection string si el repo mezcla EF con Dapper o ADO.NET, y una sola
+    string para todos. EF 10 lo agrega cuando falta (no pisa el que está): con strings distintas SqlClient usa otro
+    pool y un `TransactionScope` compartido puede escalar a transacción distribuida.
+  - Los parámetros pasan a llamarse `@city` (antes `@__city_0`): el deploy recompila casi todos los planes cacheados
+    (pico de CPU en la base). Avisarlo en el reporte y desplegar fuera de hora pico. Rompe tests e interceptors que
+    leen `CommandText` o `ParameterName`.
+  - `Contains` sobre una colección se traduce distinto y puede haber regresiones (§15.3).
+  - `Microsoft.Data.SqlClient` con versión explícita (§11.4, mínimos en §11.8).
+  - Migraciones: §15.7.
 - `DbContext` en `Infrastructure/Persistence/<Nombre>DbContext.cs`, `internal`, con primary
   constructor (`(DbContextOptions<XDbContext> options) : DbContext(options)`).
 - Registro en `InfrastructureDependency.cs` con `AddDbContext<XDbContext>` (lifetime `Scoped`).
@@ -79,6 +89,14 @@ internal class ItemConfiguration : IEntityTypeConfiguration<Item>
   `HasPrecision(p, s)` siempre.
 - Las entidades no salen del repositorio hacia el controller: el handler devuelve DTOs ([04](./04-mediator-handlers.md)).
 - Enums: `HasConversion<string>()` solo si la columna ya es texto; si no, el valor numérico.
+- JSON y table splitting en código nuevo sobre EF 10: complex types (`ComplexProperty(...).ToJson()`); owned entities
+  solo si el repo ya las usa. `ExecuteUpdateAsync` sobre JSON funciona con complex types, no con `OwnsOne(...).ToJson()`:
+
+  ```csharp
+  modelBuilder.Entity<Blog>().ComplexProperty(b => b.Details, d => d.ToJson());
+  await dbContext.Blogs.ExecuteUpdateAsync(s =>
+      s.SetProperty(b => b.Details.Views, b => b.Details.Views + 1), cancellationToken);
+  ```
 
 ### 15.3 Consultas LINQ
 
@@ -143,6 +161,15 @@ internal class ItemQueryRepository(AppDbContext dbContext) : IItemQueryRepositor
 - **N+1 prohibido**: nada de consultas dentro de un `foreach`. Usar `Select` con navegaciones
   (EF arma el join), `Include` solo cuando se necesita la entidad para modificarla, y `Contains`
   sobre una lista de ids (`ids.Contains(x.Id)`) para lotes.
+- `Contains` con una lista en EF 10: N parámetros escalares con padding (en 8 y 9, un array JSON + `OPENJSON`). En
+  listas chicas se deja el default. Si tras subir de versión una consulta con lista grande empeora, se elige el modo
+  **en esa consulta** (`EF.Parameter(ids)`: un parámetro JSON como antes; `EF.Constant(ids)`: valores inline;
+  `EF.MultipleParameters(ids)`) y se mide con `ToQueryString()` y el plan real. No cambiar el modo global
+  (`UseParameterizedCollectionMode`) sin medir.
+
+  ```csharp
+  .Where(x => EF.Parameter(ids).Contains(x.Id))
+  ```
 - Varias colecciones incluidas en la misma consulta ⇒ `AsSplitQuery()` para evitar el producto
   cartesiano.
 - Cuidado con la evaluación en cliente: métodos propios dentro de `Where` / `Select` no se traducen.
@@ -221,6 +248,9 @@ dbContext.Database.ExecuteSqlRaw($"DELETE FROM dbo.Item WHERE Code = '{code}'");
   `@p0`. `FromSqlRaw` / `ExecuteSqlRaw` solo con texto constante y `SqlParameter`. Nunca concatenar
   input (§11). Tipo y largo cuando el índice importa (equivalente a `DbString` de Dapper): interpolar
   un `SqlParameter` con `SqlDbType` y `Size`, como `codeParam` arriba.
+- EF 10 trae un analyzer que avisa por concatenación en `FromSqlRaw` / `ExecuteSqlRaw`: se trata como error y se
+  corrige, no se suprime. Datos sensibles no van por `EF.Constant(...)`: quedan inline en el SQL (EF 10 los redacta
+  en sus logs como `?`, pero viajan en el texto de la consulta).
 - Resultado: entidad mapeada ⇒ `dbContext.Items.FromSql(...)` + `AsNoTracking()`. `Response` sin
   mapear ⇒ `Database.SqlQuery<ItemResponse>(...)` (EF Core 8+), columnas con el nombre de las
   propiedades, como `QueryAsync<ItemResponse>` de Dapper (§1.2). Escalar ⇒ `SqlQuery<int>`; si se le
@@ -350,6 +380,12 @@ internal class CreateItemHandler(IValidator<CreateItemRequest> validator, IUnitO
   `PostgresException.SqlState == "23505"`.
 - Revisar el SQL generado antes de commitear: renombres que EF interpreta como drop + add pierden
   datos. Migración destructiva (drop de columna o tabla) ⇒ preguntar antes (§13.6).
+- Primera migración después de subir a EF 10: leer el script completo. Puede traer cambios que nadie pidió: columnas
+  de complex types renombradas al path completo (`Complex_NestedComplex_Property`), `nvarchar(max)` con JSON que pasa
+  a `json` (solo con `UseAzureSql` o compatibilidad 170 o superior; `UseSqlServer` on-prem usa 150 y no cambia) y
+  todos los default constraints renombrados si se activó `UseNamedDefaultConstraints`. No activar compatibilidad 170
+  ni `UseNamedDefaultConstraints` sin pedido. EF 10 ya no envuelve todas las migraciones en una sola transacción
+  (EF 9 sí): una falla a mitad deja aplicadas las anteriores.
 - Rollback: `Down()` implementado y probado, o script de vuelta en el PR.
 - Base sin migraciones de EF (tablas creadas por scripts): modelo con `ToTable` y sin migraciones,
   scripts `.sql` como en Dapper. No introducir migraciones sobre una base existente sin pedido.
@@ -375,3 +411,5 @@ Aplica a cualquier colección, con EF o sin EF.
 - Consultas LINQ no triviales de un repositorio: verificar con `ToQueryString()`. Test de integración
   contra una base SQL Server de test solo si el usuario lo pide, como los E2E de §10.2; nunca con el
   proveedor `InMemory` (no traduce SQL ni respeta restricciones).
+- Un test que compara el SQL o los nombres de parámetros textuales se rompe al subir a EF 10 (`@__city_0` → `@city`,
+  §15.1): se actualiza el valor esperado, no se borra el test.

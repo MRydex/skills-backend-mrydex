@@ -91,7 +91,7 @@ while (await reader.ReadAsync(cancellationToken)) { /* mapear explícito */ }
 ### 18.4 Scripts de SP en el repo
 
 - Cada SP es un `.sql` versionado en el repo (ej. `db/procedures/dbo.Order_GetByCode.sql`), un SP por archivo, nombre del archivo = nombre del objeto. Si el repo ya tiene otra carpeta, se usa esa.
-- **`CREATE OR ALTER PROCEDURE`**: el script es idempotente, se puede correr dos veces. Cambios de tabla o índice, con `IF NOT EXISTS` (§5.2).
+- **`CREATE OR ALTER PROCEDURE`**: el script es idempotente, se puede correr dos veces. Cambios de tabla o índice, con `IF NOT EXISTS` (§5.2). Diseño del índice (claves, `INCLUDE`, plan real): §5.4; aislamiento y optimized locking de SQL Server 2025: §5.5.
 - El PR incluye el script de rollback (el SP anterior) cuando cambia la base (§5.2, §13.3: DDL es riesgo alto).
 - Nada de ejecutar scripts de DDL desde la app al arrancar.
 - Convención de nombre: la que ya usa la base (`Entidad_Accion`, `usp_...`). Sin el prefijo `sp_`: SQL Server lo busca primero en `master`.

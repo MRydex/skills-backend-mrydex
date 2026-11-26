@@ -56,6 +56,7 @@ Paquetes NuGet propios, pipelines de Azure DevOps, Dockerfile de una API y cambi
 - `nuget.config` **sin credenciales**: ni usuario, ni token, ni `ClearTextPassword`. Solo URLs de feeds.
 - Local: el credential provider de Azure Artifacts (`dotnet restore --interactive`) pide el login. En CI: `NuGetAuthenticate@1` antes del restore (§20.3).
 - `<clear />` y fuentes explícitas; con **`packageSourceMapping`** si hay varios feeds, para que los paquetes `Corp.*` solo salgan del feed privado (mitiga dependency confusion, §11.4).
+- Lock file (`packages.lock.json` versionado) y `RestoreLockedMode` en CI, más NuGet Audit con los avisos de severidad alta y crítica como error: bloque de `Directory.Build.props` en §11.4.
 - El agente no lee `nuget.config` de usuario ni tokens (§11.2): pedí el valor si hace falta.
 
 ### 20.3 Pipeline de Azure DevOps (YAML)
@@ -125,6 +126,9 @@ stages:
 - Orden: restore → build `--no-restore` → test `--no-build` → publish `--no-build`. Cada paso reutiliza el anterior; no se compila dos veces.
 - **Cobertura**: `--collect:"XPlat Code Coverage"` y publicar el resultado con `PublishCodeCoverageResults@2` si el repo ya lo muestra. Sin umbral inventado; el que exista en el repo se respeta.
 - **SonarCloud**: si el repo ya lo tiene, `SonarCloudPrepare` antes del build, `SonarCloudAnalyze` después del test y `SonarCloudPublish`; con el quality gate como condición de merge (§11.2). Se agrega solo si el proyecto ya lo usa.
+  Las tareas de SonarCloud `@1` y `@2` ya no existen y la `@3` está deprecada: un pipeline nuevo usa `@4`
+  (`scannerMode: dotnet`) con `jdkversion: JAVA_HOME_21_X64` en `SonarCloudAnalyze` (Java 17 ya no se soporta). Un repo
+  en `@3` se reporta; subirla es otro cambio.
 - **Un job de pipeline que falla corta el despliegue**: nunca `continueOnError: true` en build, test o análisis para "que pase" (§13.7).
 - Versión de cada tarea (`@2`, `@3`...): la que el repo ya usa. Subirla es otro cambio.
 
@@ -152,6 +156,16 @@ stages:
 
 - El push solo desde la rama principal (o desde un tag de release), nunca desde ramas de feature.
 - Una versión publicada **no se sobrescribe ni se borra**: se corrige con una versión nueva.
+- **Paquete público en nuget.org: staged publishing** (desde el 17/11/2026; el feed privado de Azure Artifacts no lo
+  usa). El pipeline sube a staging con una clave API *staging-only* o Trusted Publishing (credenciales cortas), y la
+  promoción se hace a mano en la web de nuget.org (2FA): no existe comando CLI para promover, no planearlo en el
+  pipeline. El staging expira si no se promueve y la promoción de un grupo no es atómica. Staging no es un feed
+  privado: el paquete se prueba con un feed local (§20.1). Requiere SDK .NET 11 RC2 o superior:
+
+  ```bash
+  dotnet package stage push ./artifacts/Corp.Extensions.Http.1.4.0.nupkg \
+    --source https://api.nuget.org/v3/index.json --api-key "$NUGET_STAGING_KEY" --group release-1-4
+  ```
 
 ### 20.5 Ambientes, aprobaciones y secretos
 
@@ -231,6 +245,8 @@ Es riesgo alto (§13.3): un error deja a todos los equipos sin actualizaciones. 
 
 - [ ] Paquete: `PackageId`, versión desde CI (SemVer), README, XML docs, SourceLink; breaking change ⇒ mayor.
 - [ ] `nuget.config` sin credenciales; `NuGetAuthenticate@1` en CI; `packageSourceMapping` si hay varios feeds.
+- [ ] Lock file versionado y modo bloqueado en CI; NuGet Audit sin apagar ni suprimir sin justificar (§11.4).
+- [ ] Paquete en nuget.org: clave *staging-only* en el pipeline y promoción manual (§20.4).
 - [ ] Pipeline: `UseDotNet@2` con la versión del TFM, restore → build → test → publish con `--no-restore` / `--no-build`.
 - [ ] Cobertura y SonarCloud solo si el repo ya los usa; sin `continueOnError` para tapar fallas.
 - [ ] Mismo artefacto por ambiente, aprobaciones en Prod, secretos en variable group o Key Vault.

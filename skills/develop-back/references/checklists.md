@@ -84,6 +84,8 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Tabla editable por varios usuarios: `rowVersion` en el Response, vuelve en el PUT / PATCH, 409 si no coincide (§5.5, §15.5).
 - [ ] Sin llamadas HTTP ni esperas con una transacción abierta; SP dentro del `IUnitOfWork` hace `ROLLBACK` solo si abrió la transacción.
 - [ ] Script SQL idempotente y con rollback si cambia la base.
+- [ ] Índice nuevo: igualdad antes que rango, `INCLUDE` para lo que solo se proyecta, validado con el plan real; no uno cubriente por consulta. (§5.4)
+- [ ] `HybridCache`: identidad en la clave si el dato es por usuario o tenant, L1 más corta que L2, sin `IMemoryCache` a mano para la misma entidad. (§5.3)
 
 ### EF Core / LINQ ([15](./15-data-access-ef-core.md))
 
@@ -93,11 +95,15 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Un `SaveChangesAsync` por handler vía `IUnitOfWork`; masivos con `ExecuteUpdateAsync` / `ExecuteDeleteAsync`.
 - [ ] Sin `dbContext.Update(request)`; `DbUpdateException` / concurrencia mapeadas a excepciones tipadas.
 - [ ] Migración con script `--idempotent` en el PR; nada de `Database.Migrate()` al arrancar.
+- [ ] Subida a EF Core 10: `Application Name` explícito si conviven EF y Dapper, script de la primera migración leído entero (renombres, `json`, default constraints), aviso de recompilación de planes en el reporte. (§15.1, §15.7)
+- [ ] `Contains` con lista grande: modo elegido en esa consulta y medido, no el global. Warnings del analyzer de `FromSqlRaw` / `ExecuteSqlRaw` resueltos, no suprimidos. (§15.3, §15.4)
 - [ ] `DbConnectionInterceptor` con los cuatro overrides (sync y async); cada `DbContext` con las options de su base. (§15.5)
 
 ### Errores, config e integraciones ([07](./07-errors-responses.md), [08](./08-configuration-di-secrets.md), [09](./09-http-integrations.md))
 
 - [ ] Errores solo por excepción tipada → `ProblemDetails`; excepción nueva con handler y entrada `.resx`.
+- [ ] Cada `IExceptionHandler` loguea antes de devolver `true` (en .NET 10 el middleware ya no lo hace). (§7)
+- [ ] Un solo handler de resiliencia por `HttpClient`; keyed services resueltos con clave concreta, sin `AnyKey`. (§9, §8)
 - [ ] Retry con jitter, `Retry-After` y timeout por intento; sin reintentar `POST` sin idempotency key.
 - [ ] Workers con un scope por iteración o por mensaje; sin fire-and-forget en requests; jobs que toman su trabajo de forma atómica (2 instancias no lo duplican).
 - [ ] Singletons y `static` con estructuras concurrentes (`GetOrAdd` con `Lazy`); sin `Dictionary` / `List` mutables compartidos.
@@ -123,6 +129,9 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Refresh token: rotación atómica, gracia corta y revocación de la familia ante reuso. Subidas con límite de body y streaming.
 - [ ] Si aplica §11.5, cambio revisado con `security-audit` en modo guía, o avisado que no está instalada.
 - [ ] Auditoría de dependencias §11.4 corrida después del último cambio de paquetes; hallazgos reportados.
+- [ ] Runtime e imagen base en o sobre el mínimo de §11.8 (self-contained y contenedores reconstruidos); `Microsoft.Data.SqlClient`, `Npgsql` y paquetes de SignalR referenciados, en versión parcheada. (§11.4, §11.8)
+- [ ] Paquete nuevo: nombre confirmado con `dotnet package search --exact-match`, contenido que coincide con su repo, sin `build/*.targets` ni analyzers sin revisar. NuGet Audit sin apagar. (§11.4)
+- [ ] API nueva: campos JSON desconocidos rechazados (`UnmappedMemberHandling.Disallow`). (§6)
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).
 - [ ] JWT con audiencia validada contra `ValidAudiences` explícitas, nunca `ValidateAudience = false`. (§11.2)
 - [ ] Quién actúa sale solo del token, nunca del body, la query ni la ruta. (§11.1)
@@ -142,6 +151,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] (si aplica, [18](./18-stored-procedures-sql.md)) Script `CREATE OR ALTER` versionado con rollback; `SET NOCOUNT ON`, `SET XACT_ABORT ON`, `TRY/CATCH` con `THROW`; `GRANT EXECUTE` mínimo. (§18.4, §18.5, §18.8)
 - [ ] (si aplica, [19](./19-migracion-dotnet.md)) Migración pedida por el usuario: un commit por paso, build y test verdes, sin refactors mezclados, `Newtonsoft` conservado si el contrato lo exige. (§19)
 - [ ] (si aplica, [20](./20-librerias-nuget-ci.md)) Paquete con versión SemVer desde CI, breaking change = mayor; `nuget.config` sin credenciales. (§20.1, §20.2)
+- [ ] (si aplica, [20](./20-librerias-nuget-ci.md)) Lock file y modo bloqueado en CI; paquete en nuget.org con clave *staging-only* y promoción manual. (§20.2, §20.4)
 - [ ] (si aplica, [20](./20-librerias-nuget-ci.md)) Pipeline con `--no-restore` / `--no-build`, secretos en variable group o Key Vault (nunca en YAML), aprobaciones en Prod; Dockerfile multi-stage con `USER $APP_UID`. (§20.3, §20.5, §20.6)
 - [ ] (si aplica, [11](./11-security.md)) JWT con `ClockSkew` chico y `MapInboundClaims` revisado; policy por scope/rol por endpoint; CORS con orígenes explícitos. (§11.7)
 - [ ] (si aplica, [11](./11-security.md)) IdP propio con PKCE y redirect URIs exactas; LDAP con LDAPS y filtros escapados; migración de auth con ambos esquemas en paralelo antes del corte. (§11.7)
@@ -155,6 +165,7 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] `KeepAliveInterval` / `ClientTimeoutInterval` desde Options y coordinados con el front; `EnableDetailedErrors` solo en Development. (§16.5)
 - [ ] Gateway y middleware sin loguear `QueryString`; hubs excluidos de middleware que toca el body. (§16.6)
 - [ ] IIS con hubs: `maxQueryString` subido en `requestFiltering` para el `access_token`. (§16.6)
+- [ ] Sin *stateful reconnect* innecesario; backplane Redis y protocolo MessagePack en versión parcheada. (§16.5, §16.6, §11.8)
 
 ### Proceso del agente ([13](./13-workflow-orchestration.md), [14](./14-agent-efficiency.md))
 

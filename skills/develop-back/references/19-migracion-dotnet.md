@@ -91,6 +91,10 @@ app.Run();
 | 8 → 9 / 10 | APIs marcadas `[Obsolete]` que pasan a error, cambios en OpenAPI (`AddOpenApi`), EF Core 10, versión de C# por defecto. |
 | Cualquiera | Consultar "Breaking changes in .NET N" y "Breaking changes in ASP.NET Core N" de **cada** versión que se atraviesa. |
 
+- Al llegar a 10, lo que cambia sin error de compilación: EF Core 10 (SQL de `Contains`, nombres de parámetros,
+  `Application Name`, primera migración: §15.1, §15.7); los `IExceptionHandler` tienen que loguear ellos (§7);
+  `KeyedService.AnyKey` lanza o no devuelve (§8); transformers de OpenAPI con `JsonNode` y enteros como string en el
+  documento (§17.1, §17.5).
 - Con el endpoint routing de 3.x, el orden `UseRouting` → `UseCors` → `UseAuthentication` → `UseAuthorization` → `UseEndpoints` / `MapControllers` es obligatorio.
 - Las APIs obsoletas se reemplazan por la que indica el mensaje del compilador (`CS0618`): no se suprime la advertencia para "que compile" (§13.7).
 - Código nuevo de la migración usa lo moderno (§0 regla maestra) solo donde la migración ya obliga a tocar esa línea; el resto, intacto (§13.5).
@@ -133,7 +137,7 @@ Por cada proyecto o familia de paquetes migrada:
 2. `dotnet test` de los tests del proyecto y de los que lo referencian, en verde (§13.3).
 3. Cuando el Api ya compila: levantarla y probar los endpoints principales con un token real, o decir que no se pudo (§13.3).
 4. Commit del paso (§13.4) con mensaje del tipo `chore(deps): net6.0 -> net10.0 en Corp.Domain`.
-5. Al cerrar: `dotnet list package --vulnerable` y `--deprecated`, y el feed Zero Wire contra el runtime nuevo (§11.4), `Dockerfile` y pipeline en 10.x (§20), y `tasks/todo.md` actualizado.
+5. Al cerrar: `dotnet list package --vulnerable` y `--deprecated`, los mínimos de §11.8 y el feed Zero Wire contra el runtime nuevo (§11.4), `Dockerfile` y pipeline en 10.x (§20), y `tasks/todo.md` actualizado.
 
 ### 19.8 Qué hacer si falla
 

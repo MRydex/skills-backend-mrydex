@@ -30,7 +30,7 @@ cómo verificar antes de decir "terminado" y cómo aprender de las correcciones.
 - Si el pedido es ambiguo sobre **qué** archivos toca, localizar primero (`grep` / `Glob` por
   símbolo; `graphify query` solo sin nombre conocido) y confirmar el alcance real antes de escribir una línea.
 - La exploración pesada (soluciones grandes, buscar en varios proyectos) se delega a
-  `investigador`; ver [14-agent-efficiency.md](./14-agent-efficiency.md) §14.3.
+  `Explore` (Claude Code; en el resto `investigador`); ver [14-agent-efficiency.md](./14-agent-efficiency.md) §14.3.
 
 ### 13.2 Plan para tareas no triviales
 

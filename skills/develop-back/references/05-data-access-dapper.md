@@ -56,6 +56,7 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Unicidad: la garantía es el índice `UNIQUE` en la base. Un "¿ya existe?" previo (validador o handler) no la da: dos requests simultáneos pasan los dos el chequeo. Ese chequeo es opcional (mensaje más claro); el `INSERT` siempre maneja el duplicado.
 - Errores: `SqlException 2627/2601` (duplicado) ⇒ `SystemValidationException`; cancelación ⇒ sube sin mapear (`when (!cancellationToken.IsCancellationRequested)`: SqlClient puede reportarla como `SqlException`); deadlock (`1205`) ⇒ se reintenta o termina en `ConflictException` (§5.5); timeout (`-2`) ⇒ `CommandException` / `QueryException` (500), sin reintento automático (repetir una consulta que ya no da abasto la empeora: se mira el plan, §5.4); resto ⇒ `CommandException` / `QueryException` con parámetros **sin datos sensibles**. Atrapar `SqlException`, no `Exception`, y pasar la original como inner: `throw new QueryException(ErrorMessage.QueryFailure, ex, parameters);`.
 - Scripts de base (tablas, índices, SP) en el PR como `.sql` idempotente (`IF NOT EXISTS`) y con rollback.
+- Dapper.AOT: solo con Native AOT o un problema de arranque medido; en ese caso, con su analyzer (Dapper.Advisor). Las llamadas con `CommandDefinition` (regla de arriba) corren por Dapper clásico y no generan código AOT (DapperAOT issue #173): medir antes de prometer el beneficio. Un `TypeHandler` propio se ignora en la llamada interceptada: probar el parámetro.
 
 ### 5.3 Cache
 
@@ -84,6 +85,19 @@ finally { gate.Release(); }
 ```
 
   `HybridCache.RemoveAsync(key)` limpia la caché distribuida (L2) y la memoria local, no la memoria de las otras instancias: mismo TTL corto.
+- `HybridCache` en un servicio nuevo de `net10.0` sin precedente: expiración local (L1) menor que la distribuida (L2) y tags para invalidar por grupo. Dato por usuario o tenant: la identidad va en la clave, igual que con `IMemoryCache`. No mezclar `IMemoryCache` a mano y `HybridCache` para la misma entidad.
+
+```csharp
+var item = await hybridCache.GetOrCreateAsync(
+    $"item:{tenantId}:{id}",
+    async token => await inner.GetByIdAsync(id, token),
+    new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(10), LocalCacheExpiration = TimeSpan.FromMinutes(2) },
+    tags: [$"item:{id}"],
+    cancellationToken: cancellationToken);
+
+await hybridCache.RemoveByTagAsync($"item:{id}", cancellationToken);   // en la escritura
+```
+
 - Redis solo si el flag `EnableRedisCache:IsEnable` está activo; el código no debe asumirlo.
 
 ### 5.4 Consultas lentas: primero el plan, después el índice
@@ -91,7 +105,19 @@ finally { gate.Release(); }
 - Una consulta lenta casi siempre es un índice que falta, no "la base". Antes de subir `commandTimeout`, agregar cache o reescribir la query: plan de ejecución real (`SET STATISTICS IO, TIME ON` + "Include Actual Execution Plan") sobre datos de volumen realista.
 - Señales: `Table Scan` / `Clustered Index Scan` sobre una tabla grande para devolver pocas filas; `Key Lookup` repetido (candidato a `INCLUDE`); warning de conversión implícita (tipo o largo del parámetro distinto al de la columna: `DbString` arriba, §15); `Sort` caro por un `ORDER BY` sin índice.
 - Índice nuevo: columnas de `WHERE` / `JOIN` primero (igualdad antes que rango), después `ORDER BY`; `INCLUDE` para las que solo van en el `SELECT`. `sys.dm_db_missing_index_details` es una pista, no una orden: validar contra el plan.
+- Las columnas de `INCLUDE` no ordenan: solo evitan el lookup. Si falta una sola columna de la proyección, el lookup vuelve: el índice se valida contra la proyección exacta de la consulta (`Select` mínimo, §15.3), y un `SELECT *` rompe el cubrimiento. Un índice cubriente por cada consulta es un olor: se cubre la consulta medida, no todas.
+
+  ```sql
+  -- SQL Server
+  CREATE NONCLUSTERED INDEX IX_Orders_CustomerId_OrderDate
+      ON dbo.Orders (CustomerId, OrderDate) INCLUDE (TotalAmount, Status);
+
+  -- PostgreSQL (>= 11)
+  CREATE INDEX ix_orders_customer_id_order_date
+      ON orders (customer_id, order_date) INCLUDE (total_amount, status);
+  ```
 - No indexar "por las dudas": cada índice encarece `INSERT` / `UPDATE` / `DELETE`. El PR justifica el índice con lecturas lógicas antes / después, y va como script `.sql` idempotente (§5.2).
+- PostgreSQL 18, solo en repos que ya lo usan: tras migrar, re-evaluar los índices multicolumna con `EXPLAIN (ANALYZE)` (*skip scan* puede volver innecesario un índice extra; el plan ya muestra buffers y lookups), sin borrar ninguno sin medir en carga real. PK nueva en un esquema que ya usa UUID: `uuidv7()` (ordenado por tiempo), no UUID aleatorio. Autenticación SCRAM: `md5` está deprecado.
 - Borrados o cargas masivas sobre tablas muy indexadas: por lotes (`DELETE TOP (n)` en loop) o por partición, nunca una sola transacción gigante.
 - Vale igual con EF Core (§15): el SQL que genera se analiza con el mismo plan.
 
@@ -164,4 +190,11 @@ for (var attempt = 1; ; attempt++)
 ```
 
 - **Transacciones cortas**: solo las sentencias que tienen que ser atómicas. Los procesos grandes, por lotes (`DELETE TOP (n)`, §5.4), una transacción por lote: miles de locks de fila escalan a un lock de tabla (*lock escalation*) y bloquean a todos los demás. `READ_COMMITTED_SNAPSHOT` (las lecturas no esperan a las escrituras) es una decisión de la base, no del agente: se propone, no se activa desde la app ni desde un script de la feature.
+- **SQL Server 2025, optimized locking**: viene apagado y se habilita por base. Igual que RCSI, se **propone** en el PR (RCSI + ADR + `OPTIMIZED_LOCKING`) y lo decide el dueño de la base. Sin RCSI no rinde completo (*lock after qualification*), y código que depende del orden estricto de las transacciones puede cambiar de comportamiento: probar con pedidos concurrentes. Los hints `UPDLOCK` / `HOLDLOCK` y todo `MERGE` se respetan, pero ese statement pierde *lock after qualification*: los patrones de arriba siguen siendo correctos y se dejan solo donde la lógica los necesita. Antes de asumir cómo bloquea la base, mirar qué tiene activo:
+
+```sql
+SELECT name, is_read_committed_snapshot_on, is_accelerated_database_recovery_on, is_optimized_locking_on
+FROM sys.databases WHERE name = DB_NAME();
+```
+
 - **Exports y listados grandes**: no cargar todo en memoria (`QueryAsync` bufferea todo). `QueryUnbufferedAsync<T>` de Dapper devuelve `IAsyncEnumerable<T>` y se escribe a la respuesta a medida que llega (en EF Core, `AsAsyncEnumerable()`, §15.3). Mantiene la conexión abierta mientras el cliente lee: sin transacción alrededor, con `commandTimeout` y un tope de filas acordado.

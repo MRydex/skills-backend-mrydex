@@ -5,7 +5,7 @@ Logging con `ICorpLoggerHandler`, datos que nunca se loguean y tests xUnit + Moq
 ### 10.1 Logging
 
 - Logs de negocio con `ICorpLoggerHandler` (`LogInformation` / `LogError` con el modelo corporativo: datos, descripción, origen, destino, código, tipo de transacción, usuario, entidad). El `LoggerFilter` global ya loguea request/response: no duplicar en controllers.
-- Errores: los loguea el `IExceptionHandler` vía `IExceptionHelper`. No loguear y relanzar la misma excepción en cada capa.
+- Errores: los loguea el `IExceptionHandler` vía `IExceptionHelper`. No loguear y relanzar la misma excepción en cada capa. En .NET 10 ese log es el único: el middleware no escribe el diagnóstico de una excepción que un handler resolvió (§7).
 - **Nunca** loguear: tokens, `Authorization`, contraseñas, PIN, ids de sesión, connection strings, CBU/CVU/CUIT completos (enmascarar: `0000***1234`), body completo de requests con PII, contenido o nombre de documentos del usuario. Rutas con ids secretos: loguear el nombre del endpoint, no `Request.Path`.
 - Correlación: propagar `traceId` (OpenTelemetry). No inventar ids propios. El que se loguea es el mismo del `ProblemDetails`: `Activity.Current?.Id ?? HttpContext.TraceIdentifier`.
 - Repo sin el logger corporativo: `ILogger<T>` con `[LoggerMessage]` (cumple CA1848). Verificar que producción tenga un destino persistente: solo `AddDebug` / consola en una app de escritorio o servicio es no tener logs. Categorías `Microsoft` y `System` en `Warning`: en `Information` escriben rutas y query, que pueden traer ids secretos.

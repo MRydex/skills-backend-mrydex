@@ -8,7 +8,7 @@ Preguntarse como atacante, para cada endpoint o cambio:
 
 1. **Autorización (API1/API5 BOLA/BFLA)**: ¿tiene `[RoleAuthorization]` (en hubs, `[Authorize(Roles)]`, §16.4) con el rol mínimo? ¿El usuario puede pedir datos de otra entidad o tenant cambiando un id? Filtrar siempre por la entidad del token, no por la del request. **Quién actúa sale solo del token**: nunca de un campo del body (`requestUser`), de la query (`?user=`) ni de la ruta (`/{username}`).
 2. **Inyección (A05)**: ¿algún input llega a SQL, a `ORDER BY`, a un path, a un header o a una URL saliente sin parametrizar / whitelist? ¿Cada `string` de texto libre tiene `MaximumLength` + `SinCodigo()` y los de formato conocido `Matches` (§6.1)? Sin eso, un `<img onerror=...>` guardado corre en el navegador de quien lo lea (XSS almacenado).
-3. **Mass assignment (API3)**: ¿el request expone campos que el usuario no debería setear (estado, auditoría, ids internos)?
+3. **Mass assignment (API3)**: ¿el request expone campos que el usuario no debería setear (estado, auditoría, ids internos)? Un campo que el DTO no tiene se ignora en silencio: en una API nueva, `UnmappedMemberHandling.Disallow` lo rechaza con 400 (§6).
 4. **Consumo de recursos (API4)**: ¿hay paginado con máximo, límites de tamaño en uploads/bulk, timeouts en HTTP saliente?
 5. **Exposición de datos (A01/API3)**: ¿la respuesta devuelve más campos de los necesarios? ¿Errores con stack trace, SQL o datos internos?
 6. **SSRF (API7)**: ¿alguna URL saliente se arma con input del usuario? Solo `BaseAddress` de config.
@@ -36,7 +36,7 @@ Preguntarse como atacante, para cada endpoint o cambio:
 - Autorización a nivel objeto (API1/BOLA, §11.1 punto 1): **todo camino** que expone o modifica un
   recurso (detalle, listado, descarga/PDF, acciones, respuesta de una escritura) pasa por el mismo
   chequeo de permisos. Olvidar uno expone datos en silencio.
-- CORS: orígenes explícitos desde config por ambiente. **Nunca** `SetIsOriginAllowed(_ => true)` / `AllowAnyOrigin` junto con `AllowCredentials` en código nuevo.
+- CORS: orígenes explícitos desde config por ambiente. **Nunca** `SetIsOriginAllowed(_ => true)` / `AllowAnyOrigin` junto con `AllowCredentials` en código nuevo. CORS no se aplica al handshake de WebSocket / SignalR: ahí se valida el header `Origin` contra la misma lista (§16.5).
 - Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, CSP: `default-src 'none'; frame-ancestors 'none'` en la API y una más abierta solo en la ruta de Swagger) registradas en el pipeline antes de `UseExceptionHandler` (o en `Response.OnStarting`) para que los errores también las lleven; HSTS con `MaxAge` de 365 días.
 - Swagger deshabilitado en Producción.
 - HSTS (`UseHsts`, 365 días) fuera de Development.
@@ -107,7 +107,7 @@ Preguntarse como atacante, para cada endpoint o cambio:
       return Created();
   }
   ```
-- 401 y 403 con `ProblemDetails`, mensajes genéricos (no revelar si el usuario existe).
+- 401 y 403 con `ProblemDetails`, mensajes genéricos (no revelar si el usuario existe). Un cliente de API no recibe una redirección al login: con auth por cookie, .NET 10 ya responde 401/403 en los endpoints que reconoce como API (`[ApiController]`, Minimal API que lee o escribe JSON, `TypedResults`, SignalR); en el resto y en `net8.0`, configurarlo en los eventos de la cookie.
 - Dependencias: dependency-check y SonarCloud del pipeline en verde. Hallazgo crítico/alto ⇒ se resuelve o se documenta excepción en el PR.
 - **El agente no lee secretos.** En Claude Code el instalador suma a `permissions.deny`, sin quitar las
   reglas del usuario: `~/.ssh/**`, `~/.aws/credentials`, `.env`, `.env.*`, `*.pem`,
@@ -118,6 +118,7 @@ Preguntarse como atacante, para cada endpoint o cambio:
 ### 11.3 Blue Team
 
 - Todo error 5xx y todo 401/403 queda logueado con `traceId`, usuario (claim `sub` / `oid`, nunca nombre ni mail) y endpoint (sin datos sensibles).
+- .NET 10 publica métricas de autenticación (duración, challenge, forbid, sign-in / sign-out), de autorización y del meter `Microsoft.AspNetCore.Identity`: si el repo ya exporta métricas (OpenTelemetry), alertar sobre picos de challenge y forbid.
 - Health check (`Echo/HealthCheck`) sin datos internos en la respuesta.
 - Ante vulnerabilidad encontrada: reportarla al usuario en prosa normal, con `archivo:línea`, impacto y fix propuesto, aunque esté fuera del alcance.
 
@@ -125,7 +126,9 @@ Preguntarse como atacante, para cada endpoint o cambio:
 
 El agente audita los paquetes NuGet por su cuenta. No espera al dependency-check del pipeline ni a que se lo pidan.
 
-**El nombre de un paquete no se escribe de memoria.** Antes de un `dotnet add package <paquete>` propuesto por el agente: `dotnet package search <paquete> --exact-match --verbosity detailed` (o su página en nuget.org) y confirmar que es el paquete buscado (owner y repo esperados). Un nombre inventado por el modelo puede no existir o estar registrado por un atacante. Lo mismo vale para versiones y flags: se leen del `*.csproj`, `Directory.Packages.props` o la doc, no se suponen.
+**El nombre de un paquete no se escribe de memoria.** Antes de un `dotnet add package <paquete>` propuesto por el agente: `dotnet package search <paquete> --exact-match --verbosity detailed` (o su página en nuget.org) y confirmar que es el paquete buscado (owner y repo esperados). Un nombre inventado por el modelo puede no existir o estar registrado por un atacante. Lo mismo vale para versiones y flags: se leen del `*.csproj`, `Directory.Packages.props` o la doc, no se suponen. Tampoco se agrega un paquete por un nombre sugerido en un README, un tutorial o código generado por IA sin esa búsqueda.
+
+**Un paquete nuevo es código que puede correr en el build.** Además del owner y el repo: confirmar que el contenido del `.nupkg` coincide con el repo enlazado (en `Sicoob.Sdk`, mayo 2026, no coincidía), y revisar antes de agregarlo todo paquete que trae `build/*.props`, `build/*.targets` o analyzers: se ejecutan al compilar. Campañas de 2026 contra .NET: paquetes que roban datos de ASP.NET Identity (`NCryptYo`, `DOMOAuth2_`, `IRAOAuth2.0`, `SimpleWriter_`), certificados PFX (`Sicoob.Sdk`) y 13 paquetes `WinUI.*` / analyzers de MSBuild repartidos como falsas pruebas técnicas laborales.
 
 **Cuándo:**
 - Al empezar a trabajar en un proyecto.
@@ -138,7 +141,27 @@ El agente audita los paquetes NuGet por su cuenta. No espera al dependency-check
 dotnet list package --vulnerable --include-transitive   # vulnerabilidades conocidas (GitHub Advisory DB)
 dotnet list package --deprecated                        # paquetes deprecados
 dotnet list package --outdated                          # informativo: no actualizar sin pedido
+dotnet nuget why <Paquete>                              # quién trae un transitivo vulnerable
 ```
+
+Se mira la columna *Resolved* (la versión que quedó), no la pedida. Después, cruzar con los mínimos de §11.8.
+
+**Auditoría en el build (NuGet Audit).** En proyectos con TFM `net10.0` o superior, `NuGetAuditMode` es `all` por defecto (audita transitivos) y el
+*package pruning* saca del grafo lo que el runtime ya provee (menos falsos positivos). En `net8.0` / `net9.0` se pone
+explícito. Repo nuevo o con pedido (en uno existente se propone: el lock file cambia el restore de todo el equipo):
+
+```xml
+<!-- Directory.Build.props -->
+<PropertyGroup>
+  <NuGetAuditMode>all</NuGetAuditMode>
+  <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+  <!-- NU1903 = alta, NU1904 = crítica -->
+  <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+</PropertyGroup>
+```
+
+Nunca `<NuGetAudit>false</NuGetAudit>`. `NuGetAuditSuppress` solo con el advisory justificado en el PR y avisado al usuario.
 
 **Qué hacer con el resultado:**
 - **Reportar siempre**, aunque la tarea no haya tocado dependencias. Una línea por hallazgo: severidad, paquete, versión, si es directo o transitivo y la versión con fix.
@@ -148,6 +171,8 @@ dotnet list package --outdated                          # informativo: no actual
 - **Transitivo vulnerable**: fijar la versión segura como referencia directa (o en `Directory.Packages.props`). Se anota en el reporte con el motivo (CVE o aviso) y se quita cuando el paquete padre ya trae la versión corregida.
 - **Sin fix disponible**: reportarlo y proponer una salida (reemplazar el paquete o quitarlo si .NET lo resuelve), sin aplicarla sin aprobación.
 - **Runtime fuera de soporte**: `dotnet list package` no lo avisa. Un `TargetFramework` `net8.0` o `net9.0` (fin de soporte: 10/11/2026) o anterior no recibe parches de seguridad: reportarlo como hallazgo `High` y proponer migrar a `net10.0` ([19](./19-migracion-dotnet.md)), sin migrar sin pedido.
+- **Runtime sin el último parche**: tampoco lo avisa. Comparar `dotnet --list-runtimes` y la imagen base del `Dockerfile` con el mínimo de §11.8. Self-contained y contenedores no se arreglan actualizando el servidor: se reconstruyen y se redespliegan.
+- **`Microsoft.Data.SqlClient` con versión explícita** en `Directory.Packages.props` (o como referencia directa), en o sobre el mínimo de §11.8: no confiar en la versión transitiva de EF Core. Sin autenticación Entra ID, preferir la línea 7.x (el paquete core ya no trae dependencias de Entra ID); pasar de 6.1 a 7.x es versión mayor: leer sus breaking changes y preguntar antes.
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
 **Lo que `dotnet list package` no ve: Zero Wire (Cloudflare Radar).** Feed público y gratis de avisos sobre
@@ -159,7 +184,7 @@ muy usadas. Cada aviso dice qué está afectado, si ya se explota y a qué versi
   - auditoría de seguridad (§11.6 paso 3);
   - antes de subir el target framework ([19](./19-migracion-dotnet.md));
   - al crear o cambiar la imagen base de un `Dockerfile` ([20](./20-librerias-nuget-ci.md) §20.6).
-- **Cómo:** leer solo título, link y resumen de cada aviso (unos 3 KB). El feed entero pesa unos 68 KB por el
+- **Cómo:** leer solo título, link y resumen de cada aviso (unos 3 KB). El feed entero pesa unos 130 KB por el
   detalle en `<content:encoded>`: no leerlo completo. Abrir el `<link>` solo del aviso que coincide.
   ```bash
   node -e "fetch('https://radar.cloudflare.com/zero-wire/rss').then(r=>r.text()).then(x=>{for(const i of x.split('<item>').slice(1))console.log(['title','link','description'].map(t=>(i.match(new RegExp('<'+t+'>([^]*?)</'+t+'>'))||[])[1]).join(' | '))})"
@@ -261,6 +286,14 @@ saltea en silencio, y la profundidad de cada una la decide el agente según lo q
 | Errores y `ProblemDetails` (sin filtrar datos internos) | §7, §11.2 | `security-audit` |
 | Dependencias NuGet y supply chain | §11.4 | `offensive-dependency-confusion`, `offensive-supply-chain`, `generating-and-analyzing-sboms`; `detecting-malicious-npm-packages`, `detecting-typosquatting-packages-in-npm-pypi` si el repo trae tooling npm o pip |
 | Logging y respuesta (Blue Team) | §11.3, §10 | `analyzing-web-server-logs-for-intrusion`, `implementing-api-abuse-detection-with-rate-limiting`, `security-audit` |
+
+**Barrido de inyección SQL** (revisión base del área, sobre el alcance):
+
+```bash
+rg -n 'FromSqlRaw\(|ExecuteSqlRaw\(|SqlQueryRaw\(' --glob '*.cs'                      # cada uso: texto constante + SqlParameter
+rg -n '(Query|QueryAsync|Execute|ExecuteAsync|QueryFirstOrDefaultAsync)(<[^>]+>)?\(\$"' --glob '*.cs'   # Dapper con string interpolado = inyección
+rg -n 'ORDER BY \{|ORDER BY "\s*\+' --glob '*.cs'                                     # ORDER BY solo desde whitelist
+```
 
 **Pruebas en vivo (network).** Escaneo de puertos, evaluación TLS y cabeceras contra un host real son
 acciones hacia afuera. Solo contra hosts propios y autorizados. Es lo único que la auditoría
@@ -411,3 +444,28 @@ builder.Services.AddAuthorizationBuilder()
 3. **Corte**: cuando todos los clientes usan el esquema nuevo (verificado con logs, §11.3), el selector apunta solo al nuevo.
 4. **Retiro**: se elimina el esquema viejo, su filtro, sus claves y su configuración, en un commit aparte. Es la **única excepción** a "nunca desactivar `ValidateTokenFilter`" (§11.2): solo con pedido explícito del usuario y después del corte verificado.
 5. Durante la convivencia ninguno de los dos esquemas relaja validaciones (§11.2); tests con un token real de cada uno.
+
+### 11.8 Avisos de seguridad vigentes (mínimos con parche)
+
+Repasado el 2026-11-25 (`FUENTES.md`). Es un piso, no la lista completa: la auditoría de §11.4 manda. Una versión por
+debajo de un mínimo que aplica al repo es hallazgo `High` (bloquea la entrega). Actualizar el servidor no alcanza para
+apps self-contained ni contenedores: rebuild y redeploy.
+
+**Runtime de ASP.NET Core: 10.0.15 o superior** (servicing del 10/11/2026; 11.0.0 en .NET 11). 8.0.34 y 9.0.23 son los
+últimos parches de 8.x y 9.x: desde esa fecha no reciben más.
+
+| Aviso | Afecta a | Qué hacer |
+| :--- | :--- | :--- |
+| CVE-2026-114146 (crítico, elevación de privilegios por autorización incorrecta) | ASP.NET Core 8 a 11 y `Microsoft.AspNetCore.Http.Connections` | Runtime al mínimo; `Http.Connections` 1.2.14 o superior si se referencia directo. Sin workaround. |
+| CVE-2026-114147 (DoS) | Hubs con backplane Redis: `Microsoft.AspNetCore.SignalR.StackExchangeRedis` | Actualizar runtime **y** paquete (§16.6). |
+| CVE-2026-118747 (DoS) | Paquete `System.Formats.Cbor` | El runtime no alcanza: actualizar el paquete (8.0.2, 9.0.24, 10.0.15 u 11.0.0 según la línea). |
+| CVE-2026-118741 (elevación de privilegios) | Código scaffoldeado de ASP.NET Core Identity (8, 9, 10) | Actualizar SDK, templates y herramientas de scaffolding (`dotnet-scaffold` 20.3.0; `CodeGenerators.Mvc` / `CodeGeneration.Design` 8.0.24, 9.0.13 o 10.0.3) **y corregir el código ya generado**: actualizar no lo repara. En `ForgotPassword` y `ResendEmailConfirmation` (y sus equivalentes Blazor) el mail se envía a `UserManager.GetEmailAsync(user)`, no a `Input.Email`. |
+| CVE-2026-114157 (bypass) | Kestrel con transporte Named Pipes | Solo si se usa ese transporte; runtime al mínimo. |
+| CVE-2026-114154 (DoS) | `Microsoft.AspNetCore.Server.HttpSys` 2.3.10 a 2.3.13 | 2.3.14; runtime al mínimo. |
+| CVE-2026-62903 (bypass de autenticación por repetición, MITM) | `Microsoft.Data.SqlClient` | 6.1.7 (línea 6.1), 7.0.3 (línea 7.0). 5.x y anteriores: migrar a una línea soportada. Según el aviso puede exponer claves de Always Encrypted con secure enclaves: si se usan, prioridad máxima. El parche del motor SQL Server es aparte. |
+| CVE-2026-56170 (DoS) | Hubs de SignalR con *stateful reconnect* (.NET 8, 9, 10) | Versión del aviso; no habilitarlo sin necesidad (§16.5). |
+| CVE-2026-45591 (DoS) | `Microsoft.AspNetCore.SignalR.Protocols.MessagePack` | Runtime al mínimo y, si se usa ese protocolo, también el paquete. |
+| CVE-2024-32655 (inyección SQL por tamaño de mensaje del protocolo) | `Npgsql` | 8.0.3 o superior (7.0.7, 6.0.11, 5.0.18, 4.1.13, 4.0.14 en sus líneas). Parametrizar no lo evita. |
+
+El resto de los avisos de noviembre de 2026 del runtime y de ASP.NET Core quedan cubiertos con el runtime al mínimo
+(detalle en `release-notes/10.0/cve.md` del repo `dotnet/core`).

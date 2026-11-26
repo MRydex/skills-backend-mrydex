@@ -133,7 +133,9 @@ services.AddSignalR(o =>
   antes de `MapHub` (403 si no coincide; cross-site WebSocket hijacking).
 - Cortes cortos sin perder mensajes: `o.AllowStatefulReconnects = true` en `MapHub` (.NET 8+) y
   `withStatefulReconnect()` en el cliente. Se negocia en `/negotiate`: no sirve si el cliente usa
-  `skipNegotiation`.
+  `skipNegotiation`. Solo si hace falta y con el runtime parcheado: CVE-2026-56170 (DoS) afecta a los hubs que lo
+  habilitan (§11.8).
+- Protocolo MessagePack: solo si el repo ya lo usa, con el paquete en la versión parcheada (CVE-2026-45591, §11.8).
 
 ### 16.6 Gateway, IIS y escalado
 
@@ -160,7 +162,7 @@ services.AddSignalR(o =>
 
   Sube solo el tamaño permitido: el log sigue sin `cs-uri-query`.
 - Más de una instancia del backend: `IConnectionTracker` en memoria deja de servir. Usar backplane
-  (Redis) o Azure SignalR Service (exige `/negotiate`: el front quita `skipNegotiation`), y sticky sessions si el cliente negocia. Decidir antes de escalar.
+  (Redis) o Azure SignalR Service (exige `/negotiate`: el front quita `skipNegotiation`), y sticky sessions si el cliente negocia. Decidir antes de escalar. Backplane Redis: runtime y paquete `Microsoft.AspNetCore.SignalR.StackExchangeRedis` parcheados los dos (CVE-2026-114147, §11.8).
 - `MaximumParallelInvocationsPerClient` en 1 (default) y rate limiting en `UnirseA...` si se puede
   abusar.
 
