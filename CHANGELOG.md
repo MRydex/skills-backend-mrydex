@@ -58,6 +58,19 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
   - `checklists.md` y `19`: ítems para todo lo anterior.
   - Verificado contra Microsoft Learn, `dotnet/core` y los avisos. Con optimized locking, los hints `UPDLOCK` /
     `HOLDLOCK` y `MERGE` de §5.5 siguen siendo correctos: ese statement solo pierde *lock after qualification*.
+- Repaso del 27/11/2026 (SqlClient del 13/11, PostgreSQL 18.7 y 19, EF Core 11). Tres filas nuevas en `FUENTES.md`:
+  release notes de SqlClient, anuncios de PostgreSQL y Npgsql (esta última pendiente).
+  - `11` §11.8: piso de `Microsoft.Data.SqlClient` en 6.1.8 / 7.0.4 / 7.1.2 y línea 7.1 en CVE-2026-62903; fila nueva
+    para CVE-2026-84008 (`System.Security.Cryptography.Pkcs`); mínimos del servidor PostgreSQL (18.7 / 17.12 / 16.16 /
+    15.20, PG 14 fuera de soporte) con los pasos posteriores al parche. Corrección: CVE-2026-70175 sale de la lista de
+    "cubiertos con el runtime" y se trata junto a CVE-2026-118741 como código de Identity a reparar a mano (las
+    fuentes de Microsoft no coinciden; falta confirmar contra MSRC).
+  - `11` §11.4: validación estricta de `HostNameInCertificate` al subir el driver y paquetes hermanos de SqlClient 7.x
+    en la misma versión.
+  - `05` §5.1: rol de runtime sin DDL, migraciones con rol aparte. §5.4: sintaxis de PostgreSQL 19 solo con servidor
+    confirmado. `15`: nada de EF Core 11 en un proyecto `net10.0`.
+  - `checklists.md`: ítems para lo anterior.
+  - Sin verificar en este repaso: soporte de PostgreSQL 19 en Npgsql y versión vigente de Dapper.
 - Repaso del resto de `FUENTES.md` (25/11/2026), todas las filas con fecha:
   - `09` y `SKILL.md` §0: `Microsoft.Extensions.Http.Polly` está deprecado en nuget.org; el repo que lo usa lo
     mantiene, se reporta y se propone `Microsoft.Extensions.Http.Resilience`.

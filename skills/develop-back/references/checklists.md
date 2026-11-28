@@ -130,6 +130,10 @@ return await dbSession.Connection.QueryFirstOrDefaultAsync<ItemResponse>(
 - [ ] Si aplica §11.5, cambio revisado con `security-audit` en modo guía, o avisado que no está instalada.
 - [ ] Auditoría de dependencias §11.4 corrida después del último cambio de paquetes; hallazgos reportados.
 - [ ] Runtime e imagen base en o sobre el mínimo de §11.8 (self-contained y contenedores reconstruidos); `Microsoft.Data.SqlClient`, `Npgsql` y paquetes de SignalR referenciados, en versión parcheada. (§11.4, §11.8)
+- [ ] `Microsoft.Data.SqlClient` en 6.1.8, 7.0.4 o 7.1.2, con paquetes hermanos en la misma versión; conexión con TLS probada tras subir el driver (`HostNameInCertificate` presente en el certificado, sin `TrustServerCertificate=True`). `System.Security.Cryptography.Pkcs` en versión parcheada si se usa `SignedCms`. (§11.4, §11.8)
+- [ ] PostgreSQL en 18.7 / 17.12 / 16.16 / 15.20 o superior, sin 14.x, con los pasos posteriores al parche; rol de runtime sin DDL y migraciones con rol aparte. (§11.8, §5.1)
+- [ ] Sin sintaxis de PostgreSQL 19 ni APIs de EF Core 11 en un repo que no los declara. (§5.4, §15)
+- [ ] Código scaffoldeado de Identity revisado a mano: el mail sale a `GetEmailAsync(user)`, no a `Input.Email`. (§11.8)
 - [ ] Paquete nuevo: nombre confirmado con `dotnet package search --exact-match`, contenido que coincide con su repo, sin `build/*.targets` ni analyzers sin revisar. NuGet Audit sin apagar. (§11.4)
 - [ ] API nueva: campos JSON desconocidos rechazados (`UnmappedMemberHandling.Disallow`). (§6)
 - [ ] Ninguna protección desactivada (token, roles, TLS, CORS, cabeceras).

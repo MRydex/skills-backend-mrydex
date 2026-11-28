@@ -10,6 +10,15 @@ Conexiones, transacciones, SQL con Dapper y cache por decorator. Leer al tocar r
 - Pool: cada conexión abierta sale del pool de `SqlClient` (`Max Pool Size` = 100 por defecto, **por instancia de la API**). Con 100 requests esperando algo con la conexión abierta, el 101 falla con `Timeout expired ... obtaining a connection from the pool`. Por eso: abrir tarde (justo antes de la primera consulta), cerrar pronto, nada lento con la conexión abierta. Subir `Max Pool Size` no arregla una conexión retenida de más; instancias × pool tienen que entrar en las conexiones que acepta el servidor. Cuándo abre `DbSession` depende del repo (no se define acá): mirarlo antes de agregar trabajo lento al handler.
 - Lecturas: repos de query inyectados directo en el handler. Código nuevo usa `DbSession`; si hace falta otra base, `using var connection = context.CreateConnectionX();`. Nunca dejar una conexión sin `using`.
 - Aislamiento por defecto `ReadCommitted`. Cambiarlo es decisión explícita.
+- **Rol de runtime sin DDL**: la app conecta con un rol que solo hace DML; las migraciones corren con otro rol. Nunca con el dueño de la base ni con un rol que pueda `CREATE` / `ALTER` (en PostgreSQL es el prerrequisito de varios CVE, §11.8). En un repo que ya conecta con el dueño se reporta y se propone el script; no se cambian permisos sin pedido.
+
+  ```sql
+  -- PostgreSQL
+  REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+  REVOKE TEMPORARY ON DATABASE app FROM PUBLIC;
+  GRANT USAGE ON SCHEMA public TO app_runtime;
+  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_runtime;
+  ```
 
 ### 5.2 SQL
 
@@ -118,6 +127,7 @@ await hybridCache.RemoveByTagAsync($"item:{id}", cancellationToken);   // en la 
   ```
 - No indexar "por las dudas": cada índice encarece `INSERT` / `UPDATE` / `DELETE`. El PR justifica el índice con lecturas lógicas antes / después, y va como script `.sql` idempotente (§5.2).
 - PostgreSQL 18, solo en repos que ya lo usan: tras migrar, re-evaluar los índices multicolumna con `EXPLAIN (ANALYZE)` (*skip scan* puede volver innecesario un índice extra; el plan ya muestra buffers y lookups), sin borrar ninguno sin medir en carga real. PK nueva en un esquema que ya usa UUID: `uuidv7()` (ordenado por tiempo), no UUID aleatorio. Autenticación SCRAM: `md5` está deprecado.
+- PostgreSQL 19 (GA 19/11/2026): `INSERT ... ON CONFLICT DO SELECT`, `REPACK` y `pg_plan_advice` solo con `SHOW server_version` ≥ 19 confirmado en el entorno y soporte del driver verificado en la doc de Npgsql. En un repo que no declara la versión del servidor sigue valiendo el patrón de PG 15 a 18 (`ON CONFLICT (...) DO UPDATE ... RETURNING`, `VACUUM FULL` / `CLUSTER`).
 - Borrados o cargas masivas sobre tablas muy indexadas: por lotes (`DELETE TOP (n)` en loop) o por partición, nunca una sola transacción gigante.
 - Vale igual con EF Core (§15): el SQL que genera se analiza con el mismo plan.
 

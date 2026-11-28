@@ -175,6 +175,8 @@ Nunca `<NuGetAudit>false</NuGetAudit>`. `NuGetAuditSuppress` solo con el advisor
 - **Runtime fuera de soporte**: `dotnet list package` no lo avisa. Un `TargetFramework` `net8.0` o `net9.0` (fin de soporte: 10/11/2026) o anterior no recibe parches de seguridad: reportarlo como hallazgo `High` y proponer migrar a `net10.0` ([19](./19-migracion-dotnet.md)), sin migrar sin pedido.
 - **Runtime sin el último parche**: tampoco lo avisa. Comparar `dotnet --list-runtimes` y la imagen base del `Dockerfile` con el mínimo de §11.8. Self-contained y contenedores no se arreglan actualizando el servidor: se reconstruyen y se redespliegan.
 - **`Microsoft.Data.SqlClient` con versión explícita** en `Directory.Packages.props` (o como referencia directa), en o sobre el mínimo de §11.8: no confiar en la versión transitiva de EF Core. Sin autenticación Entra ID, preferir la línea 7.x (el paquete core ya no trae dependencias de Entra ID); pasar de 6.1 a 7.x es versión mayor: leer sus breaking changes y preguntar antes.
+  - En 7.x los paquetes hermanos (`Microsoft.Data.SqlClient.Extensions.Azure`, `.Extensions.Abstractions`, `.AlwaysEncrypted.AzureKeyVaultProvider`, `.Internal.Logging`) comparten número de versión con el driver: se suben todos juntos. Mezclar versiones rompe al restaurar o en runtime.
+  - Desde 7.1.2 / 7.0.4 / 6.1.8 `HostNameInCertificate` se valida estricto: el valor reemplaza al nombre del servidor en la validación del certificado, y uno que no figura en el certificado falla en el handshake TLS aunque el nombre del servidor coincida. Tras actualizar el driver, probar la conexión en un entorno con TLS real. Si falla por nombre de certificado: poner un nombre que figure en el certificado, o quitar la clave si el nombre del servidor ya coincide. Nunca taparlo con `TrustServerCertificate=True` (apaga la validación del certificado).
 - Si el comando falla (feed privado sin credenciales, restore roto), decirlo con el error exacto. Nunca dar la auditoría por hecha.
 
 **Lo que `dotnet list package` no ve: Zero Wire (Cloudflare Radar).** Feed público y gratis de avisos sobre
@@ -449,7 +451,7 @@ builder.Services.AddAuthorizationBuilder()
 
 ### 11.8 Avisos de seguridad vigentes (mínimos con parche)
 
-Repasado el 2026-11-26 (`FUENTES.md`). Es un piso, no la lista completa: la auditoría de §11.4 manda. Una versión por
+Repasado el 2026-11-27 (`FUENTES.md`). Es un piso, no la lista completa: la auditoría de §11.4 manda. Una versión por
 debajo de un mínimo que aplica al repo es hallazgo `High` (bloquea la entrega). Actualizar el servidor no alcanza para
 apps self-contained ni contenedores: rebuild y redeploy.
 
@@ -461,15 +463,34 @@ apps self-contained ni contenedores: rebuild y redeploy.
 | CVE-2026-114146 (crítico, elevación de privilegios por autorización incorrecta) | ASP.NET Core 8 a 11 y `Microsoft.AspNetCore.Http.Connections` | Runtime al mínimo; `Http.Connections` 1.2.14 o superior si se referencia directo. Sin workaround. |
 | CVE-2026-114147 (DoS) | Hubs con backplane Redis: `Microsoft.AspNetCore.SignalR.StackExchangeRedis` | Actualizar runtime **y** paquete (§16.6). |
 | CVE-2026-118747 (DoS) | Paquete `System.Formats.Cbor` | El runtime no alcanza: actualizar el paquete (8.0.2, 9.0.24, 10.0.15 u 11.0.0 según la línea). |
-| CVE-2026-118741 (elevación de privilegios) | Código scaffoldeado de ASP.NET Core Identity (8, 9, 10) | Actualizar SDK, templates y herramientas de scaffolding (`dotnet-scaffold` 20.3.0; `CodeGenerators.Mvc` / `CodeGeneration.Design` 8.0.24, 9.0.13 o 10.0.3) **y corregir el código ya generado**: actualizar no lo repara. En `ForgotPassword` y `ResendEmailConfirmation` (y sus equivalentes Blazor) el mail se envía a `UserManager.GetEmailAsync(user)`, no a `Input.Email`. |
+| CVE-2026-118741 y CVE-2026-70175 (elevación de privilegios; las fuentes de Microsoft no coinciden en cuál de los dos identifica el aviso, se tratan igual) | Código scaffoldeado de ASP.NET Core Identity (8, 9, 10) | Actualizar SDK, templates y herramientas de scaffolding (`dotnet-scaffold` 20.3.0; `CodeGenerators.Mvc` / `CodeGeneration.Design` 8.0.24, 9.0.13 o 10.0.3) **y corregir el código ya generado**: actualizar no lo repara. En `ForgotPassword` y `ResendEmailConfirmation` (y sus equivalentes Blazor) el mail se envía a `UserManager.GetEmailAsync(user)`, no a `Input.Email`. |
 | CVE-2026-114157 (bypass) | Kestrel con transporte Named Pipes | Solo si se usa ese transporte; runtime al mínimo. |
 | CVE-2026-114154 (DoS) | `Microsoft.AspNetCore.Server.HttpSys` 2.3.10 a 2.3.13 | 2.3.14; runtime al mínimo. |
-| CVE-2026-62903 (bypass de autenticación por repetición, MITM) | `Microsoft.Data.SqlClient` | 6.1.7 (línea 6.1), 7.0.3 (línea 7.0). 5.x y anteriores: migrar a una línea soportada. Según el aviso puede exponer claves de Always Encrypted con secure enclaves: si se usan, prioridad máxima. El parche del motor SQL Server es aparte. |
+| CVE-2026-62903 (bypass de autenticación por repetición, MITM) | `Microsoft.Data.SqlClient` | Corregido en 6.1.7, 7.0.3 y 7.1.0. Piso: el último parche de la línea, 6.1.8, 7.0.4 o 7.1.2 (13/11/2026: además cierran la conexión física ante respuestas malformadas, aíslan las sesiones de enclave y suben dependencias por CVE-2026-84008). Al subir, ver `HostNameInCertificate` y paquetes hermanos en §11.4. 5.x y anteriores: migrar a una línea soportada. Según el aviso puede exponer claves de Always Encrypted con secure enclaves: si se usan, prioridad máxima. El parche del motor SQL Server es aparte. |
+| CVE-2026-84008 (DoS, CPU cuadrática sin autenticación en `SignedCms.CheckSignature`) | Paquete `System.Security.Cryptography.Pkcs`: quien valida CMS / PKCS#7 o SAML (firma digital), o lo trae transitivo | 8.0.2, 9.0.21 o 10.0.13 según la línea; revisar con `dotnet list package --include-transitive`. Defensa en profundidad: límite de tamaño a la entrada no confiable antes de `CheckSignature`. |
 | CVE-2026-56170 (DoS) | Hubs de SignalR con *stateful reconnect* (.NET 8, 9, 10) | Versión del aviso; no habilitarlo sin necesidad (§16.5). |
 | CVE-2026-45591 (DoS) | `Microsoft.AspNetCore.SignalR.Protocols.MessagePack` | Runtime al mínimo y, si se usa ese protocolo, también el paquete. |
 | CVE-2024-32655 (inyección SQL por tamaño de mensaje del protocolo) | `Npgsql` | 8.0.3 o superior (7.0.7, 6.0.11, 5.0.18, 4.1.13, 4.0.14 en sus líneas). Parametrizar no lo evita. |
 
 El resto de los avisos de noviembre de 2026 del runtime y de ASP.NET Core quedan cubiertos con el runtime al mínimo:
-CVE-2026-105544, CVE-2026-114155 y CVE-2026-70175 (elevación de privilegios), CVE-2026-109475 y CVE-2026-114149 (DoS)
+CVE-2026-105544 y CVE-2026-114155 (elevación de privilegios), CVE-2026-109475 y CVE-2026-114149 (DoS)
 y CVE-2026-109476 (divulgación de información). Severidad y versión corregida de cada uno: `release-notes/10.0/cve.md`
 del repo `dotnet/core`. Al anotar el piso en un reporte o un PR se escribe la versión y el CVE, no "parche de noviembre".
+
+**Servidor PostgreSQL: 18.7, 17.12, 16.16 o 15.20 como mínimo** (12/11/2026: 52 CVE, entre ellos CVE-2026-6460,
+ejecución de código por *type confusion* tras `ALTER ... SET DATA TYPE`). PostgreSQL 14 llegó a fin de vida (14.25 es
+la última): se reporta como fuera de soporte y se propone el upgrade de mayor, sin hacerlo sin pedido. El agente no
+parchea servidores: reporta la versión (`SHOW server_version`) como hallazgo `High` y lista lo que sigue.
+
+- El parche menor es solo binario (sin `pg_upgrade`), pero no termina ahí. Pasos posteriores de las release notes:
+  reindexar los índices B-tree sobre `bpchar` sin longitud y los GiST con `gist_trgm_ops` (los GIN, si hay sospecha de
+  corrupción); nuevo full backup como base de los incrementales; revisar constraints `NOT NULL NO INHERIT` inválidos
+  en tablas particionadas:
+
+  ```sql
+  SELECT conrelid::regclass, conname FROM pg_constraint
+  WHERE contype = 'n' AND connoinherit
+    AND conrelid IN (SELECT oid FROM pg_class WHERE relkind = 'p');
+  ```
+- CVE-2026-6460 y CVE-2026-6467 necesitan un rol que pueda crear objetos: el rol con el que conecta la app no tiene
+  DDL (§5.1). Es endurecimiento, no reemplaza el parche.

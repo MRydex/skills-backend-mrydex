@@ -30,6 +30,10 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
   `GroupJoin` + `SelectMany` + `DefaultIfEmpty`; `ExecuteUpdateAsync` acepta un lambda común (setters
   condicionales sin armar expresiones); filtros de consulta con nombre (`HasQueryFilter("Nombre", ...)`)
   para desactivar uno solo con `IgnoreQueryFilters(["Nombre"])`.
+- **Nada de EF Core 11 en un proyecto `net10.0`**: `FullJoin`, `MaxBy` / `MinBy` traducidos, `HasVectorIndex` y
+  `ExcludeForeignKeyFromMigrations()` exigen SDK y runtime de .NET 11; no compilan ni corren en EF Core 10. EF Core 11
+  además cambia el nivel de compatibilidad por defecto de `UseSqlServer` a 160 (SQL Server 2022): al migrar (solo con
+  pedido, [19](./19-migracion-dotnet.md)) se deja explícito el nivel del servidor real.
 - EF Core 10 cambia SQL y conexión respecto de 8 y 9. Al subir de versión (solo con pedido, [19](./19-migracion-dotnet.md)):
   - **`Application Name` explícito** en la connection string si el repo mezcla EF con Dapper o ADO.NET, y una sola
     string para todos. EF 10 lo agrega cuando falta (no pisa el que está): con strings distintas SqlClient usa otro
