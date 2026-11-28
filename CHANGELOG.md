@@ -5,6 +5,13 @@ Para actualizar en un proyecto: `npx -y --allow-git=root github:MRydex/skills-ba
 
 ## [Unreleased]
 
+### Corregido
+
+- Subagentes de Copilot (VS Code): los de solo lectura llevaban `tools` con nombres del harness Local
+  (`search/codebase`, `search/usages`, `web/fetch`), deprecado. Ahora usan los alias `read`, `search` y
+  `web`, que valen en los dos harness.
+- Subagentes de Codex: ya no se escribe `sandbox_mode`, que Codex ignora en el archivo de un agente.
+
 ### Agregado
 
 - `bin/check.js`, igual en los dos paquetes: revisa links y anclas de los `.md`, referencias `§N.M`, índice y
