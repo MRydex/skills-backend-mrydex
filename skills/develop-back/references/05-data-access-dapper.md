@@ -73,7 +73,7 @@ internal class ItemCommandRepository(DbSession dbSession) : IItemCommandReposito
 - Claves en `Domain/Structs/CacheKey.cs`. Toda escritura que afecta datos cacheados invalida la clave en su `Cached<X>CommandRepository`.
 - Entradas de `IMemoryCache` siempre con `Size` y expiración (`SizeLimit` configurado). Nunca cachear datos por usuario sin la identidad en la clave.
 - `IMemoryCache` es **por instancia**: con varias instancias de la API, invalidar en una escritura no limpia las otras. Esas siguen sirviendo el dato viejo hasta que expire. Dato que no tolera quedar viejo ⇒ no se cachea en memoria; el resto, TTL corto (segundos o pocos minutos) o caché distribuida.
-- Stampede: al expirar una clave, N requests simultáneos recalculan lo mismo y golpean la base a la vez. En `net10.0`, `HybridCache` (`Microsoft.Extensions.Caching.Hybrid` 10.x): `GetOrCreateAsync` ejecuta la carga una sola vez por clave y el resto espera ese resultado. En `net8.0`, `SemaphoreSlim` con doble chequeo (claves acotadas; no una por usuario):
+- Stampede: al expirar una clave, N requests simultáneos recalculan lo mismo y golpean la base a la vez. En `net10.0`, `HybridCache` (`Microsoft.Extensions.Caching.Hybrid` 10.x; la 11.x es de .NET 11, `SKILL.md` §0): `GetOrCreateAsync` ejecuta la carga una sola vez por clave y el resto espera ese resultado. En `net8.0`, `SemaphoreSlim` con doble chequeo (claves acotadas; no una por usuario):
 
 ```csharp
 // net10.0
@@ -127,7 +127,7 @@ await hybridCache.RemoveByTagAsync($"item:{id}", cancellationToken);   // en la 
   ```
 - No indexar "por las dudas": cada índice encarece `INSERT` / `UPDATE` / `DELETE`. El PR justifica el índice con lecturas lógicas antes / después, y va como script `.sql` idempotente (§5.2).
 - PostgreSQL 18, solo en repos que ya lo usan: tras migrar, re-evaluar los índices multicolumna con `EXPLAIN (ANALYZE)` (*skip scan* puede volver innecesario un índice extra; el plan ya muestra buffers y lookups), sin borrar ninguno sin medir en carga real. PK nueva en un esquema que ya usa UUID: `uuidv7()` (ordenado por tiempo), no UUID aleatorio. Autenticación SCRAM: `md5` está deprecado.
-- PostgreSQL 19 (GA 19/11/2026): `INSERT ... ON CONFLICT DO SELECT`, `REPACK` y `pg_plan_advice` solo con `SHOW server_version` ≥ 19 confirmado en el entorno y soporte del driver verificado en la doc de Npgsql. En un repo que no declara la versión del servidor sigue valiendo el patrón de PG 15 a 18 (`ON CONFLICT (...) DO UPDATE ... RETURNING`, `VACUUM FULL` / `CLUSTER`).
+- PostgreSQL 19 (GA 19/11/2026): `INSERT ... ON CONFLICT DO SELECT`, `REPACK` y `pg_plan_advice` solo con `SHOW server_version` ≥ 19 confirmado en el entorno y soporte del driver verificado en la doc de Npgsql (al 28/11/2026 las release notes de Npgsql 11.0 no nombran PostgreSQL 19). En un repo que no declara la versión del servidor sigue valiendo el patrón de PG 15 a 18 (`ON CONFLICT (...) DO UPDATE ... RETURNING`, `VACUUM FULL` / `CLUSTER`).
 - Borrados o cargas masivas sobre tablas muy indexadas: por lotes (`DELETE TOP (n)` en loop) o por partición, nunca una sola transacción gigante.
 - Vale igual con EF Core (§15): el SQL que genera se analiza con el mismo plan.
 

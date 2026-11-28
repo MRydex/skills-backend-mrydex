@@ -33,7 +33,9 @@ Las reglas de la skill no cambian con EF: controllers delgados, handlers `intern
 - **Nada de EF Core 11 en un proyecto `net10.0`**: `FullJoin`, `MaxBy` / `MinBy` traducidos, `HasVectorIndex` y
   `ExcludeForeignKeyFromMigrations()` exigen SDK y runtime de .NET 11; no compilan ni corren en EF Core 10. EF Core 11
   además cambia el nivel de compatibilidad por defecto de `UseSqlServer` a 160 (SQL Server 2022): al migrar (solo con
-  pedido, [19](./19-migracion-dotnet.md)) se deja explícito el nivel del servidor real.
+  pedido, [19](./19-migracion-dotnet.md)) se deja explícito el nivel del servidor real. Con PostgreSQL vale lo mismo:
+  `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0 exige `net11.0` y EF Core 11; un proyecto `net10.0` sigue en la línea
+  10.0.x del provider.
 - EF Core 10 cambia SQL y conexión respecto de 8 y 9. Al subir de versión (solo con pedido, [19](./19-migracion-dotnet.md)):
   - **`Application Name` explícito** en la connection string si el repo mezcla EF con Dapper o ADO.NET, y una sola
     string para todos. EF 10 lo agrega cuando falta (no pisa el que está): con strings distintas SqlClient usa otro

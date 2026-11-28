@@ -612,7 +612,9 @@ function doctor(homeDir, repoRoot) {
     ['hook SessionStart', SIBLING_HOOK_MARKERS.some((marker) => JSON.stringify(settings.hooks?.SessionStart ?? []).includes(marker))],
     ['hooks de edición', EDIT_HOOKS.every(({ event, file }) => JSON.stringify(settings.hooks?.[event] ?? []).includes(file))],
     ['permissions.deny', Array.isArray(settings.permissions?.deny)],
-    ['MCP context7', runShell('claude mcp get context7', homeDir).ok],
+    // CLI de Claude Code roto o ausente: el MCP de usuario se lee de ~/.claude.json
+    ['MCP context7', runShell('claude mcp get context7', homeDir).ok
+      || Boolean(readClaudeSettings(path.join(homeDir, '.claude.json'))?.mcpServers?.context7)],
   ];
   const oldDirs = ['.claude', '.agents'].map((dir) => path.join(homeDir, dir, 'skills', OLD_SKILL_NAME)).filter(fs.existsSync);
   checks.push([`sin carpeta con el nombre anterior (${OLD_SKILL_NAME})`, oldDirs.length === 0]);
@@ -621,7 +623,7 @@ function doctor(homeDir, repoRoot) {
     const mark = ok ? colors.green + '✔' : colors.yellow + '✗';
     console.log(`  ${mark}${colors.reset} ${label}`);
   }
-  if (checks.some(([, ok]) => !ok)) console.log(`${colors.dim}Para completar: npx -y github:MRydex/skills-backend-mrydex${colors.reset}`);
+  if (checks.some(([, ok]) => !ok)) console.log(`${colors.dim}Para completar: npx -y --allow-git=root github:MRydex/skills-backend-mrydex${colors.reset}`);
 }
 // Subagentes y bloque global se escriben al final (finish): `graphify install` reescribe
 // ~/.claude/CLAUDE.md y borraría el bloque si corriera después. Los bloques que ya estaban (este, en una
@@ -1042,7 +1044,9 @@ function runShell(commandLine, cwd) {
 // puede dejarlos registrados sin descargar.
 function installClaudePlugins(homeDir) {
   if (!fs.existsSync(path.join(homeDir, '.claude'))) return;
-  if (!runShell('claude --version').ok) runNpmCli('npm', ['install', '-g', '@anthropic-ai/claude-code'], homeDir);
+  // npm 12 bloquea los scripts de instalación: sin el flag el postinstall no corre y `claude` falla con
+  // "claude native binary not installed". npm 10 y 11 aceptan el flag.
+  if (!runShell('claude --version').ok) runNpmCli('npm', ['install', '-g', '--allow-scripts=@anthropic-ai/claude-code', '@anthropic-ai/claude-code'], homeDir);
   else runShell('claude update', homeDir);
 
   if (!runShell('claude --version').ok) {
@@ -1206,7 +1210,7 @@ function configureAdvisor(settings, ownRoute) {
   }
   if (advisorArg) settings.advisorModel = advisorArg;
   if (settings.advisorModel) {
-    const warn = ownRoute ? `\n  ${colors.yellow}⚠${colors.reset} El advisor solo funciona con la API de Anthropic, no con Bedrock, Vertex ni Foundry` : '';
+    const warn = ownRoute ? `\n  ${colors.yellow}⚠${colors.reset} El advisor funciona con la API de Anthropic, Claude Platform on AWS y Claude Models on Google Cloud; no con Bedrock, Agent Platform ni Foundry. Si el plan cobra Fable con usage credits, correr /model fable antes` : '';
     return `  ${colors.green}✔${colors.reset} Claude Code: advisor ${settings.advisorModel} (se cobra al precio del advisor; el modelo lo consulta solo al orientarse, al trabarse y antes de terminar; quitar con --advisor off)${warn}`;
   }
   if (sessionIsFable) return `  ${colors.dim}Advisor: la sesión ya es Fable, un advisor del mismo nivel no suma${colors.reset}`;

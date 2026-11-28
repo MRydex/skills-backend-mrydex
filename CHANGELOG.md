@@ -1,7 +1,7 @@
 # Changelog
 
 Cambios de la skill `develop-back` (antes `desarrollo-backend-buenas-practicas`) y del instalador `skills-backend-mrydex`.
-Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
+Para actualizar en un proyecto: `npx -y --allow-git=root github:MRydex/skills-backend-mrydex`.
 
 ## [Unreleased]
 
@@ -71,6 +71,29 @@ Para actualizar en un proyecto: `npx github:MRydex/skills-backend-mrydex`.
     confirmado. `15`: nada de EF Core 11 en un proyecto `net10.0`.
   - `checklists.md`: ítems para lo anterior.
   - Sin verificar en este repaso: soporte de PostgreSQL 19 en Npgsql y versión vigente de Dapper.
+- Repaso del 28/11/2026 (se cierran los pendientes del 26 y 27/11 de `FUENTES.md`):
+  - `11` §11.8: CVE-2026-118741 y CVE-2026-70175 van en filas separadas, confirmados contra los avisos de
+    `dotnet/announcements` (#525 y #457). El primero es el de los templates de scaffolding de Identity; el segundo
+    afecta a `Microsoft.AspNetCore.Identity` / `Identity.UI` y se corrige con runtime 10.0.13 / 9.0.21 más la
+    reparación a mano del código generado.
+  - `11` §11.4: antigüedad mínima de publicación de NuGet (`minPublishAgeHours` y `<minPublishAgeExceptions>` en
+    `nuget.config`). Restore no la verifica: no reemplaza al lock file ni a NuGet Audit. Se propone, no se activa.
+  - `15`: `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0 exige `net11.0` y EF Core 11. `05` §5.4: las release notes
+    de Npgsql 11.0 no nombran PostgreSQL 19.
+  - Sin cambio en la skill: Dapper 2.1.100 y Dapper.AOT 1.1.0; Npgsql sin avisos de seguridad en 2026; .NET sigue en
+    10.0.15; skills externas, plugins, graphify (0.9.122), uv y el feed de Cloudflare sin cambios desde el 25/11.
+  - `11` §11.4: `Microsoft.Data.SqlClient` 8.0.0 (26/11/2026) es mayor nueva, sin sección de seguridad: el piso por línea
+    (6.1.8 / 7.0.4 / 7.1.2) no cambia y no se sube sin pedido; qué cambia por defecto si se sube. `05`: `HybridCache`
+    11.x es de .NET 11.
+  - Repasadas sin cambio: PostgreSQL (19.0, 18.7, 17.12, 16.16 y 15.20 siguen siendo las últimas), SQL Server 2025,
+    paquetes NuGet nombrados (`Microsoft.Extensions.Http.Polly` sigue deprecado), OWASP API Top 10 (2023 sigue siendo
+    la última), docs de agentes (Claude Code, Codex, Gemini CLI, Antigravity) y pipelines (tareas, SonarCloud, imágenes).
+  - README, `--doctor` y aviso de versión nueva: `npx --allow-git=root` (npm 12 rechaza el origen git por defecto,
+    `EALLOWGIT`).
+  - `bin/check.js --online`: usa `GITHUB_TOKEN` si está y distingue el límite de la API de GitHub de una skill rota.
+  - Instalador: `npm install -g` del CLI de Claude Code con `--allow-scripts` (npm 12 bloquea el postinstall y
+    `claude` quedaba sin binario nativo); `--doctor` lee context7 de `~/.claude.json` si el CLI no corre; aviso
+    del advisor igual al del paquete hermano.
 - Repaso del resto de `FUENTES.md` (25/11/2026), todas las filas con fecha:
   - `09` y `SKILL.md` §0: `Microsoft.Extensions.Http.Polly` está deprecado en nuget.org; el repo que lo usa lo
     mantiene, se reporta y se propone `Microsoft.Extensions.Http.Resilience`.
