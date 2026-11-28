@@ -89,7 +89,8 @@ Para actualizar en un proyecto: `npx -y --allow-git=root github:MRydex/skills-ba
     paquetes NuGet nombrados (`Microsoft.Extensions.Http.Polly` sigue deprecado), OWASP API Top 10 (2023 sigue siendo
     la última), docs de agentes (Claude Code, Codex, Gemini CLI, Antigravity) y pipelines (tareas, SonarCloud, imágenes).
   - README, `--doctor` y aviso de versión nueva: `npx --allow-git=root` (npm 12 rechaza el origen git por defecto,
-    `EALLOWGIT`).
+    `EALLOWGIT`); también el `npx` de caveman del instalador y de `14`. Tras `claude update`, si el CLI queda
+    sin binario, se reinstala.
   - `bin/check.js --online`: usa `GITHUB_TOKEN` si está y distingue el límite de la API de GitHub de una skill rota.
   - Instalador: `npm install -g` del CLI de Claude Code con `--allow-scripts` (npm 12 bloquea el postinstall y
     `claude` quedaba sin binario nativo); `--doctor` lee context7 de `~/.claude.json` si el CLI no corre; aviso
